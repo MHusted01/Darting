@@ -15,7 +15,7 @@ const tokenCache = {
   async saveToken(key: string, value: string) { return SecureStore.setItemAsync(key, value); },
 };
 
-const clerkKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const clerkKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
@@ -33,15 +33,6 @@ export default function RootLayout() {
       <View style={{ flex: 1, justifyContent: 'center' }}>
         <ActivityIndicator size="large" />
       </View>
-    );
-  }
-
-  // If no Clerk key, render without auth (for initial testing)
-  if (!clerkKey) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <Stack screenOptions={{ headerShown: false }} />
-      </QueryClientProvider>
     );
   }
 
