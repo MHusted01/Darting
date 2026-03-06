@@ -6,6 +6,7 @@ import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import migrations from '@/drizzle/migrations';
 import { db } from '@/db/client';
 import { ActivityIndicator, Text, View } from 'react-native';
+import '../global.css';
 
 const queryClient = new QueryClient();
 
