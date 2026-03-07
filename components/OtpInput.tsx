@@ -46,8 +46,9 @@ export default function OtpInput({ length = 6, onComplete }: OtpInputProps) {
       inputs.current[index + 1]?.focus();
     }
 
-    // Auto-submit when all filled
-    if (digit && newDigits.every((d) => d !== '')) {
+    // Auto-submit only when filling the last empty slot (not on corrections)
+    const hadEmpty = digits.some((d) => d === '');
+    if (digit && hadEmpty && newDigits.every((d) => d !== '')) {
       onComplete(newDigits.join(''));
     }
   };

@@ -25,9 +25,28 @@ export default function SignUp() {
   const [password, setPassword] = useState('');
   const [pendingVerification, setPendingVerification] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const onSignUp = async () => {
     if (!isLoaded || isSubmitting) return;
+
+    const trimmedFirst = firstName.trim();
+    const trimmedLast = lastName.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedFirst || !trimmedLast) {
+      Alert.alert('Error', 'Please enter your first and last name.');
+      return;
+    }
+    if (!trimmedEmail || !/\S+@\S+\.\S+/.test(trimmedEmail)) {
+      Alert.alert('Error', 'Please enter a valid email address.');
+      return;
+    }
+    if (!password) {
+      Alert.alert('Error', 'Please enter a password.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -54,7 +73,8 @@ export default function SignUp() {
   };
 
   const onVerify = async (code: string) => {
-    if (!isLoaded) return;
+    if (!isLoaded || isVerifying) return;
+    setIsVerifying(true);
 
     try {
       const result = await signUp.attemptEmailAddressVerification({ code });
@@ -77,6 +97,8 @@ export default function SignUp() {
         return;
       }
       Alert.alert('Error', err.errors?.[0]?.message ?? 'Something went wrong');
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -88,13 +110,19 @@ export default function SignUp() {
           We sent a verification code to {email}
         </Text>
 
-        <OtpInput onComplete={onVerify} />
+        <View className={isVerifying ? 'opacity-50' : ''} pointerEvents={isVerifying ? 'none' : 'auto'}>
+          <OtpInput onComplete={onVerify} />
+        </View>
 
-        <Pressable onPress={() => setPendingVerification(false)}>
-          <Text className="mt-6 text-center text-gray-500">
-            Go back
-          </Text>
-        </Pressable>
+        {isVerifying ? (
+          <Text className="mt-6 text-center text-gray-400">Verifying...</Text>
+        ) : (
+          <Pressable onPress={() => setPendingVerification(false)}>
+            <Text className="mt-6 text-center text-gray-500">
+              Go back
+            </Text>
+          </Pressable>
+        )}
       </View>
     );
   }

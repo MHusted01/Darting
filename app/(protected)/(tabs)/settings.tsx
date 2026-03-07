@@ -34,6 +34,9 @@ export default function Settings() {
       <Text className="text-3xl font-bold text-center mb-8">Settings</Text>
 
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={isSigningOut ? 'Signing out' : 'Sign out'}
+        accessibilityState={{ disabled: isSigningOut }}
         className={`border border-red-500 rounded-lg p-4 items-center active:opacity-70 ${isSigningOut ? 'opacity-50' : ''}`}
         onPress={handleSignOut}
         disabled={isSigningOut}
