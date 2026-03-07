@@ -2,6 +2,11 @@ import { View, Text } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { GAMES } from '@/constants/games';
 
+/**
+ * Display the detail screen for the game identified by the route `slug`, or a centered "Game not found" message if no match exists.
+ *
+ * @returns A JSX element showing the game's icon, name, description, and a "Game setup coming soon" note, or a centered not-found message when the slug does not match any game.
+ */
 export default function GameDetail() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const normalizedSlug = Array.isArray(slug) ? slug[0] : slug;
