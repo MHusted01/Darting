@@ -2,7 +2,20 @@ import { useSignIn } from '@clerk/clerk-expo';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Text, TextInput, Pressable, View, Alert } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import SsoButtons from '@/components/SsoButtons';
 
+WebBrowser.maybeCompleteAuthSession();
+
+/**
+ * Render the sign-in screen with email/password inputs, SSO buttons, and a link to sign up.
+ *
+ * Attempts to authenticate using the entered credentials; if authentication completes successfully
+ * the new session is activated and the router navigates to the protected tabs route. On failure,
+ * an alert is shown with the first available error message or a generic fallback.
+ *
+ * @returns The sign-in screen's JSX element.
+ */
 export default function SignIn() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const router = useRouter();
@@ -55,6 +68,8 @@ export default function SignIn() {
       >
         <Text className="text-white text-base font-semibold">Sign In</Text>
       </Pressable>
+
+      <SsoButtons />
 
       <Link href="/(public)/sign-up" asChild>
         <Pressable>

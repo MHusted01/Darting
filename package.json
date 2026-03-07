@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@clerk/clerk-expo": "^2.19.30",
+    "@expo/vector-icons": "^15.0.2",
     "@shopify/flash-list": "2.0.2",
     "@supabase/supabase-js": "^2.98.0",
     "@tanstack/react-query": "^5.90.21",
