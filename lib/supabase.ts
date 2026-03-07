@@ -33,7 +33,7 @@ export function createClerkSupabaseClient(
   return createClient(supabaseUrl, supabaseKey, {
     accessToken: async () => {
       const token = await getToken({ template: 'supabase' });
-      return token ?? '';
+      return token;
     },
   });
 }
