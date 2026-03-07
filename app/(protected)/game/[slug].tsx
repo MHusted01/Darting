@@ -4,7 +4,8 @@ import { GAMES } from '@/constants/games';
 
 export default function GameDetail() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const game = GAMES.find((g) => g.slug === slug);
+  const normalizedSlug = Array.isArray(slug) ? slug[0] : slug;
+  const game = GAMES.find((g) => g.slug === normalizedSlug);
 
   if (!game) {
     return (
