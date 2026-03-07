@@ -1,6 +1,13 @@
 import { View, Text, Pressable } from 'react-native';
 import type { DartGame } from '@/constants/games';
 
+/**
+ * Renders a pressable card displaying a game's icon, name, description, player count, and difficulty.
+ *
+ * @param game - Game data used to populate the card (icon, name, description, playerCount, difficulty).
+ * @param onPress - Callback invoked when the card is pressed.
+ * @returns The rendered pressable card element for the provided game.
+ */
 export function GameCard({ game, onPress }: { game: DartGame; onPress: () => void }) {
   const Icon = game.icon;
 
