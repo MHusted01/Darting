@@ -107,7 +107,7 @@ interface EmailAddress {
 }
 
 interface ClerkWebhookEvent {
-  type: string;
+  type: "user.created" | "user.updated" | "user.deleted";
   data: {
     id: string;
     first_name: string | null;
