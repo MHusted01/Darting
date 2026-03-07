@@ -3,14 +3,16 @@ import { createClient } from "@supabase/supabase-js";
 import { Webhook } from "svix";
 
 const webhookSecret = Deno.env.get("CLERK_WEBHOOK_SECRET");
+const supabaseUrl = Deno.env.get("SUPABASE_URL");
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  if (!webhookSecret) {
-    console.error("CLERK_WEBHOOK_SECRET is not set");
+  if (!webhookSecret || !supabaseUrl || !supabaseServiceKey) {
+    console.error("Missing required env vars: CLERK_WEBHOOK_SECRET, SUPABASE_URL, or SUPABASE_SERVICE_ROLE_KEY");
     return new Response("Server misconfigured", { status: 500 });
   }
 
@@ -39,10 +41,7 @@ Deno.serve(async (req) => {
   }
 
   // Service role client bypasses RLS
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   const { type, data } = event;
 
@@ -53,10 +52,15 @@ Deno.serve(async (req) => {
         (e: EmailAddress) => e.id === data.primary_email_address_id,
       );
 
+      if (!primaryEmail?.email_address) {
+        console.error(`No primary email for user ${data.id}, skipping`);
+        return new Response("Missing primary email", { status: 400 });
+      }
+
       const { error } = await supabase.from("users").upsert(
         {
           id: data.id,
-          email: primaryEmail?.email_address ?? "",
+          email: primaryEmail.email_address,
           first_name: data.first_name,
           last_name: data.last_name,
           avatar_url: data.image_url,

@@ -18,14 +18,8 @@ create policy "Users can read own data"
   for select
   using (id = auth.jwt() ->> 'sub');
 
--- Users can update their own row
-create policy "Users can update own data"
-  on public.users
-  for update
-  using (id = auth.jwt() ->> 'sub');
-
--- Only the webhook (service role) can insert/delete
--- No insert/delete policies for authenticated users
+-- Only the webhook (service role) can insert/update/delete
+-- All user data is Clerk-owned and synced via webhook
 
 -- Auto-update updated_at on row changes
 create or replace function public.handle_updated_at()
