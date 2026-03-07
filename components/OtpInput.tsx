@@ -72,6 +72,7 @@ export default function OtpInput({ length = 6, onComplete }: OtpInputProps) {
             onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
             keyboardType="number-pad"
             maxLength={index === 0 ? length : 1}
+            autoComplete={index === 0 ? 'one-time-code' : 'off'}
             selectTextOnFocus
           />
         </Pressable>

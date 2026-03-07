@@ -15,7 +15,11 @@ const tokenCache = {
   async saveToken(key: string, value: string) { return SecureStore.setItemAsync(key, value); },
 };
 
-const clerkKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+const clerkKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+if (!clerkKey) {
+  throw new Error('Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in environment variables');
+}
 
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
