@@ -15,6 +15,15 @@ type SocialButtonProps = {
   variant: 'light' | 'dark';
 };
 
+/**
+ * Renders a stylized social sign-in button showing an icon and a label.
+ *
+ * @param label - Text displayed on the button
+ * @param iconName - Icon identifier; expected `'google'` or `'apple'`
+ * @param onPress - Callback invoked when the button is pressed
+ * @param variant - Visual variant, `'light'` or `'dark'`, that controls colors and border
+ * @returns A pressable element containing the icon and label, accessible via an appropriate role/label and styled according to `variant`
+ */
 function SocialButton({
   label,
   iconName,
@@ -44,6 +53,15 @@ function SocialButton({
   );
 }
 
+/**
+ * Render social sign-in buttons for Google and Apple and manage their SSO flows.
+ *
+ * The component warms up browser resources, starts provider SSO flows when a button is pressed,
+ * activates the returned session on success, navigates to the protected tabs route, and shows
+ * an alert with a provider-specific title when the flow fails.
+ *
+ * @returns The React element containing the social SSO UI (divider and provider buttons).
+ */
 export default function SsoButtons() {
   useWarmUpBrowser();
   const router = useRouter();
