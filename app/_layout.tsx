@@ -1,14 +1,12 @@
 import { ClerkProvider, ClerkLoaded } from '@clerk/clerk-expo';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import migrations from '@/drizzle/migrations';
 import { db } from '@/db/client';
+import { SupabaseProvider } from '@/providers/SupabaseProvider';
 import { ActivityIndicator, Text, View } from 'react-native';
 import '../global.css';
-
-const queryClient = new QueryClient();
 
 const tokenCache = {
   async getToken(key: string) { return SecureStore.getItemAsync(key); },
@@ -24,7 +22,7 @@ if (!clerkKey) {
 /**
  * App root layout that performs database migrations and provides authentication and query contexts.
  *
- * Renders a centered error message if migrations fail, a full-screen loading indicator while migrations are in progress, or the application wrapped with ClerkProvider, ClerkLoaded, QueryClientProvider, and the navigation Stack after migrations succeed.
+ * Renders a centered error message if migrations fail, a full-screen loading indicator while migrations are in progress, or the application wrapped with ClerkProvider, ClerkLoaded, SupabaseProvider (which includes QueryClientProvider), and the navigation Stack after migrations succeed.
  *
  * @returns The root React element for the app layout described above.
  */
@@ -50,9 +48,9 @@ export default function RootLayout() {
   return (
     <ClerkProvider publishableKey={clerkKey} tokenCache={tokenCache}>
       <ClerkLoaded>
-        <QueryClientProvider client={queryClient}>
+        <SupabaseProvider>
           <Stack screenOptions={{ headerShown: false }} />
-        </QueryClientProvider>
+        </SupabaseProvider>
       </ClerkLoaded>
     </ClerkProvider>
   );
