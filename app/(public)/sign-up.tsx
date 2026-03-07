@@ -8,6 +8,13 @@ import SsoButtons from '@/components/SsoButtons';
 
 WebBrowser.maybeCompleteAuthSession();
 
+/**
+ * Renders the sign-up screen and manages account creation and email verification with Clerk.
+ *
+ * Creates a user from first name, last name, email, and password; if the sign-up completes immediately it activates the session and navigates to the protected area, otherwise it initiates an email-code verification flow and displays an OTP input. Errors are surfaced via alerts.
+ *
+ * @returns The sign-up UI as a React element.
+ */
 export default function SignUp() {
   const { signUp, setActive, isLoaded } = useSignUp();
   const router = useRouter();

@@ -3,6 +3,13 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
+/**
+ * Renders the Settings screen with a "Sign Out" action.
+ *
+ * Pressing "Sign Out" signs the current user out and navigates to the public sign-in route; if sign-out fails an alert with the error message is shown.
+ *
+ * @returns The Settings screen React element.
+ */
 export default function Settings() {
   const { signOut } = useAuth();
   const router = useRouter();

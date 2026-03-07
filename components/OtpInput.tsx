@@ -6,6 +6,13 @@ type OtpInputProps = {
   onComplete: (code: string) => void;
 };
 
+/**
+ * Renders a customizable multi-cell OTP input that manages digit entry, paste handling, focus navigation, and automatic completion.
+ *
+ * @param length - Number of digits in the OTP (defaults to 6).
+ * @param onComplete - Called with the full code string when all digits have been entered or pasted.
+ * @returns A row of text inputs representing each OTP digit, with automatic focus movement, paste support, and backspace navigation.
+ */
 export default function OtpInput({ length = 6, onComplete }: OtpInputProps) {
   const [digits, setDigits] = useState<string[]>(Array(length).fill(''));
   const inputs = useRef<(TextInput | null)[]>([]);

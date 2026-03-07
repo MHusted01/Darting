@@ -21,6 +21,13 @@ if (!clerkKey) {
   throw new Error('Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in environment variables');
 }
 
+/**
+ * App root layout that performs database migrations and provides authentication and query contexts.
+ *
+ * Renders a centered error message if migrations fail, a full-screen loading indicator while migrations are in progress, or the application wrapped with ClerkProvider, ClerkLoaded, QueryClientProvider, and the navigation Stack after migrations succeed.
+ *
+ * @returns The root React element for the app layout described above.
+ */
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
 

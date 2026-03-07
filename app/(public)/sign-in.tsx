@@ -7,6 +7,15 @@ import SsoButtons from '@/components/SsoButtons';
 
 WebBrowser.maybeCompleteAuthSession();
 
+/**
+ * Render the sign-in screen with email/password inputs, SSO buttons, and a link to sign up.
+ *
+ * Attempts to authenticate using the entered credentials; if authentication completes successfully
+ * the new session is activated and the router navigates to the protected tabs route. On failure,
+ * an alert is shown with the first available error message or a generic fallback.
+ *
+ * @returns The sign-in screen's JSX element.
+ */
 export default function SignIn() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const router = useRouter();
