@@ -91,7 +91,7 @@ export default function SsoButtons() {
         message = (error as any).errors[0].message;
       }
 
-      Alert.alert(`${provider} Sign In Failed`, message);
+      Alert.alert(`${provider} Authentication Failed`, message);
     }
   };
 

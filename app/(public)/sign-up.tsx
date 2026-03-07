@@ -24,9 +24,11 @@ export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [pendingVerification, setPendingVerification] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onSignUp = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || isSubmitting) return;
+    setIsSubmitting(true);
 
     try {
       await signUp.create({
@@ -46,6 +48,8 @@ export default function SignUp() {
       setPendingVerification(true);
     } catch (err: any) {
       Alert.alert('Error', err.errors?.[0]?.message ?? 'Something went wrong');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -132,10 +136,13 @@ export default function SignUp() {
       />
 
       <Pressable
-        className="bg-black rounded-lg p-4 items-center mt-2 active:opacity-70"
+        className={`bg-black rounded-lg p-4 items-center mt-2 active:opacity-70 ${isSubmitting ? 'opacity-50' : ''}`}
         onPress={onSignUp}
+        disabled={isSubmitting}
       >
-        <Text className="text-white text-base font-semibold">Sign Up</Text>
+        <Text className="text-white text-base font-semibold">
+          {isSubmitting ? 'Creating Account...' : 'Sign Up'}
+        </Text>
       </Pressable>
 
       <SsoButtons />
