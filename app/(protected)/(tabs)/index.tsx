@@ -5,6 +5,8 @@ import { GAME_SECTIONS } from '@/constants/games';
 import { GameCard } from '@/components/GameCard';
 import { GameSectionHeader } from '@/components/GameSectionHeader';
 
+const ItemSeparator = () => <View className="h-3" />;
+
 export default function Home() {
   const router = useRouter();
 
@@ -28,7 +30,7 @@ export default function Home() {
             onPress={() => router.push(`/game/${item.slug}`)}
           />
         )}
-        ItemSeparatorComponent={() => <View className="h-3" />}
+        ItemSeparatorComponent={ItemSeparator}
         stickySectionHeadersEnabled={false}
         showsVerticalScrollIndicator={false}
       />
