@@ -51,9 +51,9 @@ export default function SignUp() {
 
     try {
       await signUp.create({
-        firstName,
-        lastName,
-        emailAddress: email,
+        firstName: trimmedFirst,
+        lastName: trimmedLast,
+        emailAddress: trimmedEmail,
         password,
       });
 
