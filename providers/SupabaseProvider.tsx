@@ -1,5 +1,6 @@
 import { useAuth } from '@clerk/clerk-expo';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createContext, useContext, useMemo } from 'react';
 import { createClerkSupabaseClient } from '@/lib/supabase';
 
@@ -10,26 +11,30 @@ type SupabaseContextValue = {
 const SupabaseContext = createContext<SupabaseContextValue | null>(null);
 
 /**
- * Provides a Supabase client authenticated with the current Clerk session.
+ * Provides a Clerk-authenticated Supabase client and a user-scoped QueryClient.
  *
- * Creates a single Supabase client (stable across re-renders) whose requests
- * automatically include a fresh Clerk-issued JWT via a custom fetch wrapper.
- * The client is recreated only when the Clerk user ID changes (sign-in / sign-out).
+ * Both the Supabase client and the QueryClient are recreated when the Clerk
+ * user ID changes (sign-in / sign-out), preventing cached data from leaking
+ * between users.
  *
  * Must be rendered inside `<ClerkProvider>` / `<ClerkLoaded>`.
  *
- * @returns A context provider wrapping its children with the authenticated Supabase client.
+ * @returns A context provider wrapping its children with the authenticated
+ *   Supabase client and a fresh QueryClient scoped to the current user.
  */
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const { getToken, userId } = useAuth();
 
-  // Recreate the client when the user changes (sign-in / sign-out)
+  // Recreate both clients when the user changes (sign-in / sign-out)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const supabase = useMemo(() => createClerkSupabaseClient(getToken), [userId]);
+  const queryClient = useMemo(() => new QueryClient(), [userId]);
 
   return (
     <SupabaseContext.Provider value={{ supabase }}>
-      {children}
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
     </SupabaseContext.Provider>
   );
 }
