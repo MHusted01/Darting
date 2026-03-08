@@ -10,6 +10,7 @@
         "id": {
           "name": "id",
           "type": "integer",
+          "primaryKey": true,
           "notNull": true,
           "autoincrement": true
         },
