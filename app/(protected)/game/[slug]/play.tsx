@@ -231,7 +231,7 @@ export default function PlayScreen() {
   // -----------------------------------------------------------------------
   // Quit game
   // -----------------------------------------------------------------------
-  const handleQuit = () => {
+  const handleQuit = useCallback(() => {
     Alert.alert('Quit Game', 'Are you sure you want to abandon this game?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -247,7 +247,7 @@ export default function PlayScreen() {
         },
       },
     ]);
-  };
+  }, [gameState, router]);
 
   // -----------------------------------------------------------------------
   // Loading state
