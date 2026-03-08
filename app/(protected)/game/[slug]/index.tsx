@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { View, Text, Pressable, Switch, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { GAMES } from '@/constants/games';
+import { GAMES, AROUND_THE_CLOCK_SLUG } from '@/constants/games';
 import { db } from '@/db/client';
 import { players as playersTable, gameSessions, gamePlayers } from '@/db/schema';
 import {
@@ -17,6 +17,7 @@ export default function GameSetup() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const normalizedSlug = Array.isArray(slug) ? slug[0] : slug;
   const game = GAMES.find((g) => g.slug === normalizedSlug);
+  const isAroundTheClock = normalizedSlug === AROUND_THE_CLOCK_SLUG;
 
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
   const [includeBull, setIncludeBull] = useState(false);
@@ -44,6 +45,12 @@ export default function GameSetup() {
 
   const handleStartGame = async () => {
     if (selectedPlayers.length === 0 || isStarting) return;
+
+    if (!isAroundTheClock) {
+      Alert.alert('Not available yet', 'This game mode is not implemented yet.');
+      return;
+    }
+
     setIsStarting(true);
 
     try {
@@ -76,7 +83,7 @@ export default function GameSetup() {
       });
 
       router.push(`/game/${normalizedSlug}/play?sessionId=${session.id}`);
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to start game. Please try again.');
       setIsStarting(false);
     }
@@ -119,7 +126,7 @@ export default function GameSetup() {
       />
 
       {/* Game config */}
-      {normalizedSlug === 'around-the-clock' && (
+      {isAroundTheClock && (
         <View className="mt-6 border border-gray-200 rounded-xl p-4">
           <View className="flex-row items-center justify-between">
             <View className="flex-1 mr-4">

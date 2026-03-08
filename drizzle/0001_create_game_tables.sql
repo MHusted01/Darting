@@ -28,7 +28,7 @@ CREATE TABLE `game_players` (
 	`player_order` integer NOT NULL,
 	`current_score` integer DEFAULT 0 NOT NULL,
 	`game_state` text,
-	`is_winner` integer DEFAULT false NOT NULL
+	`is_winner` integer DEFAULT 0 NOT NULL
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `game_players_session_player_unique` ON `game_players` (`game_session_id`,`player_id`);--> statement-breakpoint

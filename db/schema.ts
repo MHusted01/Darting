@@ -79,7 +79,7 @@ export const gameTurns = sqliteTable(
       .references(() => gameSessions.id, { onDelete: 'cascade' }),
     playerId: integer('player_id')
       .notNull()
-      .references(() => players.id),
+      .references(() => players.id, { onDelete: 'restrict' }),
     roundNumber: integer('round_number').notNull(),
     darts: text('darts', { mode: 'json' }).notNull(),
     scoreDelta: integer('score_delta').notNull().default(0),

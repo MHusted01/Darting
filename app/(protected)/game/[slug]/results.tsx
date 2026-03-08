@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { eq, asc } from 'drizzle-orm';
 import { Trophy } from 'lucide-react-native';
 import { db } from '@/db/client';
-import { gameSessions, gamePlayers, gameTurns } from '@/db/schema';
-import { getMaxTarget } from '@/lib/games/around-the-clock';
-import type { AroundTheClockConfig } from '@/lib/games/around-the-clock';
-import type { AroundTheClockPlayerState } from '@/lib/games/around-the-clock';
+import { gameSessions, gamePlayers } from '@/db/schema';
+import {
+  getMaxTarget,
+  type AroundTheClockConfig,
+  type AroundTheClockPlayerState,
+} from '@/lib/games/around-the-clock';
 import type { DartThrow } from '@/types/game';
 
 // ---------------------------------------------------------------------------
@@ -40,66 +42,77 @@ export default function ResultsScreen() {
   const [results, setResults] = useState<PlayerResult[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadResults();
-  }, []);
+  const loadResults = useCallback(async () => {
+    setLoading(true);
 
-  const loadResults = async () => {
-    if (!sessionId) return;
-
-    const session = await db.query.gameSessions.findFirst({
-      where: eq(gameSessions.id, Number(sessionId)),
-      with: {
-        gamePlayers: {
-          with: { player: true },
-          orderBy: [asc(gamePlayers.playerOrder)],
-        },
-        gameTurns: true,
-      },
-    });
-
-    if (!session) return;
-
-    const config = session.config as AroundTheClockConfig;
-    const maxTarget = getMaxTarget(config);
-
-    const playerResults: PlayerResult[] = session.gamePlayers.map((gp) => {
-      const state = gp.gameState as AroundTheClockPlayerState;
-      const playerTurns = session.gameTurns.filter(
-        (t) => t.playerId === gp.playerId,
-      );
-
-      // Count hits across all turns
-      let totalDarts = 0;
-      let hits = 0;
-      for (const turn of playerTurns) {
-        const darts = turn.darts as DartThrow[];
-        totalDarts += darts.length;
-        hits += darts.filter((d) => d.segment > 0 && d.multiplier > 0).length;
+    try {
+      if (!sessionId) {
+        setResults([]);
+        return;
       }
 
-      return {
-        name: gp.player.name,
-        avatarColor: gp.player.avatarColor,
-        targetsHit: Math.min(state.currentTarget - 1, maxTarget),
-        maxTarget,
-        isWinner: gp.isWinner ?? false,
-        totalDarts,
-        hits,
-        turns: playerTurns.length,
-      };
-    });
+      const session = await db.query.gameSessions.findFirst({
+        where: eq(gameSessions.id, Number(sessionId)),
+        with: {
+          gamePlayers: {
+            with: { player: true },
+            orderBy: [asc(gamePlayers.playerOrder)],
+          },
+          gameTurns: true,
+        },
+      });
 
-    // Sort: winner first, then by most targets hit
-    playerResults.sort((a, b) => {
-      if (a.isWinner && !b.isWinner) return -1;
-      if (!a.isWinner && b.isWinner) return 1;
-      return b.targetsHit - a.targetsHit;
-    });
+      if (!session) {
+        setResults([]);
+        return;
+      }
 
-    setResults(playerResults);
-    setLoading(false);
-  };
+      const config = session.config as AroundTheClockConfig;
+      const maxTarget = getMaxTarget(config);
+
+      const playerResults: PlayerResult[] = session.gamePlayers.map((gp) => {
+        const state = gp.gameState as AroundTheClockPlayerState;
+        const playerTurns = session.gameTurns.filter(
+          (t) => t.playerId === gp.playerId,
+        );
+
+        // Count hits across all turns
+        let totalDarts = 0;
+        let hits = 0;
+        for (const turn of playerTurns) {
+          const darts = turn.darts as DartThrow[];
+          totalDarts += darts.length;
+          hits += darts.filter((d) => d.segment > 0 && d.multiplier > 0).length;
+        }
+
+        return {
+          name: gp.player.name,
+          avatarColor: gp.player.avatarColor,
+          targetsHit: Math.min(state.currentTarget - 1, maxTarget),
+          maxTarget,
+          isWinner: gp.isWinner ?? false,
+          totalDarts,
+          hits,
+          turns: playerTurns.length,
+        };
+      });
+
+      // Sort: winner first, then by most targets hit
+      playerResults.sort((a, b) => {
+        if (a.isWinner && !b.isWinner) return -1;
+        if (!a.isWinner && b.isWinner) return 1;
+        return b.targetsHit - a.targetsHit;
+      });
+
+      setResults(playerResults);
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    void loadResults();
+  }, [loadResults, slug, sessionId]);
 
   if (loading) {
     return (

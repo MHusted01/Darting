@@ -51,6 +51,7 @@ export default function PlayScreen() {
   }>();
 
   const [gameState, setGameState] = useState<GameState | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [turnDarts, setTurnDarts] = useState<DartThrow[]>([]);
   const [localTarget, setLocalTarget] = useState<number>(1);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -59,49 +60,61 @@ export default function PlayScreen() {
   // Load session from DB
   // -----------------------------------------------------------------------
   const loadSession = useCallback(async () => {
-    if (!sessionId) return;
+    setLoadError(null);
 
-    const session = await db.query.gameSessions.findFirst({
-      where: eq(gameSessions.id, Number(sessionId)),
-      with: {
-        gamePlayers: {
-          with: { player: true },
-          orderBy: [asc(gamePlayers.playerOrder)],
-        },
-      },
-    });
-
-    if (!session || session.status !== 'in_progress') {
-      router.back();
+    if (!sessionId) {
+      setGameState(null);
+      setLoadError('Missing game session.');
       return;
     }
 
-    const config = session.config as AroundTheClockConfig;
-    const loadedPlayers: LoadedPlayer[] = session.gamePlayers.map((gp) => ({
-      id: gp.id,
-      playerId: gp.playerId,
-      playerOrder: gp.playerOrder,
-      name: gp.player.name,
-      avatarColor: gp.player.avatarColor,
-      currentScore: gp.currentScore,
-      gameState: gp.gameState as AroundTheClockPlayerState,
-      isWinner: gp.isWinner ?? false,
-    }));
+    try {
+      const session = await db.query.gameSessions.findFirst({
+        where: eq(gameSessions.id, Number(sessionId)),
+        with: {
+          gamePlayers: {
+            with: { player: true },
+            orderBy: [asc(gamePlayers.playerOrder)],
+          },
+        },
+      });
 
-    setGameState({
-      sessionId: session.id,
-      gameSlug: session.gameSlug,
-      currentRound: session.currentRound,
-      currentPlayerIndex: session.currentPlayerIndex,
-      config,
-      players: loadedPlayers,
-    });
+      if (!session || session.status !== 'in_progress') {
+        setGameState(null);
+        setLoadError('This session is no longer active.');
+        return;
+      }
 
-    // Reset turn state for the new player
-    setTurnDarts([]);
-    const currentPlayer = loadedPlayers[session.currentPlayerIndex];
-    setLocalTarget(currentPlayer.gameState.currentTarget);
-  }, [sessionId, router]);
+      const config = session.config as AroundTheClockConfig;
+      const loadedPlayers: LoadedPlayer[] = session.gamePlayers.map((gp) => ({
+        id: gp.id,
+        playerId: gp.playerId,
+        playerOrder: gp.playerOrder,
+        name: gp.player.name,
+        avatarColor: gp.player.avatarColor,
+        currentScore: gp.currentScore,
+        gameState: gp.gameState as AroundTheClockPlayerState,
+        isWinner: gp.isWinner ?? false,
+      }));
+
+      setGameState({
+        sessionId: session.id,
+        gameSlug: session.gameSlug,
+        currentRound: session.currentRound,
+        currentPlayerIndex: session.currentPlayerIndex,
+        config,
+        players: loadedPlayers,
+      });
+
+      // Reset turn state for the new player
+      setTurnDarts([]);
+      const currentPlayer = loadedPlayers[session.currentPlayerIndex];
+      setLocalTarget(currentPlayer.gameState.currentTarget);
+    } catch {
+      setGameState(null);
+      setLoadError('Failed to load game session.');
+    }
+  }, [sessionId]);
 
   useEffect(() => {
     loadSession();
@@ -208,7 +221,7 @@ export default function PlayScreen() {
       } else {
         await loadSession();
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to record turn.');
     } finally {
       setIsProcessing(false);
@@ -239,6 +252,22 @@ export default function PlayScreen() {
   // -----------------------------------------------------------------------
   // Loading state
   // -----------------------------------------------------------------------
+  if (loadError) {
+    return (
+      <SafeAreaView className="flex-1 bg-white justify-center items-center px-6">
+        <Text className="text-base text-gray-500 text-center mb-4">{loadError}</Text>
+        <Pressable
+          onPress={() => router.replace('/(protected)/(tabs)')}
+          className="bg-black rounded-xl px-5 py-3"
+          accessibilityRole="button"
+          accessibilityLabel="Go back to games"
+        >
+          <Text className="text-white font-semibold">Back to games</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
+
   if (!gameState) {
     return (
       <SafeAreaView className="flex-1 bg-white justify-center items-center">
@@ -252,7 +281,6 @@ export default function PlayScreen() {
   // -----------------------------------------------------------------------
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const maxTarget = getMaxTarget(gameState.config);
-  const targetSegment = getTargetSegment(localTarget);
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
@@ -307,7 +335,6 @@ export default function PlayScreen() {
         {/* Dart input */}
         <AroundTheClockInput
           currentTarget={localTarget}
-          targetSegment={targetSegment}
           dartIndex={turnDarts.length}
           thrownDarts={turnDarts}
           onDartThrown={handleDartThrown}

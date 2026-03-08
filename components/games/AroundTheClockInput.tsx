@@ -1,6 +1,6 @@
 import { View, Text, Pressable } from 'react-native';
 import { Check, X } from 'lucide-react-native';
-import { getTargetLabel } from '@/lib/games/around-the-clock';
+import { getTargetLabel, getTargetSegment } from '@/lib/games/around-the-clock';
 import type { DartThrow } from '@/types/game';
 
 // ---------------------------------------------------------------------------
@@ -9,7 +9,6 @@ import type { DartThrow } from '@/types/game';
 
 interface AroundTheClockInputProps {
   currentTarget: number;
-  targetSegment: number;
   dartIndex: number; // 0, 1, or 2
   thrownDarts: DartThrow[]; // darts thrown so far this turn
   onDartThrown: (dart: DartThrow) => void;
@@ -22,12 +21,13 @@ interface AroundTheClockInputProps {
 
 export function AroundTheClockInput({
   currentTarget,
-  targetSegment,
   dartIndex,
   thrownDarts,
   onDartThrown,
   disabled = false,
 }: AroundTheClockInputProps) {
+  const targetSegment = getTargetSegment(currentTarget);
+
   const handleHit = () => {
     if (disabled) return;
     onDartThrown({ segment: targetSegment, multiplier: 1 });

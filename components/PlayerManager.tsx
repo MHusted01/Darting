@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList } from 'react-native';
+import { View, Text, TextInput, Pressable } from 'react-native';
 import { X, UserPlus } from 'lucide-react-native';
 
 // ---------------------------------------------------------------------------
