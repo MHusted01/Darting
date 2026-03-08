@@ -51,7 +51,7 @@ export const gamePlayers = sqliteTable(
       .references(() => gameSessions.id, { onDelete: 'cascade' }),
     playerId: integer('player_id')
       .notNull()
-      .references(() => players.id),
+      .references(() => players.id, { onDelete: 'restrict' }),
     playerOrder: integer('player_order').notNull(),
     currentScore: integer('current_score').notNull().default(0),
     gameState: text('game_state', { mode: 'json' }),

@@ -121,42 +121,9 @@ export default function PlayScreen() {
   }, [loadSession]);
 
   // -----------------------------------------------------------------------
-  // Dart handling
-  // -----------------------------------------------------------------------
-  const handleDartThrown = useCallback(
-    async (dart: DartThrow) => {
-      if (!gameState || isProcessing) return;
-
-      const newDarts = [...turnDarts, dart];
-      setTurnDarts(newDarts);
-
-      // Check if this dart was a hit — advance local target for real-time display
-      let newTarget = localTarget;
-      if (dart.segment === getTargetSegment(localTarget) && dart.multiplier > 0) {
-        newTarget = localTarget + 1;
-        setLocalTarget(newTarget);
-      }
-
-      const maxTarget = getMaxTarget(gameState.config);
-
-      // Game complete mid-turn?
-      if (newTarget > maxTarget) {
-        await completeTurn(newDarts, newTarget, true);
-        return;
-      }
-
-      // All 3 darts thrown?
-      if (newDarts.length === 3) {
-        await completeTurn(newDarts, newTarget, false);
-      }
-    },
-    [gameState, turnDarts, localTarget, isProcessing],
-  );
-
-  // -----------------------------------------------------------------------
   // Turn completion
   // -----------------------------------------------------------------------
-  const completeTurn = async (
+  const completeTurn = useCallback(async (
     darts: DartThrow[],
     finalTarget: number,
     isComplete: boolean,
@@ -226,7 +193,40 @@ export default function PlayScreen() {
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [gameState, loadSession, router, slug]);
+
+  // -----------------------------------------------------------------------
+  // Dart handling
+  // -----------------------------------------------------------------------
+  const handleDartThrown = useCallback(
+    async (dart: DartThrow) => {
+      if (!gameState || isProcessing) return;
+
+      const newDarts = [...turnDarts, dart];
+      setTurnDarts(newDarts);
+
+      // Check if this dart was a hit — advance local target for real-time display
+      let newTarget = localTarget;
+      if (dart.segment === getTargetSegment(localTarget) && dart.multiplier > 0) {
+        newTarget = localTarget + 1;
+        setLocalTarget(newTarget);
+      }
+
+      const maxTarget = getMaxTarget(gameState.config);
+
+      // Game complete mid-turn?
+      if (newTarget > maxTarget) {
+        await completeTurn(newDarts, newTarget, true);
+        return;
+      }
+
+      // All 3 darts thrown?
+      if (newDarts.length === 3) {
+        await completeTurn(newDarts, newTarget, false);
+      }
+    },
+    [completeTurn, gameState, turnDarts, localTarget, isProcessing],
+  );
 
   // -----------------------------------------------------------------------
   // Quit game
