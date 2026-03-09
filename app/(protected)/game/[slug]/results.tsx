@@ -131,13 +131,21 @@ export default function ResultsScreen() {
     );
   }
 
-  const winner = results.players.find((player) => player.isWinner);
-  const winnerName = winner?.name;
-  const winnerSubtitle = winner
-    ? results.type === 'atc'
-      ? `${winner.targetsHit}/${winner.maxTarget} in ${winner.turns} turns`
-      : `${winner.points} pts \u2022 ${winner.segmentsClosed}/7 closed`
-    : '';
+  const winnerName = results.players.find((player) => player.isWinner)?.name;
+  const winnerSubtitle =
+    results.type === 'atc'
+      ? (() => {
+          const winner = results.players.find((player) => player.isWinner);
+          return winner
+            ? `${winner.targetsHit}/${winner.maxTarget} in ${winner.turns} turns`
+            : '';
+        })()
+      : (() => {
+          const winner = results.players.find((player) => player.isWinner);
+          return winner
+            ? `${winner.points} pts \u2022 ${winner.segmentsClosed}/7 closed`
+            : '';
+        })();
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
