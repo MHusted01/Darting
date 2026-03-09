@@ -97,7 +97,12 @@ export function getMarksFromDart(dart: DartThrow): {
   segment: CricketSegment | null;
   marks: number;
 } {
-  if (dart.multiplier === 0 || dart.segment === 0) {
+  if (
+    !Number.isInteger(dart.multiplier) ||
+    dart.multiplier <= 0 ||
+    dart.multiplier > 3 ||
+    dart.segment === 0
+  ) {
     return { segment: null, marks: 0 };
   }
   if (!isCricketSegment(dart.segment)) {

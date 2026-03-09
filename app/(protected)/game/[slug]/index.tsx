@@ -75,7 +75,7 @@ export default function GameSetup() {
         : getCricketInitialState;
 
       const session = await db.transaction(async (tx) => {
-        const [session] = await tx
+        const [createdSession] = await tx
           .insert(gameSessions)
           .values({
             gameSlug: normalizedSlug,
@@ -89,7 +89,7 @@ export default function GameSetup() {
 
         for (let i = 0; i < selectedPlayers.length; i++) {
           await tx.insert(gamePlayers).values({
-            gameSessionId: session.id,
+            gameSessionId: createdSession.id,
             playerId: selectedPlayers[i].id,
             playerOrder: i,
             currentScore: 0,
@@ -97,11 +97,12 @@ export default function GameSetup() {
           });
         }
 
-        return session;
+        return createdSession;
       });
 
       router.push(`/game/${normalizedSlug}/play?sessionId=${session.id}`);
-    } catch {
+    } catch (error) {
+      console.error('Failed to start game session:', error);
       Alert.alert('Error', 'Failed to start game. Please try again.');
       setIsStarting(false);
     }
