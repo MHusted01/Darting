@@ -5,7 +5,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { eq, asc } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { gameSessions, gamePlayers, gameTurns } from '@/db/schema';
+import { AROUND_THE_CLOCK_SLUG, CRICKET_SLUG } from '@/constants/games';
 import { AroundTheClockInput } from '@/components/games/AroundTheClockInput';
+import { CricketInput } from '@/components/games/CricketInput';
+import { CricketScoreboard } from '@/components/games/CricketScoreboard';
 import {
   getTargetSegment,
   getTargetLabel,
@@ -13,6 +16,11 @@ import {
   type AroundTheClockConfig,
   type AroundTheClockPlayerState,
 } from '@/lib/games/around-the-clock';
+import {
+  processTurn as processCricketTurn,
+  type CricketConfig,
+  type CricketPlayerState,
+} from '@/lib/games/cricket';
 import type { DartThrow } from '@/types/game';
 
 // ---------------------------------------------------------------------------
@@ -26,7 +34,7 @@ interface LoadedPlayer {
   name: string;
   avatarColor: string;
   currentScore: number;
-  gameState: AroundTheClockPlayerState;
+  gameState: unknown;
   isWinner: boolean;
 }
 
@@ -35,7 +43,7 @@ interface GameState {
   gameSlug: string;
   currentRound: number;
   currentPlayerIndex: number;
-  config: AroundTheClockConfig;
+  config: unknown;
   players: LoadedPlayer[];
 }
 
@@ -53,8 +61,17 @@ export default function PlayScreen() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [turnDarts, setTurnDarts] = useState<DartThrow[]>([]);
-  const [localTarget, setLocalTarget] = useState<number>(1);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // ATC-specific local state
+  const [localTarget, setLocalTarget] = useState<number>(1);
+
+  // Cricket-specific local state
+  const [localCricketState, setLocalCricketState] =
+    useState<CricketPlayerState | null>(null);
+
+  const isAroundTheClock = gameState?.gameSlug === AROUND_THE_CLOCK_SLUG;
+  const isCricket = gameState?.gameSlug === CRICKET_SLUG;
 
   // -----------------------------------------------------------------------
   // Load session from DB
@@ -85,7 +102,6 @@ export default function PlayScreen() {
         return;
       }
 
-      const config = session.config as AroundTheClockConfig;
       const loadedPlayers: LoadedPlayer[] = session.gamePlayers.map((gp) => ({
         id: gp.id,
         playerId: gp.playerId,
@@ -93,7 +109,7 @@ export default function PlayScreen() {
         name: gp.player.name,
         avatarColor: gp.player.avatarColor,
         currentScore: gp.currentScore,
-        gameState: gp.gameState as AroundTheClockPlayerState,
+        gameState: gp.gameState,
         isWinner: gp.isWinner ?? false,
       }));
 
@@ -102,14 +118,21 @@ export default function PlayScreen() {
         gameSlug: session.gameSlug,
         currentRound: session.currentRound,
         currentPlayerIndex: session.currentPlayerIndex,
-        config,
+        config: session.config,
         players: loadedPlayers,
       });
 
       // Reset turn state for the new player
       setTurnDarts([]);
       const currentPlayer = loadedPlayers[session.currentPlayerIndex];
-      setLocalTarget(currentPlayer.gameState.currentTarget);
+
+      if (session.gameSlug === AROUND_THE_CLOCK_SLUG) {
+        const atcState = currentPlayer.gameState as AroundTheClockPlayerState;
+        setLocalTarget(atcState.currentTarget);
+        setLocalCricketState(null);
+      } else if (session.gameSlug === CRICKET_SLUG) {
+        setLocalCricketState(currentPlayer.gameState as CricketPlayerState);
+      }
     } catch {
       setGameState(null);
       setLoadError('Failed to load game session.');
@@ -121,111 +144,198 @@ export default function PlayScreen() {
   }, [loadSession]);
 
   // -----------------------------------------------------------------------
-  // Turn completion
+  // Turn completion — shared logic
   // -----------------------------------------------------------------------
-  const completeTurn = useCallback(async (
-    darts: DartThrow[],
-    finalTarget: number,
-    isComplete: boolean,
-  ) => {
-    if (!gameState) return;
-    setIsProcessing(true);
+  const finishTurn = useCallback(
+    async (
+      darts: DartThrow[],
+      scoreDelta: number,
+      newPlayerState: unknown,
+      newScore: number,
+      isComplete: boolean,
+      winnerPlayerId?: number,
+    ) => {
+      if (!gameState) return;
+      setIsProcessing(true);
 
-    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-    const startTarget = currentPlayer.gameState.currentTarget;
-    const scoreDelta = finalTarget - startTarget;
+      const currentPlayer = gameState.players[gameState.currentPlayerIndex];
 
-    try {
-      await db.transaction(async (tx) => {
-        // 1. Insert turn
-        await tx.insert(gameTurns).values({
-          gameSessionId: gameState.sessionId,
-          playerId: currentPlayer.playerId,
-          roundNumber: gameState.currentRound,
-          darts,
-          scoreDelta,
+      try {
+        await db.transaction(async (tx) => {
+          // 1. Insert turn
+          await tx.insert(gameTurns).values({
+            gameSessionId: gameState.sessionId,
+            playerId: currentPlayer.playerId,
+            roundNumber: gameState.currentRound,
+            darts,
+            scoreDelta,
+          });
+
+          // 2. Update current player state
+          await tx
+            .update(gamePlayers)
+            .set({
+              currentScore: newScore,
+              gameState: newPlayerState as Record<string, unknown>,
+              isWinner:
+                isComplete && (winnerPlayerId ?? currentPlayer.id) === currentPlayer.id,
+            })
+            .where(eq(gamePlayers.id, currentPlayer.id));
+
+          // 3. If a different player won (Cricket edge case)
+          if (
+            isComplete &&
+            winnerPlayerId !== undefined &&
+            winnerPlayerId !== currentPlayer.id
+          ) {
+            await tx
+              .update(gamePlayers)
+              .set({ isWinner: true })
+              .where(eq(gamePlayers.id, winnerPlayerId));
+          }
+
+          // 4. Update session
+          if (isComplete) {
+            await tx
+              .update(gameSessions)
+              .set({ status: 'completed', completedAt: new Date() })
+              .where(eq(gameSessions.id, gameState.sessionId));
+          } else {
+            const playerCount = gameState.players.length;
+            const nextIdx =
+              (gameState.currentPlayerIndex + 1) % playerCount;
+            const nextRound =
+              nextIdx === 0
+                ? gameState.currentRound + 1
+                : gameState.currentRound;
+
+            await tx
+              .update(gameSessions)
+              .set({
+                currentPlayerIndex: nextIdx,
+                currentRound: nextRound,
+              })
+              .where(eq(gameSessions.id, gameState.sessionId));
+          }
         });
 
-        // 2. Update player state
-        await tx
-          .update(gamePlayers)
-          .set({
-            currentScore: currentPlayer.currentScore + scoreDelta,
-            gameState: { currentTarget: finalTarget } satisfies AroundTheClockPlayerState,
-            isWinner: isComplete,
-          })
-          .where(eq(gamePlayers.id, currentPlayer.id));
-
-        // 3. Update session
         if (isComplete) {
-          await tx
-            .update(gameSessions)
-            .set({ status: 'completed', completedAt: new Date() })
-            .where(eq(gameSessions.id, gameState.sessionId));
+          router.replace(
+            `/game/${slug}/results?sessionId=${gameState.sessionId}`,
+          );
         } else {
-          const playerCount = gameState.players.length;
-          const nextIdx =
-            (gameState.currentPlayerIndex + 1) % playerCount;
-          const nextRound =
-            nextIdx === 0
-              ? gameState.currentRound + 1
-              : gameState.currentRound;
-
-          await tx
-            .update(gameSessions)
-            .set({
-              currentPlayerIndex: nextIdx,
-              currentRound: nextRound,
-            })
-            .where(eq(gameSessions.id, gameState.sessionId));
+          await loadSession();
         }
-      });
-
-      if (isComplete) {
-        router.replace(
-          `/game/${slug}/results?sessionId=${gameState.sessionId}`,
-        );
-      } else {
-        await loadSession();
+      } catch {
+        Alert.alert('Error', 'Failed to record turn.');
+      } finally {
+        setIsProcessing(false);
       }
-    } catch {
-      Alert.alert('Error', 'Failed to record turn.');
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [gameState, loadSession, router, slug]);
+    },
+    [gameState, loadSession, router, slug],
+  );
 
   // -----------------------------------------------------------------------
-  // Dart handling
+  // ATC dart handling
   // -----------------------------------------------------------------------
-  const handleDartThrown = useCallback(
+  const handleATCDartThrown = useCallback(
     async (dart: DartThrow) => {
       if (!gameState || isProcessing) return;
 
       const newDarts = [...turnDarts, dart];
       setTurnDarts(newDarts);
 
-      // Check if this dart was a hit — advance local target for real-time display
       let newTarget = localTarget;
       if (dart.segment === getTargetSegment(localTarget) && dart.multiplier > 0) {
         newTarget = localTarget + 1;
         setLocalTarget(newTarget);
       }
 
-      const maxTarget = getMaxTarget(gameState.config);
+      const config = gameState.config as AroundTheClockConfig;
+      const maxTarget = getMaxTarget(config);
+      const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+      const startTarget = (currentPlayer.gameState as AroundTheClockPlayerState)
+        .currentTarget;
 
-      // Game complete mid-turn?
       if (newTarget > maxTarget) {
-        await completeTurn(newDarts, newTarget, true);
+        await finishTurn(
+          newDarts,
+          newTarget - startTarget,
+          { currentTarget: newTarget } satisfies AroundTheClockPlayerState,
+          currentPlayer.currentScore + (newTarget - startTarget),
+          true,
+        );
         return;
       }
 
-      // All 3 darts thrown?
       if (newDarts.length === 3) {
-        await completeTurn(newDarts, newTarget, false);
+        await finishTurn(
+          newDarts,
+          newTarget - startTarget,
+          { currentTarget: newTarget } satisfies AroundTheClockPlayerState,
+          currentPlayer.currentScore + (newTarget - startTarget),
+          false,
+        );
       }
     },
-    [completeTurn, gameState, turnDarts, localTarget, isProcessing],
+    [finishTurn, gameState, turnDarts, localTarget, isProcessing],
+  );
+
+  // -----------------------------------------------------------------------
+  // Cricket dart handling
+  // -----------------------------------------------------------------------
+  const handleCricketDartThrown = useCallback(
+    async (dart: DartThrow) => {
+      if (!gameState || isProcessing) return;
+
+      const newDarts = [...turnDarts, dart];
+      setTurnDarts(newDarts);
+
+      const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+      const startState = currentPlayer.gameState as CricketPlayerState;
+      const config = gameState.config as CricketConfig;
+
+      // Process ALL darts so far against original state (idempotent)
+      const allPlayerStates = gameState.players.map(
+        (p) => p.gameState as CricketPlayerState,
+      );
+      const result = processCricketTurn(
+        newDarts,
+        startState,
+        allPlayerStates,
+        gameState.currentPlayerIndex,
+        config,
+      );
+
+      setLocalCricketState(result.newState);
+
+      if (result.isComplete) {
+        const winnerId =
+          result.winnerIndex !== null
+            ? gameState.players[result.winnerIndex].id
+            : currentPlayer.id;
+        await finishTurn(
+          newDarts,
+          result.scoreDelta,
+          result.newState,
+          result.newState.points,
+          true,
+          winnerId,
+        );
+        return;
+      }
+
+      if (newDarts.length === 3) {
+        await finishTurn(
+          newDarts,
+          result.scoreDelta,
+          result.newState,
+          result.newState.points,
+          false,
+        );
+      }
+    },
+    [finishTurn, gameState, turnDarts, isProcessing],
   );
 
   // -----------------------------------------------------------------------
@@ -280,7 +390,6 @@ export default function PlayScreen() {
   // Render
   // -----------------------------------------------------------------------
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-  const maxTarget = getMaxTarget(gameState.config);
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
@@ -319,74 +428,131 @@ export default function PlayScreen() {
           </Text>
         </View>
 
-        {/* Target display */}
-        <View className="items-center mb-8">
-          <Text className="text-sm text-gray-500 mb-1">Target</Text>
-          <Text className="text-7xl font-bold text-black">
-            {localTarget > maxTarget ? '✓' : getTargetLabel(localTarget)}
-          </Text>
-          {localTarget <= maxTarget && (
-            <Text className="text-sm text-gray-400 mt-1">
-              {localTarget} of {maxTarget}
+        {/* ATC: Target display */}
+        {isAroundTheClock && (() => {
+          const config = gameState.config as AroundTheClockConfig;
+          const maxTarget = getMaxTarget(config);
+          return (
+            <View className="items-center mb-8">
+              <Text className="text-sm text-gray-500 mb-1">Target</Text>
+              <Text className="text-7xl font-bold text-black">
+                {localTarget > maxTarget ? '\u2713' : getTargetLabel(localTarget)}
+              </Text>
+              {localTarget <= maxTarget && (
+                <Text className="text-sm text-gray-400 mt-1">
+                  {localTarget} of {maxTarget}
+                </Text>
+              )}
+            </View>
+          );
+        })()}
+
+        {/* Cricket: Live points */}
+        {isCricket && localCricketState && (
+          <View className="items-center mb-6">
+            <Text className="text-sm text-gray-500 mb-1">Points</Text>
+            <Text className="text-5xl font-bold text-black">
+              {localCricketState.points}
             </Text>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* Dart input */}
-        <AroundTheClockInput
-          currentTarget={localTarget}
-          dartIndex={turnDarts.length}
-          thrownDarts={turnDarts}
-          onDartThrown={handleDartThrown}
-          disabled={isProcessing || localTarget > maxTarget}
-        />
+        {isAroundTheClock && (
+          <AroundTheClockInput
+            currentTarget={localTarget}
+            dartIndex={turnDarts.length}
+            thrownDarts={turnDarts}
+            onDartThrown={handleATCDartThrown}
+            disabled={
+              isProcessing ||
+              localTarget > getMaxTarget(gameState.config as AroundTheClockConfig)
+            }
+          />
+        )}
 
-        {/* Scoreboard */}
-        <View className="mt-8">
-          <Text className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">
-            Scoreboard
-          </Text>
-          {gameState.players.map((player) => {
-            const isCurrent = player.id === currentPlayer.id;
-            const playerTarget =
-              isCurrent && localTarget !== player.gameState.currentTarget
-                ? localTarget
-                : player.gameState.currentTarget;
-            const isFinished = playerTarget > maxTarget;
+        {isCricket && (
+          <CricketInput
+            dartIndex={turnDarts.length}
+            thrownDarts={turnDarts}
+            onDartThrown={handleCricketDartThrown}
+            disabled={isProcessing}
+          />
+        )}
 
-            return (
-              <View
-                key={player.id}
-                className={`flex-row items-center py-3 px-3 rounded-lg mb-1 ${
-                  isCurrent ? 'bg-gray-100' : ''
-                }`}
-              >
-                <View
-                  className="w-6 h-6 rounded-full mr-3"
-                  style={{ backgroundColor: player.avatarColor }}
-                />
-                <Text
-                  className={`flex-1 text-base ${
-                    isCurrent ? 'font-bold text-black' : 'text-gray-700'
-                  }`}
-                >
-                  {player.name}
-                </Text>
-                <Text
-                  className={`text-sm ${
-                    isFinished
-                      ? 'text-emerald-600 font-bold'
-                      : 'text-gray-500'
-                  }`}
-                >
-                  {isFinished
-                    ? 'Done!'
-                    : `${playerTarget - 1}/${maxTarget}`}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
+        {/* ATC Scoreboard */}
+        {isAroundTheClock && (() => {
+          const config = gameState.config as AroundTheClockConfig;
+          const maxTarget = getMaxTarget(config);
+          return (
+            <View className="mt-8">
+              <Text className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">
+                Scoreboard
+              </Text>
+              {gameState.players.map((player) => {
+                const atcState = player.gameState as AroundTheClockPlayerState;
+                const isCurrent = player.id === currentPlayer.id;
+                const playerTarget =
+                  isCurrent && localTarget !== atcState.currentTarget
+                    ? localTarget
+                    : atcState.currentTarget;
+                const isFinished = playerTarget > maxTarget;
+
+                return (
+                  <View
+                    key={player.id}
+                    className={`flex-row items-center py-3 px-3 rounded-lg mb-1 ${
+                      isCurrent ? 'bg-gray-100' : ''
+                    }`}
+                  >
+                    <View
+                      className="w-6 h-6 rounded-full mr-3"
+                      style={{ backgroundColor: player.avatarColor }}
+                    />
+                    <Text
+                      className={`flex-1 text-base ${
+                        isCurrent ? 'font-bold text-black' : 'text-gray-700'
+                      }`}
+                    >
+                      {player.name}
+                    </Text>
+                    <Text
+                      className={`text-sm ${
+                        isFinished
+                          ? 'text-emerald-600 font-bold'
+                          : 'text-gray-500'
+                      }`}
+                    >
+                      {isFinished
+                        ? 'Done!'
+                        : `${playerTarget - 1}/${maxTarget}`}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          );
+        })()}
+
+        {/* Cricket Scoreboard */}
+        {isCricket && localCricketState && (
+          <CricketScoreboard
+            players={gameState.players.map((player, i) => {
+              const isCurrent = i === gameState.currentPlayerIndex;
+              const state = isCurrent
+                ? localCricketState
+                : (player.gameState as CricketPlayerState);
+              return {
+                name: player.name,
+                avatarColor: player.avatarColor,
+                marks: state.marks,
+                points: state.points,
+                isCurrent,
+              };
+            })}
+            currentPlayerIndex={gameState.currentPlayerIndex}
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );

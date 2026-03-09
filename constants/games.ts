@@ -30,10 +30,11 @@ export interface GameSection {
 }
 
 export const AROUND_THE_CLOCK_SLUG = 'around-the-clock';
+export const CRICKET_SLUG = 'cricket';
 
 export const GAMES: DartGame[] = [
   {
-    slug: 'cricket',
+    slug: CRICKET_SLUG,
     name: 'Cricket',
     description: 'Close 15 through 20 and the Bull. Tactical and competitive.',
     icon: Crosshair,

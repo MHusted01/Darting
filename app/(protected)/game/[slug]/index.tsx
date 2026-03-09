@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { View, Text, Pressable, Switch, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { GAMES, AROUND_THE_CLOCK_SLUG } from '@/constants/games';
+import { GAMES, AROUND_THE_CLOCK_SLUG, CRICKET_SLUG } from '@/constants/games';
 import { db } from '@/db/client';
 import { players as playersTable, gameSessions, gamePlayers } from '@/db/schema';
 import {
@@ -9,8 +9,10 @@ import {
   getNextAvatarColor,
   type Player,
 } from '@/components/PlayerManager';
-import { getInitialPlayerState } from '@/lib/games/around-the-clock';
+import { getInitialPlayerState as getATCInitialState } from '@/lib/games/around-the-clock';
 import type { AroundTheClockConfig } from '@/lib/games/around-the-clock';
+import { getInitialPlayerState as getCricketInitialState } from '@/lib/games/cricket';
+import type { CricketConfig } from '@/lib/games/cricket';
 
 export default function GameSetup() {
   const router = useRouter();
@@ -18,6 +20,7 @@ export default function GameSetup() {
   const normalizedSlug = Array.isArray(slug) ? slug[0] : slug;
   const game = GAMES.find((g) => g.slug === normalizedSlug);
   const isAroundTheClock = normalizedSlug === AROUND_THE_CLOCK_SLUG;
+  const isCricket = normalizedSlug === CRICKET_SLUG;
 
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
   const [includeBull, setIncludeBull] = useState(false);
@@ -43,10 +46,12 @@ export default function GameSetup() {
     setSelectedPlayers((prev) => prev.filter((p) => p.id !== playerId));
   }, []);
 
-  const handleStartGame = async () => {
-    if (selectedPlayers.length === 0 || isStarting) return;
+  const minPlayers = isCricket ? 2 : 1;
 
-    if (!isAroundTheClock) {
+  const handleStartGame = async () => {
+    if (selectedPlayers.length < minPlayers || isStarting) return;
+
+    if (!isAroundTheClock && !isCricket) {
       Alert.alert('Not available yet', 'This game mode is not implemented yet.');
       return;
     }
@@ -54,7 +59,13 @@ export default function GameSetup() {
     setIsStarting(true);
 
     try {
-      const config: AroundTheClockConfig = { includeBull };
+      const config = isAroundTheClock
+        ? ({ includeBull } satisfies AroundTheClockConfig)
+        : ({ variant: 'standard' } satisfies CricketConfig);
+
+      const getInitialState = isAroundTheClock
+        ? getATCInitialState
+        : getCricketInitialState;
 
       const session = await db.transaction(async (tx) => {
         const [session] = await tx
@@ -75,7 +86,7 @@ export default function GameSetup() {
             playerId: selectedPlayers[i].id,
             playerOrder: i,
             currentScore: 0,
-            gameState: getInitialPlayerState(),
+            gameState: getInitialState(),
           });
         }
 
@@ -98,7 +109,7 @@ export default function GameSetup() {
   }
 
   const Icon = game.icon;
-  const canStart = selectedPlayers.length >= 1 && !isStarting;
+  const canStart = selectedPlayers.length >= minPlayers && !isStarting;
 
   return (
     <ScrollView
@@ -122,7 +133,7 @@ export default function GameSetup() {
         players={selectedPlayers}
         onAddPlayer={handleAddPlayer}
         onRemovePlayer={handleRemovePlayer}
-        minPlayers={1}
+        minPlayers={minPlayers}
       />
 
       {/* Game config */}
@@ -145,6 +156,19 @@ export default function GameSetup() {
               accessibilityLabel="Include bull as target 21"
             />
           </View>
+        </View>
+      )}
+
+      {/* Cricket config */}
+      {isCricket && (
+        <View className="mt-6 border border-gray-200 rounded-xl p-4">
+          <Text className="text-base font-semibold text-black">
+            Standard Cricket
+          </Text>
+          <Text className="text-sm text-gray-500 mt-1">
+            Close 15–20 and Bull. Score points on segments your opponents
+            haven't closed.
+          </Text>
         </View>
       )}
 
