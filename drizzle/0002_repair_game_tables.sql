@@ -1,5 +1,4 @@
-DROP TABLE IF EXISTS `users`;--> statement-breakpoint
-CREATE TABLE `players` (
+CREATE TABLE IF NOT EXISTS `players` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text NOT NULL,
 	`user_id` text,
@@ -8,8 +7,9 @@ CREATE TABLE `players` (
 	`updated_at` integer DEFAULT (unixepoch()) NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `players_user_id_unique` ON `players` (`user_id`);--> statement-breakpoint
-CREATE TABLE `game_sessions` (
+CREATE UNIQUE INDEX IF NOT EXISTS `players_user_id_unique` ON `players` (`user_id`);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `game_sessions` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`game_slug` text NOT NULL,
 	`status` text DEFAULT 'setup' NOT NULL,
@@ -21,20 +21,23 @@ CREATE TABLE `game_sessions` (
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE `game_players` (
+CREATE TABLE IF NOT EXISTS `game_players` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`game_session_id` integer NOT NULL REFERENCES `game_sessions`(`id`) ON DELETE cascade,
 	`player_id` integer NOT NULL REFERENCES `players`(`id`),
 	`player_order` integer NOT NULL,
 	`current_score` integer DEFAULT 0 NOT NULL,
 	`game_state` text,
-	`is_winner` integer DEFAULT 0 NOT NULL
+	`is_winner` integer DEFAULT false NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `game_players_session_player_unique` ON `game_players` (`game_session_id`,`player_id`);--> statement-breakpoint
-CREATE UNIQUE INDEX `game_players_session_order_unique` ON `game_players` (`game_session_id`,`player_order`);--> statement-breakpoint
-CREATE INDEX `game_players_player_id_idx` ON `game_players` (`player_id`);--> statement-breakpoint
-CREATE TABLE `game_turns` (
+CREATE UNIQUE INDEX IF NOT EXISTS `game_players_session_player_unique` ON `game_players` (`game_session_id`,`player_id`);
+--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS `game_players_session_order_unique` ON `game_players` (`game_session_id`,`player_order`);
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS `game_players_player_id_idx` ON `game_players` (`player_id`);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `game_turns` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`game_session_id` integer NOT NULL REFERENCES `game_sessions`(`id`) ON DELETE cascade,
 	`player_id` integer NOT NULL REFERENCES `players`(`id`),
@@ -44,5 +47,6 @@ CREATE TABLE `game_turns` (
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL
 );
 --> statement-breakpoint
-CREATE INDEX `game_turns_session_round_idx` ON `game_turns` (`game_session_id`,`round_number`);--> statement-breakpoint
-CREATE INDEX `game_turns_player_id_idx` ON `game_turns` (`player_id`);
+CREATE INDEX IF NOT EXISTS `game_turns_session_round_idx` ON `game_turns` (`game_session_id`,`round_number`);
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS `game_turns_player_id_idx` ON `game_turns` (`player_id`);

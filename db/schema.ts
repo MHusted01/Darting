@@ -7,15 +7,12 @@ import {
 } from 'drizzle-orm/sqlite-core';
 import { relations, sql } from 'drizzle-orm';
 
-// ---------------------------------------------------------------------------
-// Players — local player profiles (couch players + optionally linked accounts)
-// ---------------------------------------------------------------------------
 export const players = sqliteTable(
   'players',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     name: text('name').notNull(),
-    userId: text('user_id'), // nullable — links to Clerk user ID for future club sync
+    userId: text('user_id'),
     avatarColor: text('avatar_color').notNull().default('#6366f1'),
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()
@@ -27,9 +24,6 @@ export const players = sqliteTable(
   (table) => [uniqueIndex('players_user_id_unique').on(table.userId)],
 );
 
-// ---------------------------------------------------------------------------
-// Game Sessions — each game played
-// ---------------------------------------------------------------------------
 export const gameSessions = sqliteTable('game_sessions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   gameSlug: text('game_slug').notNull(),
@@ -48,9 +42,6 @@ export const gameSessions = sqliteTable('game_sessions', {
     .default(sql`(unixepoch())`),
 });
 
-// ---------------------------------------------------------------------------
-// Game Players — players in a session (join table with per-player game state)
-// ---------------------------------------------------------------------------
 export const gamePlayers = sqliteTable(
   'game_players',
   {
@@ -60,7 +51,7 @@ export const gamePlayers = sqliteTable(
       .references(() => gameSessions.id, { onDelete: 'cascade' }),
     playerId: integer('player_id')
       .notNull()
-      .references(() => players.id),
+      .references(() => players.id, { onDelete: 'restrict' }),
     playerOrder: integer('player_order').notNull(),
     currentScore: integer('current_score').notNull().default(0),
     gameState: text('game_state', { mode: 'json' }),
@@ -79,9 +70,6 @@ export const gamePlayers = sqliteTable(
   ],
 );
 
-// ---------------------------------------------------------------------------
-// Game Turns — individual turns (one player's throw in a round)
-// ---------------------------------------------------------------------------
 export const gameTurns = sqliteTable(
   'game_turns',
   {
@@ -91,7 +79,7 @@ export const gameTurns = sqliteTable(
       .references(() => gameSessions.id, { onDelete: 'cascade' }),
     playerId: integer('player_id')
       .notNull()
-      .references(() => players.id),
+      .references(() => players.id, { onDelete: 'restrict' }),
     roundNumber: integer('round_number').notNull(),
     darts: text('darts', { mode: 'json' }).notNull(),
     scoreDelta: integer('score_delta').notNull().default(0),
@@ -108,9 +96,6 @@ export const gameTurns = sqliteTable(
   ],
 );
 
-// ---------------------------------------------------------------------------
-// Drizzle Relations — enables relational query API
-// ---------------------------------------------------------------------------
 export const playersRelations = relations(players, ({ many }) => ({
   gamePlayers: many(gamePlayers),
   gameTurns: many(gameTurns),

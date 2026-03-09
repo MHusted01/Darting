@@ -29,6 +29,8 @@ export interface GameSection {
   data: DartGame[];
 }
 
+export const AROUND_THE_CLOCK_SLUG = 'around-the-clock';
+
 export const GAMES: DartGame[] = [
   {
     slug: 'cricket',
@@ -40,7 +42,7 @@ export const GAMES: DartGame[] = [
     category: 'Classic',
   },
   {
-    slug: 'around-the-clock',
+    slug: AROUND_THE_CLOCK_SLUG,
     name: 'Around the Clock',
     description: 'Hit 1 through 20 in order. Perfect for beginners.',
     icon: RotateCw,
