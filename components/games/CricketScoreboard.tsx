@@ -25,7 +25,18 @@ interface CricketScoreboardProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Traditional Cricket mark display: /, X, circled */
+/**
+ * Render a visual mark for a cricket segment based on the provided count.
+ *
+ * Displays:
+ * - 0: empty spacer
+ * - 1: `/`
+ * - 2: `X`
+ * - 3 or more: circular badge with `X`
+ *
+ * @param count - Number of marks recorded for the segment
+ * @returns A React element representing the mark for `count`
+ */
 function MarkSymbol({ count }: { count: number }) {
   if (count === 0) {
     return <View className="h-6" />;
@@ -54,6 +65,17 @@ const HEADER_ROW_HEIGHT = 64;
 const SEGMENT_ROW_HEIGHT = 44;
 const FOOTER_ROW_HEIGHT = 40;
 
+/**
+ * Render a cricket-style scoreboard with a fixed left column of segments and horizontally scrollable player columns.
+ *
+ * Displays segment labels (20–15 and Bull) in a fixed left column, and for each player shows an avatar, name,
+ * per-segment mark symbols, and total points. The column for the current player (determined by `player.isCurrent`
+ * or `currentPlayerIndex`) is visually highlighted.
+ *
+ * @param players - Array of player entries containing name, avatarColor, marks, points, and optional isCurrent flag
+ * @param currentPlayerIndex - Index of the current player to highlight when `isCurrent` is not set on players
+ * @returns A JSX element representing the scoreboard layout
+ */
 export function CricketScoreboard({
   players,
   currentPlayerIndex,

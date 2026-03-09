@@ -14,6 +14,13 @@ import type { AroundTheClockConfig } from '@/lib/games/around-the-clock';
 import { getInitialPlayerState as getCricketInitialState } from '@/lib/games/cricket';
 import type { CricketConfig } from '@/lib/games/cricket';
 
+/**
+ * Renders the game setup screen for configuring players and starting a new session for the selected game mode.
+ *
+ * Supports Around The Clock and Cricket modes, provides player add/remove management, exposes mode-specific configuration options (e.g., include bull for Around The Clock), enforces mode-dependent minimum player counts, persists players and a game session to the local database, and navigates to the game's play screen when a session is created.
+ *
+ * @returns The React element for the game setup UI that allows configuring players and starting a game session.
+ */
 export default function GameSetup() {
   const router = useRouter();
   const { slug } = useLocalSearchParams<{ slug: string }>();

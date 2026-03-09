@@ -17,7 +17,12 @@ interface CricketInputProps {
 
 // ---------------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
+/**
+ * Produce a short display label for a DartThrow.
+ *
+ * @param dart - The thrown dart; `segment === 0` or `multiplier === 0` represent a miss, and `segment === 25` represents the bull.
+ * @returns `Miss` for a miss; otherwise a prefix `S`, `D`, or `T` followed by the segment number or `B` for bull (e.g., `S20`, `D5`, `T19`, `SB`, `DB`).
+ */
 
 function getDartLabel(dart: DartThrow): string {
   if (dart.segment === 0 || dart.multiplier === 0) return 'Miss';
@@ -28,7 +33,15 @@ function getDartLabel(dart: DartThrow): string {
 
 // ---------------------------------------------------------------------------
 // Component
-// ---------------------------------------------------------------------------
+/**
+ * Render an interactive three-dart cricket input UI for selecting segments, multipliers, and misses.
+ *
+ * @param dartIndex - The active dart position (0–2) for this turn.
+ * @param thrownDarts - Array of previously thrown darts for the current turn used to display status and labels.
+ * @param onDartThrown - Callback invoked with a `DartThrow` object `{ segment, multiplier }` when a throw or miss is confirmed.
+ * @param disabled - When `true`, interaction is disabled and the input area is hidden.
+ * @returns The JSX tree that renders the cricket input controls and per-dart status indicators.
+ */
 
 export function CricketInput({
   dartIndex,

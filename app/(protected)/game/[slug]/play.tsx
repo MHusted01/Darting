@@ -49,7 +49,19 @@ interface GameState {
 
 // ---------------------------------------------------------------------------
 // Screen
-// ---------------------------------------------------------------------------
+/**
+ * Screen component that hosts an active game session for Around the Clock or Cricket.
+ *
+ * Loads session and player state from the local database, presents the active player's
+ * input and live per-player state (ATC target or Cricket marks/points), persists completed
+ * turns to the database, advances turn/round or finishes the session, and provides a
+ * quit action that abandons the session.
+ *
+ * Side effects: reads and updates the local DB and navigates to the results screen when
+ * the session completes.
+ *
+ * @returns The rendered Play screen element for the current game session.
+ */
 
 export default function PlayScreen() {
   const router = useRouter();

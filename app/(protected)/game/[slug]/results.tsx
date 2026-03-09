@@ -53,7 +53,13 @@ type GameResults =
 
 // ---------------------------------------------------------------------------
 // Screen
-// ---------------------------------------------------------------------------
+/**
+ * Displays the results screen for a completed game session and presents the winner, per-player statistics, and navigation actions.
+ *
+ * Loads the finished session identified by the `sessionId` route parameter, computes per-player metrics for either Around The Clock or Cricket, and renders a winner banner, ranked player rows, and buttons to replay or return home.
+ *
+ * @returns A React element rendering the results screen with winner details, rankings for each player, and action buttons.
+ */
 
 export default function ResultsScreen() {
   const router = useRouter();
