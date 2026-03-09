@@ -167,7 +167,7 @@ export default function GameSetup() {
           </Text>
           <Text className="text-sm text-gray-500 mt-1">
             Close 15–20 and Bull. Score points on segments your opponents
-            haven't closed.
+            have not closed.
           </Text>
         </View>
       )}
