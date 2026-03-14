@@ -215,9 +215,21 @@ class CachedMarketRepository implements MarketRepository {
     private redis: RedisClient
   ) {}
 
+  private cacheKey(id: string): string {
+    return `market:${id}`
+  }
+
+  async findAll(filters?: MarketFilters): Promise<Market[]> {
+    return this.baseRepo.findAll(filters)
+  }
+
+  async findByIds(ids: string[]): Promise<Market[]> {
+    return this.baseRepo.findByIds(ids)
+  }
+
   async findById(id: string): Promise<Market | null> {
     // Check cache first
-    const cached = await this.redis.get(`market:${id}`)
+    const cached = await this.redis.get(this.cacheKey(id))
 
     if (cached) {
       return JSON.parse(cached)
@@ -228,14 +240,31 @@ class CachedMarketRepository implements MarketRepository {
 
     if (market) {
       // Cache for 5 minutes
-      await this.redis.setex(`market:${id}`, 300, JSON.stringify(market))
+      await this.redis.setex(this.cacheKey(id), 300, JSON.stringify(market))
     }
 
     return market
   }
 
+  async create(data: CreateMarketDto): Promise<Market> {
+    const market = await this.baseRepo.create(data)
+    await this.redis.setex(this.cacheKey(market.id), 300, JSON.stringify(market))
+    return market
+  }
+
+  async update(id: string, data: UpdateMarketDto): Promise<Market> {
+    const market = await this.baseRepo.update(id, data)
+    await this.redis.setex(this.cacheKey(id), 300, JSON.stringify(market))
+    return market
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.baseRepo.delete(id)
+    await this.invalidateCache(id)
+  }
+
   async invalidateCache(id: string): Promise<void> {
-    await this.redis.del(`market:${id}`)
+    await this.redis.del(this.cacheKey(id))
   }
 }
 ```
@@ -321,7 +350,11 @@ async function fetchWithRetry<T>(
   fn: () => Promise<T>,
   maxRetries = 3
 ): Promise<T> {
-  let lastError: Error
+  if (!Number.isInteger(maxRetries) || maxRetries < 1) {
+    throw new TypeError('maxRetries must be a positive integer')
+  }
+
+  let lastError: Error | null = null
 
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -337,7 +370,11 @@ async function fetchWithRetry<T>(
     }
   }
 
-  throw lastError!
+  if (lastError) {
+    throw lastError
+  }
+
+  throw new Error('fetchWithRetry exhausted retries without capturing an error')
 }
 
 // Usage
@@ -354,7 +391,7 @@ import jwt from 'jsonwebtoken'
 interface JWTPayload {
   userId: string
   email: string
-  role: 'admin' | 'user'
+  role: 'admin' | 'moderator' | 'user'
 }
 
 export function verifyToken(token: string): JWTPayload {
@@ -389,29 +426,25 @@ export async function GET(request: Request) {
 ### Role-Based Access Control
 
 ```typescript
+type UserRole = 'admin' | 'moderator' | 'user'
 type Permission = 'read' | 'write' | 'delete' | 'admin'
 
-interface User {
-  id: string
-  role: 'admin' | 'moderator' | 'user'
-}
-
-const rolePermissions: Record<User['role'], Permission[]> = {
+const rolePermissions: Record<UserRole, Permission[]> = {
   admin: ['read', 'write', 'delete', 'admin'],
   moderator: ['read', 'write', 'delete'],
   user: ['read', 'write']
 }
 
-export function hasPermission(user: User, permission: Permission): boolean {
-  return rolePermissions[user.role].includes(permission)
+export function hasPermission(role: UserRole, permission: Permission): boolean {
+  return rolePermissions[role].includes(permission)
 }
 
 export function requirePermission(permission: Permission) {
-  return (handler: (request: Request, user: User) => Promise<Response>) => {
+  return (handler: (request: Request, user: JWTPayload) => Promise<Response>) => {
     return async (request: Request) => {
       const user = await requireAuth(request)
 
-      if (!hasPermission(user, permission)) {
+      if (!hasPermission(user.role, permission)) {
         throw new ApiError(403, 'Insufficient permissions')
       }
 
@@ -422,7 +455,7 @@ export function requirePermission(permission: Permission) {
 
 // Usage - HOF wraps the handler
 export const DELETE = requirePermission('delete')(
-  async (request: Request, user: User) => {
+  async (request: Request, user: JWTPayload) => {
     // Handler receives authenticated user with verified permission
     return new Response('Deleted', { status: 200 })
   }
@@ -447,6 +480,12 @@ class RateLimiter {
 
     // Remove old requests outside window
     const recentRequests = requests.filter(time => now - time < windowMs)
+
+    if (recentRequests.length === 0) {
+      this.requests.delete(identifier)
+    } else {
+      this.requests.set(identifier, recentRequests)
+    }
 
     if (recentRequests.length >= maxRequests) {
       return false  // Rate limit exceeded

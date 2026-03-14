@@ -332,7 +332,7 @@ app.delete("/api/v1/users/:id", requireRole("admin"), async (req, res) => {
 HTTP/1.1 200 OK
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
-X-RateLimit-Reset: 1640000000
+X-RateLimit-Reset: <unix-timestamp-or-seconds-until-reset>
 
 # When exceeded
 HTTP/1.1 429 Too Many Requests
@@ -379,7 +379,7 @@ Accept: application/vnd.myapp.v2+json
 ### Versioning Strategy
 
 ```
-1. Start with /api/v1/ — don't version until you need to
+1. Start routes at /api/v1/ for public APIs
 2. Maintain at most 2 active versions (current + previous)
 3. Deprecation timeline:
    - Announce deprecation (6 months notice for public APIs)
