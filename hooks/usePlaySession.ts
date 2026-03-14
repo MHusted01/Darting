@@ -202,6 +202,11 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
       } catch (error) {
         console.error('Failed to finish turn:', error);
         Alert.alert('Error', 'Failed to record turn.');
+        try {
+          await loadSession();
+        } catch (reloadError) {
+          console.error('Failed to reload session after turn error:', reloadError);
+        }
       } finally {
         setIsProcessing(false);
       }
@@ -314,11 +319,16 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
         onPress: async () => {
           if (!gameState) return;
 
-          await db
-            .update(gameSessions)
-            .set({ status: 'abandoned', completedAt: new Date() })
-            .where(eq(gameSessions.id, gameState.sessionId));
-          router.replace('/(protected)/(tabs)');
+          try {
+            await db
+              .update(gameSessions)
+              .set({ status: 'abandoned', completedAt: new Date() })
+              .where(eq(gameSessions.id, gameState.sessionId));
+            router.replace('/(protected)/(tabs)');
+          } catch (error) {
+            console.error('Failed to abandon game:', error);
+            Alert.alert('Error', 'Failed to quit game. Please try again.');
+          }
         },
       },
     ]);

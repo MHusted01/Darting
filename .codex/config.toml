@@ -1,0 +1,11 @@
+[policy]
+approval = "on-request"
+
+[sandbox]
+mode = "workspace-write"
+
+[search]
+web = "live"
+
+[notifications]
+terminal = true
