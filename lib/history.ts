@@ -95,9 +95,10 @@ function normalizeLatestTurnAt(value: Date | string | number | null): Date | nul
     return value;
   }
 
-  if (typeof value === 'number') {
+  if (typeof value === 'number' && Number.isFinite(value)) {
     return new Date(value * 1000);
   }
+  if (typeof value === 'number') return null;
 
   const trimmedValue = value.trim();
   if (trimmedValue === '') return null;
@@ -126,17 +127,22 @@ function normalizeLatestTurnAt(value: Date | string | number | null): Date | nul
  * - `abandonedSessions`: number of sessions with status `abandoned`
  */
 function buildQuickStats(sessions: HistorySessionItem[]): HistoryQuickStats {
-  const completedSessions = sessions.filter(
-    (session) => session.status === 'completed',
+  const aggregated = sessions.reduce(
+    (acc, session) => {
+      acc.gamesPlayed += 1;
+      if (session.status === 'completed') acc.completedCount += 1;
+      if (session.status === 'in_progress') acc.inProgressSessions += 1;
+      if (session.status === 'abandoned') acc.abandonedSessions += 1;
+      return acc;
+    },
+    {
+      gamesPlayed: 0,
+      completedCount: 0,
+      inProgressSessions: 0,
+      abandonedSessions: 0,
+    },
   );
-  const inProgressSessions = sessions.filter(
-    (session) => session.status === 'in_progress',
-  ).length;
-  const abandonedSessions = sessions.filter(
-    (session) => session.status === 'abandoned',
-  ).length;
-  const gamesPlayed = sessions.length;
-  const completedCount = completedSessions.length;
+  const { gamesPlayed, completedCount, inProgressSessions, abandonedSessions } = aggregated;
   const winRate = gamesPlayed > 0 ? Math.round((completedCount / gamesPlayed) * 100) : 0;
 
   return {

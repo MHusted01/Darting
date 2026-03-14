@@ -159,7 +159,7 @@ export default function HistoryScreen() {
       <FlatList
         data={sessions}
         keyExtractor={(item) => `${item.sessionId}`}
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
+        contentContainerClassName="px-6 pb-6"
         onRefresh={() => {
           void refetch();
         }}
