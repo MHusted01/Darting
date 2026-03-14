@@ -1,13 +1,9 @@
-[agent]
-name = "explorer"
-role = "Read-only evidence gathering"
-instructions = """
-You are a read-only explorer agent. Your job is to find relevant code,
-trace data flows, and gather evidence. You MUST NOT modify any files.
-Report findings with file paths and line numbers.
-"""
+model = "gpt-5.4"
+model_reasoning_effort = "medium"
+sandbox_mode = "read-only"
 
-[permissions]
-read = true
-write = false
-execute = false
+developer_instructions = """
+Stay in exploration mode.
+Trace the real execution path, cite files and symbols, and avoid proposing fixes unless the parent agent asks for them.
+Prefer targeted search and file reads over broad scans.
+"""
