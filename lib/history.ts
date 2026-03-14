@@ -1,4 +1,4 @@
-import { asc, sql } from 'drizzle-orm';
+import { asc, max } from 'drizzle-orm';
 import { GAMES } from '@/constants/games';
 import { db } from '@/db/client';
 import { gamePlayers, gameTurns } from '@/db/schema';
@@ -29,7 +29,7 @@ export interface HistorySessionItem {
 
 export interface HistoryQuickStats {
   gamesPlayed: number;
-  wins: number;
+  completedCount: number;
   winRate: number;
   inProgressSessions: number;
   abandonedSessions: number;
@@ -89,7 +89,7 @@ function normalizeSessionStatus(status: string): HistorySessionStatus {
  * @returns A Date representing the same instant, or `null` if `value` is falsy or cannot be parsed.
  */
 function normalizeLatestTurnAt(value: Date | string | number | null): Date | null {
-  if (!value) return null;
+  if (value === null || value === undefined) return null;
 
   if (value instanceof Date) {
     return value;
@@ -100,8 +100,9 @@ function normalizeLatestTurnAt(value: Date | string | number | null): Date | nul
   }
 
   const trimmedValue = value.trim();
+  if (trimmedValue === '') return null;
   const numericValue = Number(trimmedValue);
-  if (!Number.isNaN(numericValue) && trimmedValue.length > 0) {
+  if (!Number.isNaN(numericValue)) {
     return new Date(numericValue * 1000);
   }
 
@@ -135,12 +136,12 @@ function buildQuickStats(sessions: HistorySessionItem[]): HistoryQuickStats {
     (session) => session.status === 'abandoned',
   ).length;
   const gamesPlayed = sessions.length;
-  const wins = completedSessions.length;
-  const winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
+  const completedCount = completedSessions.length;
+  const winRate = gamesPlayed > 0 ? Math.round((completedCount / gamesPlayed) * 100) : 0;
 
   return {
     gamesPlayed,
-    wins,
+    completedCount,
     winRate,
     inProgressSessions,
     abandonedSessions,
@@ -165,7 +166,7 @@ export async function getHistoryData(): Promise<HistoryData> {
     db
       .select({
         gameSessionId: gameTurns.gameSessionId,
-        latestTurnAt: sql<Date | string | number | null>`max(${gameTurns.createdAt})`,
+        latestTurnAt: max(gameTurns.createdAt),
       })
       .from(gameTurns)
       .groupBy(gameTurns.gameSessionId),

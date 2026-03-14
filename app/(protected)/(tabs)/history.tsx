@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
 import { getHistoryData, type HistoryQuickStats, type HistorySessionItem } from '@/lib/history';
 
 const STATUS_LABELS: Record<HistorySessionItem['status'], string> = {
@@ -17,13 +18,13 @@ const STATUS_STYLES: Record<
 > = {
   setup: { bg: 'bg-gray-100', text: 'text-gray-600' },
   in_progress: { bg: 'bg-emerald-100', text: 'text-emerald-700' },
-  completed: { bg: 'bg-blue-100', text: 'text-blue-700' },
-  abandoned: { bg: 'bg-amber-100', text: 'text-amber-700' },
+  completed: { bg: 'bg-gray-100', text: 'text-gray-600' },
+  abandoned: { bg: 'bg-red-100', text: 'text-red-500' },
 };
 
 const EMPTY_STATS: HistoryQuickStats = {
   gamesPlayed: 0,
-  wins: 0,
+  completedCount: 0,
   winRate: 0,
   inProgressSessions: 0,
   abandonedSessions: 0,
@@ -52,40 +53,27 @@ function formatDateTime(date: Date): string {
 export default function HistoryScreen() {
   const router = useRouter();
   const hasFocusedOnce = useRef(false);
-  const [sessions, setSessions] = useState<HistorySessionItem[]>([]);
-  const [quickStats, setQuickStats] = useState<HistoryQuickStats>(EMPTY_STATS);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const loadHistory = useCallback(async (isRefresh = false) => {
-    if (isRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-
-    setError(null);
-
-    try {
-      const historyData = await getHistoryData();
-      setSessions(historyData.sessions);
-      setQuickStats(historyData.quickStats);
-    } catch (loadError) {
-      console.error('Failed to load history:', loadError);
-      setError('Could not load game history right now.');
-    } finally {
-      if (isRefresh) {
-        setRefreshing(false);
-      } else {
-        setLoading(false);
-      }
-    }
-  }, []);
+  const historyQuery = useQuery({
+    queryKey: ['history'],
+    queryFn: getHistoryData,
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
+  });
+  const { data, isLoading, isRefetching, error: historyError, refetch } = historyQuery;
 
   useEffect(() => {
-    void loadHistory();
-  }, [loadHistory]);
+    if (!historyError) return;
+    console.error('Failed to load history:', historyError);
+  }, [historyError]);
+
+  const sessions: HistorySessionItem[] = data?.sessions ?? [];
+  const quickStats: HistoryQuickStats = data?.quickStats ?? EMPTY_STATS;
+  const loading = isLoading;
+  const refreshing = isRefetching;
+  const error = historyError
+    ? 'Could not load game history right now.'
+    : null;
 
   useFocusEffect(
     useCallback(() => {
@@ -94,8 +82,8 @@ export default function HistoryScreen() {
         return;
       }
 
-      void loadHistory(true);
-    }, [loadHistory]),
+      void refetch();
+    }, [refetch]),
   );
 
   const handleOpenSession = useCallback(
@@ -160,7 +148,7 @@ export default function HistoryScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-white justify-center items-center">
+      <SafeAreaView className="flex-1 bg-white justify-center items-center" edges={['top']}>
         <Text className="text-gray-400">Loading history...</Text>
       </SafeAreaView>
     );
@@ -173,7 +161,7 @@ export default function HistoryScreen() {
         keyExtractor={(item) => `${item.sessionId}`}
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
         onRefresh={() => {
-          void loadHistory(true);
+          void refetch();
         }}
         refreshing={refreshing}
         ListHeaderComponent={
@@ -189,7 +177,7 @@ export default function HistoryScreen() {
                   <Text className="text-xs text-gray-500">Sessions</Text>
                 </View>
                 <View className="items-center flex-1">
-                  <Text className="text-xl font-bold text-black">{quickStats.wins}</Text>
+                  <Text className="text-xl font-bold text-black">{quickStats.completedCount}</Text>
                   <Text className="text-xs text-gray-500">Completed</Text>
                 </View>
                 <View className="items-center flex-1">
@@ -217,7 +205,7 @@ export default function HistoryScreen() {
                 <Text className="text-sm text-red-700">{error}</Text>
                 <Pressable
                   onPress={() => {
-                    void loadHistory(true);
+                    void refetch();
                   }}
                   className="mt-2"
                   accessibilityRole="button"
