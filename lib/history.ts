@@ -121,8 +121,8 @@ function normalizeLatestTurnAt(value: Date | string | number | null): Date | nul
  * @param sessions - Array of session items to derive statistics from
  * @returns An object with aggregate counts and percentages:
  * - `gamesPlayed`: total number of sessions
- * - `wins`: number of sessions with status `completed`
- * - `winRate`: percentage of wins across all sessions, rounded to the nearest integer
+ * - `completedCount`: number of sessions with status `completed`
+ * - `winRate`: completion percentage across all sessions, rounded to the nearest integer
  * - `inProgressSessions`: number of sessions with status `in_progress`
  * - `abandonedSessions`: number of sessions with status `abandoned`
  */
@@ -157,7 +157,7 @@ function buildQuickStats(sessions: HistorySessionItem[]): HistoryQuickStats {
 /**
  * Fetch historical session summaries and aggregated quick statistics for all game sessions.
  *
- * @returns An object with `sessions` — an array of session summaries (HistorySessionItem) sorted by `lastActivityAt` descending then `sessionId` descending; and `quickStats` — aggregate metrics (`gamesPlayed`, `wins`, `winRate`, `inProgressSessions`, `abandonedSessions`).
+ * @returns An object with `sessions` — an array of session summaries (HistorySessionItem) sorted by `lastActivityAt` descending then `sessionId` descending; and `quickStats` — aggregate metrics (`gamesPlayed`, `completedCount`, `winRate`, `inProgressSessions`, `abandonedSessions`).
  */
 export async function getHistoryData(): Promise<HistoryData> {
   const [sessions, latestTurns] = await Promise.all([

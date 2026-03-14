@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -17,9 +17,9 @@ const STATUS_STYLES: Record<
   { bg: string; text: string }
 > = {
   setup: { bg: 'bg-gray-100', text: 'text-gray-600' },
-  in_progress: { bg: 'bg-emerald-100', text: 'text-emerald-700' },
+  in_progress: { bg: 'bg-emerald-500', text: 'text-white' },
   completed: { bg: 'bg-gray-100', text: 'text-gray-600' },
-  abandoned: { bg: 'bg-red-100', text: 'text-red-500' },
+  abandoned: { bg: 'bg-red-500', text: 'text-white' },
 };
 
 const EMPTY_STATS: HistoryQuickStats = {
@@ -64,16 +64,17 @@ export default function HistoryScreen() {
 
   useEffect(() => {
     if (!historyError) return;
-    console.error('Failed to load history:', historyError);
+    Alert.alert(
+      'History Error',
+      historyError instanceof Error ? historyError.message : 'Could not load game history right now.',
+    );
   }, [historyError]);
 
   const sessions: HistorySessionItem[] = data?.sessions ?? [];
   const quickStats: HistoryQuickStats = data?.quickStats ?? EMPTY_STATS;
   const loading = isLoading;
   const refreshing = isRefetching;
-  const error = historyError
-    ? 'Could not load game history right now.'
-    : null;
+  const hasError = Boolean(historyError);
 
   useFocusEffect(
     useCallback(() => {
@@ -200,26 +201,11 @@ export default function HistoryScreen() {
               Sessions
             </Text>
 
-            {error ? (
-              <View className="border border-red-200 bg-red-50 rounded-xl p-3 mb-3">
-                <Text className="text-sm text-red-700">{error}</Text>
-                <Pressable
-                  onPress={() => {
-                    void refetch();
-                  }}
-                  className="mt-2"
-                  accessibilityRole="button"
-                  accessibilityLabel="Retry loading history"
-                >
-                  <Text className="text-sm font-semibold text-red-700">Retry</Text>
-                </Pressable>
-              </View>
-            ) : null}
           </View>
         }
         renderItem={renderSessionRow}
         ListEmptyComponent={
-          error ? null : (
+          hasError ? null : (
             <View className="border border-dashed border-gray-300 rounded-xl p-8 items-center">
               <Text className="text-base font-semibold text-black mb-1">No sessions yet</Text>
               <Text className="text-sm text-gray-500 text-center">
