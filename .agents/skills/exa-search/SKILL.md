@@ -40,7 +40,7 @@ Get an API key at [exa.ai](https://exa.ai).
 ### web_search_exa
 General web search for current information, news, or facts.
 
-```
+```text
 web_search_exa(query: "latest AI developments 2026", numResults: 5)
 ```
 
@@ -54,7 +54,7 @@ web_search_exa(query: "latest AI developments 2026", numResults: 5)
 ### web_search_advanced_exa
 Filtered search with domain and date constraints.
 
-```
+```text
 web_search_advanced_exa(
   query: "React Server Components best practices",
   numResults: 5,
@@ -77,7 +77,7 @@ web_search_advanced_exa(
 ### get_code_context_exa
 Find code examples and documentation from GitHub, Stack Overflow, and docs sites.
 
-```
+```text
 get_code_context_exa(query: "Python asyncio patterns", tokensNum: 3000)
 ```
 
@@ -91,7 +91,7 @@ get_code_context_exa(query: "Python asyncio patterns", tokensNum: 3000)
 ### company_research_exa
 Research companies for business intelligence and news.
 
-```
+```text
 company_research_exa(companyName: "Anthropic", numResults: 5)
 ```
 
@@ -105,14 +105,14 @@ company_research_exa(companyName: "Anthropic", numResults: 5)
 ### people_search_exa
 Find professional profiles and bios.
 
-```
+```text
 people_search_exa(query: "AI safety researchers at Anthropic", numResults: 5)
 ```
 
 ### crawling_exa
 Extract full page content from a URL.
 
-```
+```text
 crawling_exa(url: "https://example.com/article", tokensNum: 5000)
 ```
 
@@ -126,7 +126,7 @@ crawling_exa(url: "https://example.com/article", tokensNum: 5000)
 ### deep_researcher_start / deep_researcher_check
 Start an AI research agent that runs asynchronously.
 
-```
+```text
 # Start research
 deep_researcher_start(query: "comprehensive analysis of AI code editors in 2026")
 
@@ -137,23 +137,23 @@ deep_researcher_check(researchId: "<id from start>")
 ## Usage Patterns
 
 ### Quick Lookup
-```
+```text
 web_search_exa(query: "Node.js 22 new features", numResults: 3)
 ```
 
 ### Code Research
-```
+```text
 get_code_context_exa(query: "Rust error handling patterns Result type", tokensNum: 3000)
 ```
 
 ### Company Due Diligence
-```
+```text
 company_research_exa(companyName: "Vercel", numResults: 5)
 web_search_advanced_exa(query: "Vercel funding valuation 2026", numResults: 3)
 ```
 
 ### Technical Deep Dive
-```
+```text
 # Start async research
 deep_researcher_start(query: "WebAssembly component model status and adoption")
 # ... do other work ...

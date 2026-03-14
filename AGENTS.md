@@ -127,8 +127,8 @@ Troubleshoot failures: check test isolation → verify mocks → fix implementat
 
 ## Project Structure
 
-```
-agents/          — 13 specialized subagents
+```text
+agents/          — 16 specialized subagents
 skills/          — 65+ workflow skills and domain knowledge
 commands/        — 40 slash commands
 hooks/           — Trigger-based automations

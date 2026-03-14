@@ -383,7 +383,7 @@ Accept: application/vnd.myapp.v2+json
 2. Maintain at most 2 active versions (current + previous)
 3. Deprecation timeline:
    - Announce deprecation (6 months notice for public APIs)
-   - Add Sunset header: Sunset: Sat, 01 Jan 2026 00:00:00 GMT
+   - Add Sunset header: Sunset: Wed, 01 Jan 2028 00:00:00 GMT
    - Return 410 Gone after sunset date
 4. Non-breaking changes don't need a new version:
    - Adding new fields to responses

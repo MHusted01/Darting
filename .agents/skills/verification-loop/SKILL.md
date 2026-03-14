@@ -20,6 +20,8 @@ Invoke this skill:
 
 ### Phase 1: Build Verification
 ```bash
+set -o pipefail
+
 # Check if project builds
 npm run build 2>&1 | tail -20
 # OR
@@ -30,6 +32,8 @@ If build fails, STOP and fix before continuing.
 
 ### Phase 2: Type Check
 ```bash
+set -o pipefail
+
 # TypeScript projects
 npx tsc --noEmit 2>&1 | head -30
 
@@ -41,6 +45,8 @@ Report all type errors. Fix critical ones before continuing.
 
 ### Phase 3: Lint Check
 ```bash
+set -o pipefail
+
 # JavaScript/TypeScript
 npm run lint 2>&1 | head -30
 
@@ -50,6 +56,8 @@ ruff check . 2>&1 | head -30
 
 ### Phase 4: Test Suite
 ```bash
+set -o pipefail
+
 # Run tests with coverage
 npm run test -- --coverage 2>&1 | tail -50
 
@@ -65,6 +73,8 @@ Report:
 
 ### Phase 5: Security Scan
 ```bash
+set -o pipefail
+
 # Check for secrets
 grep -rn "sk-" --include="*.ts" --include="*.js" . 2>/dev/null | head -10
 grep -rn "api_key" --include="*.ts" --include="*.js" . 2>/dev/null | head -10
