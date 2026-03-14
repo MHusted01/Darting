@@ -8,6 +8,8 @@ if (!supabaseUrl || !supabaseKey) {
     'Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_KEY in environment variables',
   );
 }
+const SUPABASE_URL = supabaseUrl;
+const SUPABASE_KEY = supabaseKey;
 
 /**
  * A Supabase client using the project anon key with default (unauthenticated) RLS behavior.
@@ -15,7 +17,7 @@ if (!supabaseUrl || !supabaseKey) {
  * Use this only during app bootstrap before Clerk is ready.
  * For authenticated requests scoped to the signed-in user, use the client from `useSupabase()`.
  */
-export const supabaseAnon = createClient(supabaseUrl, supabaseKey);
+export const supabaseAnon = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /**
  * Creates a Supabase client that uses Clerk-issued JWTs for authentication.
@@ -30,7 +32,7 @@ export const supabaseAnon = createClient(supabaseUrl, supabaseKey);
 export function createClerkSupabaseClient(
   getToken: (opts?: { template: string }) => Promise<string | null>,
 ) {
-  return createClient(supabaseUrl, supabaseKey, {
+  return createClient(SUPABASE_URL, SUPABASE_KEY, {
     accessToken: async () => {
       const token = await getToken({ template: 'supabase' });
       return token;
