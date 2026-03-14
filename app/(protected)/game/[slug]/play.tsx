@@ -1,48 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { eq, asc } from 'drizzle-orm';
-import { db } from '@/db/client';
-import { gameSessions, gamePlayers, gameTurns } from '@/db/schema';
-import { AroundTheClockInput } from '@/components/games/AroundTheClockInput';
+import { AroundTheClockPlayPanel } from '@/components/games/AroundTheClockPlayPanel';
+import { CricketPlayPanel } from '@/components/games/CricketPlayPanel';
 import {
-  getTargetSegment,
-  getTargetLabel,
   getMaxTarget,
   type AroundTheClockConfig,
-  type AroundTheClockPlayerState,
 } from '@/lib/games/around-the-clock';
-import type { DartThrow } from '@/types/game';
+import { usePlaySession } from '@/hooks/usePlaySession';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface LoadedPlayer {
-  id: number; // gamePlayers.id
-  playerId: number;
-  playerOrder: number;
-  name: string;
-  avatarColor: string;
-  currentScore: number;
-  gameState: AroundTheClockPlayerState;
-  isWinner: boolean;
-}
-
-interface GameState {
-  sessionId: number;
-  gameSlug: string;
-  currentRound: number;
-  currentPlayerIndex: number;
-  config: AroundTheClockConfig;
-  players: LoadedPlayer[];
-}
-
-// ---------------------------------------------------------------------------
-// Screen
-// ---------------------------------------------------------------------------
-
+/**
+ * Screen component that hosts an active game session for Around the Clock or Cricket.
+ *
+ * @returns The rendered Play screen element for the current game session.
+ */
 export default function PlayScreen() {
   const router = useRouter();
   const { slug, sessionId } = useLocalSearchParams<{
@@ -50,208 +21,21 @@ export default function PlayScreen() {
     sessionId: string;
   }>();
 
-  const [gameState, setGameState] = useState<GameState | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [turnDarts, setTurnDarts] = useState<DartThrow[]>([]);
-  const [localTarget, setLocalTarget] = useState<number>(1);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const {
+    gameState,
+    currentPlayer,
+    loadError,
+    turnDarts,
+    isProcessing,
+    isAroundTheClock,
+    isCricket,
+    localTarget,
+    localCricketState,
+    handleATCDartThrown,
+    handleCricketDartThrown,
+    handleQuit,
+  } = usePlaySession({ slug, sessionId });
 
-  // -----------------------------------------------------------------------
-  // Load session from DB
-  // -----------------------------------------------------------------------
-  const loadSession = useCallback(async () => {
-    setLoadError(null);
-
-    if (!sessionId) {
-      setGameState(null);
-      setLoadError('Missing game session.');
-      return;
-    }
-
-    try {
-      const session = await db.query.gameSessions.findFirst({
-        where: eq(gameSessions.id, Number(sessionId)),
-        with: {
-          gamePlayers: {
-            with: { player: true },
-            orderBy: [asc(gamePlayers.playerOrder)],
-          },
-        },
-      });
-
-      if (!session || session.status !== 'in_progress') {
-        setGameState(null);
-        setLoadError('This session is no longer active.');
-        return;
-      }
-
-      const config = session.config as AroundTheClockConfig;
-      const loadedPlayers: LoadedPlayer[] = session.gamePlayers.map((gp) => ({
-        id: gp.id,
-        playerId: gp.playerId,
-        playerOrder: gp.playerOrder,
-        name: gp.player.name,
-        avatarColor: gp.player.avatarColor,
-        currentScore: gp.currentScore,
-        gameState: gp.gameState as AroundTheClockPlayerState,
-        isWinner: gp.isWinner ?? false,
-      }));
-
-      setGameState({
-        sessionId: session.id,
-        gameSlug: session.gameSlug,
-        currentRound: session.currentRound,
-        currentPlayerIndex: session.currentPlayerIndex,
-        config,
-        players: loadedPlayers,
-      });
-
-      // Reset turn state for the new player
-      setTurnDarts([]);
-      const currentPlayer = loadedPlayers[session.currentPlayerIndex];
-      setLocalTarget(currentPlayer.gameState.currentTarget);
-    } catch {
-      setGameState(null);
-      setLoadError('Failed to load game session.');
-    }
-  }, [sessionId]);
-
-  useEffect(() => {
-    loadSession();
-  }, [loadSession]);
-
-  // -----------------------------------------------------------------------
-  // Turn completion
-  // -----------------------------------------------------------------------
-  const completeTurn = useCallback(async (
-    darts: DartThrow[],
-    finalTarget: number,
-    isComplete: boolean,
-  ) => {
-    if (!gameState) return;
-    setIsProcessing(true);
-
-    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-    const startTarget = currentPlayer.gameState.currentTarget;
-    const scoreDelta = finalTarget - startTarget;
-
-    try {
-      await db.transaction(async (tx) => {
-        // 1. Insert turn
-        await tx.insert(gameTurns).values({
-          gameSessionId: gameState.sessionId,
-          playerId: currentPlayer.playerId,
-          roundNumber: gameState.currentRound,
-          darts,
-          scoreDelta,
-        });
-
-        // 2. Update player state
-        await tx
-          .update(gamePlayers)
-          .set({
-            currentScore: currentPlayer.currentScore + scoreDelta,
-            gameState: { currentTarget: finalTarget } satisfies AroundTheClockPlayerState,
-            isWinner: isComplete,
-          })
-          .where(eq(gamePlayers.id, currentPlayer.id));
-
-        // 3. Update session
-        if (isComplete) {
-          await tx
-            .update(gameSessions)
-            .set({ status: 'completed', completedAt: new Date() })
-            .where(eq(gameSessions.id, gameState.sessionId));
-        } else {
-          const playerCount = gameState.players.length;
-          const nextIdx =
-            (gameState.currentPlayerIndex + 1) % playerCount;
-          const nextRound =
-            nextIdx === 0
-              ? gameState.currentRound + 1
-              : gameState.currentRound;
-
-          await tx
-            .update(gameSessions)
-            .set({
-              currentPlayerIndex: nextIdx,
-              currentRound: nextRound,
-            })
-            .where(eq(gameSessions.id, gameState.sessionId));
-        }
-      });
-
-      if (isComplete) {
-        router.replace(
-          `/game/${slug}/results?sessionId=${gameState.sessionId}`,
-        );
-      } else {
-        await loadSession();
-      }
-    } catch {
-      Alert.alert('Error', 'Failed to record turn.');
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [gameState, loadSession, router, slug]);
-
-  // -----------------------------------------------------------------------
-  // Dart handling
-  // -----------------------------------------------------------------------
-  const handleDartThrown = useCallback(
-    async (dart: DartThrow) => {
-      if (!gameState || isProcessing) return;
-
-      const newDarts = [...turnDarts, dart];
-      setTurnDarts(newDarts);
-
-      // Check if this dart was a hit — advance local target for real-time display
-      let newTarget = localTarget;
-      if (dart.segment === getTargetSegment(localTarget) && dart.multiplier > 0) {
-        newTarget = localTarget + 1;
-        setLocalTarget(newTarget);
-      }
-
-      const maxTarget = getMaxTarget(gameState.config);
-
-      // Game complete mid-turn?
-      if (newTarget > maxTarget) {
-        await completeTurn(newDarts, newTarget, true);
-        return;
-      }
-
-      // All 3 darts thrown?
-      if (newDarts.length === 3) {
-        await completeTurn(newDarts, newTarget, false);
-      }
-    },
-    [completeTurn, gameState, turnDarts, localTarget, isProcessing],
-  );
-
-  // -----------------------------------------------------------------------
-  // Quit game
-  // -----------------------------------------------------------------------
-  const handleQuit = useCallback(() => {
-    Alert.alert('Quit Game', 'Are you sure you want to abandon this game?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Quit',
-        style: 'destructive',
-        onPress: async () => {
-          if (!gameState) return;
-          await db
-            .update(gameSessions)
-            .set({ status: 'abandoned', completedAt: new Date() })
-            .where(eq(gameSessions.id, gameState.sessionId));
-          router.replace('/(protected)/(tabs)');
-        },
-      },
-    ]);
-  }, [gameState, router]);
-
-  // -----------------------------------------------------------------------
-  // Loading state
-  // -----------------------------------------------------------------------
   if (loadError) {
     return (
       <SafeAreaView className="flex-1 bg-white justify-center items-center px-6">
@@ -268,7 +52,7 @@ export default function PlayScreen() {
     );
   }
 
-  if (!gameState) {
+  if (!gameState || !currentPlayer) {
     return (
       <SafeAreaView className="flex-1 bg-white justify-center items-center">
         <Text className="text-gray-400">Loading...</Text>
@@ -276,11 +60,9 @@ export default function PlayScreen() {
     );
   }
 
-  // -----------------------------------------------------------------------
-  // Render
-  // -----------------------------------------------------------------------
-  const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-  const maxTarget = getMaxTarget(gameState.config);
+  const maxTarget = isAroundTheClock
+    ? getMaxTarget(gameState.config as AroundTheClockConfig)
+    : null;
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
@@ -289,7 +71,6 @@ export default function PlayScreen() {
         contentContainerClassName="px-6 pb-8"
         bounces={false}
       >
-        {/* Header */}
         <View className="flex-row items-center justify-between mt-2 mb-6">
           <Text className="text-sm text-gray-500">
             Round {gameState.currentRound}
@@ -304,7 +85,6 @@ export default function PlayScreen() {
           </Pressable>
         </View>
 
-        {/* Current player */}
         <View className="items-center mb-4">
           <View
             className="w-12 h-12 rounded-full items-center justify-center mb-2"
@@ -319,74 +99,28 @@ export default function PlayScreen() {
           </Text>
         </View>
 
-        {/* Target display */}
-        <View className="items-center mb-8">
-          <Text className="text-sm text-gray-500 mb-1">Target</Text>
-          <Text className="text-7xl font-bold text-black">
-            {localTarget > maxTarget ? '✓' : getTargetLabel(localTarget)}
-          </Text>
-          {localTarget <= maxTarget && (
-            <Text className="text-sm text-gray-400 mt-1">
-              {localTarget} of {maxTarget}
-            </Text>
-          )}
-        </View>
+        {isAroundTheClock && maxTarget !== null && (
+          <AroundTheClockPlayPanel
+            players={gameState.players}
+            currentPlayerId={currentPlayer.id}
+            localTarget={localTarget}
+            maxTarget={maxTarget}
+            turnDarts={turnDarts}
+            isProcessing={isProcessing}
+            onDartThrown={handleATCDartThrown}
+          />
+        )}
 
-        {/* Dart input */}
-        <AroundTheClockInput
-          currentTarget={localTarget}
-          dartIndex={turnDarts.length}
-          thrownDarts={turnDarts}
-          onDartThrown={handleDartThrown}
-          disabled={isProcessing || localTarget > maxTarget}
-        />
-
-        {/* Scoreboard */}
-        <View className="mt-8">
-          <Text className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">
-            Scoreboard
-          </Text>
-          {gameState.players.map((player) => {
-            const isCurrent = player.id === currentPlayer.id;
-            const playerTarget =
-              isCurrent && localTarget !== player.gameState.currentTarget
-                ? localTarget
-                : player.gameState.currentTarget;
-            const isFinished = playerTarget > maxTarget;
-
-            return (
-              <View
-                key={player.id}
-                className={`flex-row items-center py-3 px-3 rounded-lg mb-1 ${
-                  isCurrent ? 'bg-gray-100' : ''
-                }`}
-              >
-                <View
-                  className="w-6 h-6 rounded-full mr-3"
-                  style={{ backgroundColor: player.avatarColor }}
-                />
-                <Text
-                  className={`flex-1 text-base ${
-                    isCurrent ? 'font-bold text-black' : 'text-gray-700'
-                  }`}
-                >
-                  {player.name}
-                </Text>
-                <Text
-                  className={`text-sm ${
-                    isFinished
-                      ? 'text-emerald-600 font-bold'
-                      : 'text-gray-500'
-                  }`}
-                >
-                  {isFinished
-                    ? 'Done!'
-                    : `${playerTarget - 1}/${maxTarget}`}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
+        {isCricket && localCricketState && (
+          <CricketPlayPanel
+            players={gameState.players}
+            currentPlayerIndex={gameState.currentPlayerIndex}
+            localCricketState={localCricketState}
+            turnDarts={turnDarts}
+            isProcessing={isProcessing}
+            onDartThrown={handleCricketDartThrown}
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );

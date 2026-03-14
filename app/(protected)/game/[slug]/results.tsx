@@ -6,32 +6,24 @@ import { eq, asc } from 'drizzle-orm';
 import { Trophy } from 'lucide-react-native';
 import { db } from '@/db/client';
 import { gameSessions, gamePlayers } from '@/db/schema';
+import { AROUND_THE_CLOCK_SLUG, CRICKET_SLUG } from '@/constants/games';
+import { ATCResultsRows } from '@/components/games/ATCResultsRows';
+import { CricketResultsRows } from '@/components/games/CricketResultsRows';
 import {
-  getMaxTarget,
-  type AroundTheClockConfig,
-  type AroundTheClockPlayerState,
-} from '@/lib/games/around-the-clock';
+  buildATCResults,
+  buildCricketResults,
+  type GameResults,
+  type SessionResultPlayerInput,
+  type SessionTurnInput,
+} from '@/lib/games/results';
+import type { AroundTheClockConfig } from '@/lib/games/around-the-clock';
 import type { DartThrow } from '@/types/game';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface PlayerResult {
-  name: string;
-  avatarColor: string;
-  targetsHit: number;
-  maxTarget: number;
-  isWinner: boolean;
-  totalDarts: number;
-  hits: number;
-  turns: number;
-}
-
-// ---------------------------------------------------------------------------
-// Screen
-// ---------------------------------------------------------------------------
-
+/**
+ * Displays the results screen for a completed game session.
+ *
+ * @returns A React element rendering winner details, rankings, and action buttons.
+ */
 export default function ResultsScreen() {
   const router = useRouter();
   const { slug, sessionId } = useLocalSearchParams<{
@@ -39,7 +31,7 @@ export default function ResultsScreen() {
     sessionId: string;
   }>();
 
-  const [results, setResults] = useState<PlayerResult[]>([]);
+  const [results, setResults] = useState<GameResults | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadResults = useCallback(async () => {
@@ -47,7 +39,7 @@ export default function ResultsScreen() {
 
     try {
       if (!sessionId) {
-        setResults([]);
+        setResults(null);
         return;
       }
 
@@ -63,48 +55,47 @@ export default function ResultsScreen() {
       });
 
       if (!session) {
-        setResults([]);
+        setResults(null);
         return;
       }
 
-      const config = session.config as AroundTheClockConfig;
-      const maxTarget = getMaxTarget(config);
+      const players: SessionResultPlayerInput[] = session.gamePlayers.map((gp) => ({
+        playerId: gp.playerId,
+        name: gp.player.name,
+        avatarColor: gp.player.avatarColor,
+        gameState: gp.gameState,
+        isWinner: gp.isWinner ?? false,
+      }));
 
-      const playerResults: PlayerResult[] = session.gamePlayers.map((gp) => {
-        const state = gp.gameState as AroundTheClockPlayerState;
-        const playerTurns = session.gameTurns.filter(
-          (t) => t.playerId === gp.playerId,
-        );
+      const turns: SessionTurnInput[] = session.gameTurns.map((turn) => ({
+        playerId: turn.playerId,
+        darts: turn.darts as DartThrow[],
+      }));
 
-        // Count hits across all turns
-        let totalDarts = 0;
-        let hits = 0;
-        for (const turn of playerTurns) {
-          const darts = turn.darts as DartThrow[];
-          totalDarts += darts.length;
-          hits += darts.filter((d) => d.segment > 0 && d.multiplier > 0).length;
-        }
+      if (session.gameSlug === AROUND_THE_CLOCK_SLUG) {
+        setResults({
+          type: 'atc',
+          players: buildATCResults(
+            players,
+            turns,
+            session.config as AroundTheClockConfig,
+          ),
+        });
+        return;
+      }
 
-        return {
-          name: gp.player.name,
-          avatarColor: gp.player.avatarColor,
-          targetsHit: Math.min(state.currentTarget - 1, maxTarget),
-          maxTarget,
-          isWinner: gp.isWinner ?? false,
-          totalDarts,
-          hits,
-          turns: playerTurns.length,
-        };
-      });
+      if (session.gameSlug === CRICKET_SLUG) {
+        setResults({
+          type: 'cricket',
+          players: buildCricketResults(players, turns),
+        });
+        return;
+      }
 
-      // Sort: winner first, then by most targets hit
-      playerResults.sort((a, b) => {
-        if (a.isWinner && !b.isWinner) return -1;
-        if (!a.isWinner && b.isWinner) return 1;
-        return b.targetsHit - a.targetsHit;
-      });
-
-      setResults(playerResults);
+      setResults(null);
+    } catch (error) {
+      console.error('Failed to load game results:', error);
+      setResults(null);
     } finally {
       setLoading(false);
     }
@@ -112,7 +103,7 @@ export default function ResultsScreen() {
 
   useEffect(() => {
     void loadResults();
-  }, [loadResults, slug, sessionId]);
+  }, [loadResults]);
 
   if (loading) {
     return (
@@ -122,7 +113,39 @@ export default function ResultsScreen() {
     );
   }
 
-  const winner = results.find((r) => r.isWinner);
+  if (!results) {
+    return (
+      <SafeAreaView className="flex-1 bg-white justify-center items-center px-6">
+        <Text className="text-base text-gray-500 text-center mb-4">
+          Could not load results for this session.
+        </Text>
+        <Pressable
+          onPress={() => router.replace('/(protected)/(tabs)')}
+          className="bg-black rounded-xl px-5 py-3"
+          accessibilityRole="button"
+          accessibilityLabel="Go to home"
+        >
+          <Text className="text-white font-semibold">Home</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
+
+  const winnerName = results.players.find((player) => player.isWinner)?.name;
+  const winnerSubtitle =
+    results.type === 'atc'
+      ? (() => {
+          const winner = results.players.find((player) => player.isWinner);
+          return winner
+            ? `${winner.targetsHit}/${winner.maxTarget} in ${winner.turns} turns`
+            : '';
+        })()
+      : (() => {
+          const winner = results.players.find((player) => player.isWinner);
+          return winner
+            ? `${winner.points} pts \u2022 ${winner.segmentsClosed}/7 closed`
+            : '';
+        })();
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
@@ -130,74 +153,29 @@ export default function ResultsScreen() {
         className="flex-1"
         contentContainerClassName="px-6 pb-12 pt-6"
       >
-        {/* Winner announcement */}
-        {winner && (
+        {winnerName && (
           <View className="items-center mb-8">
             <View className="w-16 h-16 rounded-full bg-amber-100 items-center justify-center mb-3">
               <Trophy size={32} color="#f59e0b" />
             </View>
             <Text className="text-sm text-gray-500 mb-1">Winner</Text>
-            <Text className="text-3xl font-bold text-black">{winner.name}</Text>
-            <Text className="text-base text-gray-500 mt-1">
-              {winner.targetsHit}/{winner.maxTarget} in {winner.turns} turns
-            </Text>
+            <Text className="text-3xl font-bold text-black">{winnerName}</Text>
+            <Text className="text-base text-gray-500 mt-1">{winnerSubtitle}</Text>
           </View>
         )}
 
-        {/* Rankings */}
         <View className="mb-8">
           <Text className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">
             Rankings
           </Text>
-          {results.map((result, index) => (
-            <View
-              key={result.name + index}
-              className={`flex-row items-center py-4 px-4 rounded-xl mb-2 ${
-                result.isWinner ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50'
-              }`}
-            >
-              {/* Rank */}
-              <Text className="text-lg font-bold text-gray-400 w-8">
-                {index + 1}
-              </Text>
 
-              {/* Avatar */}
-              <View
-                className="w-8 h-8 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: result.avatarColor }}
-              >
-                <Text className="text-white text-sm font-bold">
-                  {result.name.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-
-              {/* Name + stats */}
-              <View className="flex-1">
-                <Text className="text-base font-semibold text-black">
-                  {result.name}
-                </Text>
-                <Text className="text-sm text-gray-500">
-                  {result.totalDarts} darts •{' '}
-                  {result.totalDarts > 0
-                    ? Math.round((result.hits / result.totalDarts) * 100)
-                    : 0}
-                  % hit rate
-                </Text>
-              </View>
-
-              {/* Progress */}
-              <Text
-                className={`text-base font-bold ${
-                  result.isWinner ? 'text-amber-600' : 'text-gray-600'
-                }`}
-              >
-                {result.targetsHit}/{result.maxTarget}
-              </Text>
-            </View>
-          ))}
+          {results.type === 'atc' ? (
+            <ATCResultsRows players={results.players} />
+          ) : (
+            <CricketResultsRows players={results.players} />
+          )}
         </View>
 
-        {/* Actions */}
         <View className="gap-3">
           <Pressable
             onPress={() => router.replace(`/game/${slug}`)}
