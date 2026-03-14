@@ -72,7 +72,10 @@ function withStateLock(fn) {
       fs.unlinkSync(lockFile);
     } catch (err) {
       if (!err || err.code !== 'ENOENT') {
-        throw err;
+        if (DEBUG_HOOKS) {
+          const message = err instanceof Error ? (err.stack || err.message) : String(err);
+          process.stderr.write(`[strategic-compact] failed to remove lock file (${lockFile}): ${message}\n`);
+        }
       }
     }
   }
