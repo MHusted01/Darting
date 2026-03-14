@@ -4,9 +4,9 @@ import { House, History, Settings } from 'lucide-react-native';
 /**
  * Render the bottom tab navigator with Home, History, and Settings tabs.
  *
- * The navigator hides screen headers and applies active/inactive tint colors.
+ * The navigator hides screen headers and configures active and inactive tab tint colors.
  *
- * @returns The Tabs navigator React element containing the "index" (Home) and "settings" screens.
+ * @returns The Tabs navigator React element containing the "index" (Home), "history" (History), and "settings" (Settings) screens
  */
 export default function TabsLayout() {
   return (

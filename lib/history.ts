@@ -40,6 +40,15 @@ export interface HistoryData {
   quickStats: HistoryQuickStats;
 }
 
+/**
+ * Determine the most recent activity timestamp for a session.
+ *
+ * @param startedAt - The session's start time, or `null` if not started
+ * @param completedAt - The session's completion time, or `null` if not completed
+ * @param latestTurnAt - The timestamp of the most recent turn, or `null` if none
+ * @param createdAt - The session record creation time (used as a final fallback)
+ * @returns `completedAt` if present, otherwise `latestTurnAt` if present, otherwise `startedAt` if present, otherwise `createdAt`
+ */
 function getLastActivityAt(
   startedAt: Date | null,
   completedAt: Date | null,
@@ -52,6 +61,12 @@ function getLastActivityAt(
   return createdAt;
 }
 
+/**
+ * Normalize a session status string to a valid HistorySessionStatus, defaulting to 'abandoned' for unrecognized values.
+ *
+ * @param status - The input status string to normalize.
+ * @returns One of `setup`, `in_progress`, `completed`, or `abandoned`; returns `abandoned` when the input is not a known status.
+ */
 function normalizeSessionStatus(status: string): HistorySessionStatus {
   if (
     status === 'setup' ||
@@ -65,6 +80,14 @@ function normalizeSessionStatus(status: string): HistorySessionStatus {
   return 'abandoned';
 }
 
+/**
+ * Normalize various representations of a timestamp into a Date or `null`.
+ *
+ * Accepts a Date, a numeric Unix timestamp (seconds), a numeric string (seconds), or a date string.
+ *
+ * @param value - The value to normalize; may be a Date, number (seconds), string, or `null`.
+ * @returns A Date representing the same instant, or `null` if `value` is falsy or cannot be parsed.
+ */
 function normalizeLatestTurnAt(value: Date | string | number | null): Date | null {
   if (!value) return null;
 
@@ -90,6 +113,17 @@ function normalizeLatestTurnAt(value: Date | string | number | null): Date | nul
   return parsedDate;
 }
 
+/**
+ * Compute aggregate statistics for a list of history sessions.
+ *
+ * @param sessions - Array of session items to derive statistics from
+ * @returns An object with aggregate counts and percentages:
+ * - `gamesPlayed`: total number of sessions
+ * - `wins`: number of sessions with status `completed`
+ * - `winRate`: percentage of wins across all sessions, rounded to the nearest integer
+ * - `inProgressSessions`: number of sessions with status `in_progress`
+ * - `abandonedSessions`: number of sessions with status `abandoned`
+ */
 function buildQuickStats(sessions: HistorySessionItem[]): HistoryQuickStats {
   const completedSessions = sessions.filter(
     (session) => session.status === 'completed',
@@ -113,6 +147,11 @@ function buildQuickStats(sessions: HistorySessionItem[]): HistoryQuickStats {
   };
 }
 
+/**
+ * Fetch historical session summaries and aggregated quick statistics for all game sessions.
+ *
+ * @returns An object with `sessions` — an array of session summaries (HistorySessionItem) sorted by `lastActivityAt` descending then `sessionId` descending; and `quickStats` — aggregate metrics (`gamesPlayed`, `wins`, `winRate`, `inProgressSessions`, `abandonedSessions`).
+ */
 export async function getHistoryData(): Promise<HistoryData> {
   const [sessions, latestTurns] = await Promise.all([
     db.query.gameSessions.findMany({

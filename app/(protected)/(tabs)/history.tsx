@@ -29,6 +29,12 @@ const EMPTY_STATS: HistoryQuickStats = {
   abandonedSessions: 0,
 };
 
+/**
+ * Format a Date into a locale date string followed by a 2-digit hour:minute time.
+ *
+ * @param date - The Date to format
+ * @returns The formatted string (locale date + space + `HH:MM` using two-digit hour and minute)
+ */
 function formatDateTime(date: Date): string {
   return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {
     hour: '2-digit',
@@ -36,6 +42,13 @@ function formatDateTime(date: Date): string {
   })}`;
 }
 
+/**
+ * Render the History screen showing quick stats and a list of past game sessions with refresh and navigation.
+ *
+ * Displays a header with aggregated statistics, a scrollable list of sessions, pull-to-refresh and retry-on-error controls, and navigates to the appropriate game screen when a session is opened.
+ *
+ * @returns The History screen component as a JSX element
+ */
 export default function HistoryScreen() {
   const router = useRouter();
   const hasFocusedOnce = useRef(false);
