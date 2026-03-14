@@ -89,6 +89,32 @@ Since Codex lacks hooks, security enforcement is instruction-based:
 
 Dart scoring and game tracking app built with Expo (React Native).
 
+## Product Vision
+
+Darting is the go-to dart companion app — covering the most widely played dart games across **party**, **classic**, and **training** categories.
+
+### Two modes of use
+
+- **Solo**: Pick up and play, practice on your own, and track your progress over time. See stats, trends, and personal bests.
+- **Organization (Clubs)**: Entire dart clubs use Darting for weekly training sessions, tournaments, and casual play. Clubs get leaderboards, member progress tracking, and all the tools a dart club needs to stay organized.
+
+### Club system
+
+- Players discover clubs by searching and requesting access
+- Club admins invite players by username or email
+- Clubs maintain their own leaderboards, session history, and member stats
+
+### Game types
+
+- **Party games**: Fun, casual formats for social play
+- **Classic games**: Standard dart (301/501), doubles, cricket, and other traditional formats
+- **Training games**: Structured practice drills to improve accuracy and consistency
+- **Free play**: Classic dartboard mode for just throwing and scoring without game rules
+
+### Monetization
+
+Free for all users. Monetization may be explored later but is not a current priority — focus is on building the best dart experience first.
+
 ## Stack
 
 - Expo 55 + Expo Router (file-based routing)
