@@ -23,7 +23,7 @@ interface PlayerManagerProps {
 // Constants
 // ---------------------------------------------------------------------------
 
-const AVATAR_COLORS = [
+export const AVATAR_COLORS = [
   '#6366f1', // indigo
   '#10b981', // emerald
   '#f59e0b', // amber
