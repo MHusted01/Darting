@@ -1,4 +1,4 @@
-import { ClerkProvider, ClerkLoaded } from '@clerk/clerk-expo';
+import { ClerkProvider, ClerkLoaded } from '@clerk/expo';
 import { Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
@@ -13,11 +13,13 @@ const tokenCache = {
   async saveToken(key: string, value: string) { return SecureStore.setItemAsync(key, value); },
 };
 
-const clerkKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
-
-if (!clerkKey) {
-  throw new Error('Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in environment variables');
-}
+const CLERK_PUBLISHABLE_KEY = (() => {
+  const value = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
+  if (!value) {
+    throw new Error('Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in environment variables');
+  }
+  return value;
+})();
 
 /**
  * App root layout that performs database migrations and provides authentication and query contexts.
@@ -46,7 +48,7 @@ export default function RootLayout() {
   }
 
   return (
-    <ClerkProvider publishableKey={clerkKey} tokenCache={tokenCache}>
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
       <ClerkLoaded>
         <SupabaseProvider>
           <Stack screenOptions={{ headerShown: false }} />

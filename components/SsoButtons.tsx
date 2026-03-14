@@ -1,4 +1,4 @@
-import { useSSO } from '@clerk/clerk-expo';
+import { useSSO } from '@clerk/expo';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';

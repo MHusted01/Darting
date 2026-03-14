@@ -1,7 +1,8 @@
-import { useSignIn } from '@clerk/clerk-expo';
+import { useSignIn } from '@clerk/expo/legacy';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Text, TextInput, Pressable, View, Alert } from 'react-native';
+import { Text, TextInput, Pressable, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import SsoButtons from '@/components/SsoButtons';
 
@@ -42,7 +43,7 @@ export default function SignIn() {
   };
 
   return (
-    <View className="flex-1 justify-center px-6">
+    <SafeAreaView edges={['top']} className="flex-1 justify-center px-6">
       <Text className="text-3xl font-bold text-center mb-6">Sign In</Text>
 
       <TextInput
@@ -78,6 +79,6 @@ export default function SignIn() {
           </Text>
         </Pressable>
       </Link>
-    </View>
+    </SafeAreaView>
   );
 }

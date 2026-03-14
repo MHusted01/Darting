@@ -1,7 +1,8 @@
-import { useSignUp } from '@clerk/clerk-expo';
+import { useSignUp } from '@clerk/expo/legacy';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Text, TextInput, Pressable, View, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import OtpInput from '@/components/OtpInput';
 import SsoButtons from '@/components/SsoButtons';
@@ -104,7 +105,7 @@ export default function SignUp() {
 
   if (pendingVerification) {
     return (
-      <View className="flex-1 justify-center px-6">
+      <SafeAreaView edges={['top']} className="flex-1 justify-center px-6">
         <Text className="text-3xl font-bold text-center mb-2">Verify Email</Text>
         <Text className="text-gray-500 text-center mb-8">
           We sent a verification code to {email}
@@ -123,12 +124,12 @@ export default function SignUp() {
             </Text>
           </Pressable>
         )}
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View className="flex-1 justify-center px-6">
+    <SafeAreaView edges={['top']} className="flex-1 justify-center px-6">
       <Text className="text-3xl font-bold text-center mb-6">Create Account</Text>
 
       <View className="flex-row gap-3 mb-3">
@@ -182,6 +183,6 @@ export default function SignUp() {
           </Text>
         </Pressable>
       </Link>
-    </View>
+    </SafeAreaView>
   );
 }
