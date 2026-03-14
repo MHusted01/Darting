@@ -86,7 +86,7 @@ function normalizeSessionStatus(status: string): HistorySessionStatus {
  * Accepts a Date, a numeric Unix timestamp (seconds), a numeric string (seconds), or a date string.
  *
  * @param value - The value to normalize; may be a Date, number (seconds), string, or `null`.
- * @returns A Date representing the same instant, or `null` if `value` is falsy or cannot be parsed.
+ * @returns A Date representing the same instant, or `null` if `value` is null/undefined, blank, or cannot be parsed.
  */
 function normalizeLatestTurnAt(value: Date | string | number | null): Date | null {
   if (value === null || value === undefined) return null;
