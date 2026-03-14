@@ -13,13 +13,13 @@ const tokenCache = {
   async saveToken(key: string, value: string) { return SecureStore.setItemAsync(key, value); },
 };
 
-function getClerkPublishableKey(): string {
-  const value = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const CLERK_PUBLISHABLE_KEY = (() => {
+  const value = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
   if (!value) {
     throw new Error('Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in environment variables');
   }
   return value;
-}
+})();
 
 /**
  * App root layout that performs database migrations and provides authentication and query contexts.
@@ -48,7 +48,7 @@ export default function RootLayout() {
   }
 
   return (
-    <ClerkProvider publishableKey={getClerkPublishableKey()} tokenCache={tokenCache}>
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
       <ClerkLoaded>
         <SupabaseProvider>
           <Stack screenOptions={{ headerShown: false }} />

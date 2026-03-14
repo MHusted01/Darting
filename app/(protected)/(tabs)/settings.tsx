@@ -1,7 +1,8 @@
 import { useAuth } from '@clerk/expo';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 /**
  * Renders the Settings screen with a "Sign Out" action.
@@ -30,7 +31,7 @@ export default function Settings() {
   };
 
   return (
-    <View className="flex-1 justify-center px-6">
+    <SafeAreaView edges={['top']} className="flex-1 justify-center px-6">
       <Text className="text-3xl font-bold text-center mb-8">Settings</Text>
 
       <Pressable
@@ -45,6 +46,6 @@ export default function Settings() {
           {isSigningOut ? 'Signing Out...' : 'Sign Out'}
         </Text>
       </Pressable>
-    </View>
+    </SafeAreaView>
   );
 }
