@@ -85,6 +85,14 @@ describe('Auth Screen Integration', () => {
     mockSignInStatus = 'complete';
     mockSignUpStatus = 'complete';
     mockSignUpMissingFields = [];
+    mockSignInFinalize.mockImplementation(async (options?: { navigate?: (params: { session?: { currentTask?: { key: string } } }) => void }) => {
+      options?.navigate?.({ session: {} });
+      return { error: null };
+    });
+    mockSignUpFinalize.mockImplementation(async (options?: { navigate?: (params: { session?: { currentTask?: { key: string } } }) => void }) => {
+      options?.navigate?.({ session: {} });
+      return { error: null };
+    });
     jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
   });
 
@@ -98,7 +106,6 @@ describe('Auth Screen Integration', () => {
 
   it('sign-in completes and redirects on successful finalize', async () => {
     mockSignInPassword.mockResolvedValue({ error: null });
-    mockSignInFinalize.mockResolvedValue({ error: null });
     mockSignInStatus = 'complete';
 
     render(<SignIn />);
@@ -112,7 +119,9 @@ describe('Auth Screen Integration', () => {
         identifier: 'user@example.com',
         password: 'super-secret',
       });
-      expect(mockSignInFinalize).toHaveBeenCalled();
+      expect(mockSignInFinalize).toHaveBeenCalledWith(
+        expect.objectContaining({ navigate: expect.any(Function) }),
+      );
       expect(mockReplace).toHaveBeenCalledWith('/(protected)/(tabs)');
     });
   });
@@ -137,7 +146,6 @@ describe('Auth Screen Integration', () => {
 
   it('sign-up happy path finalizes and redirects', async () => {
     mockSignUpPassword.mockResolvedValue({ error: null });
-    mockSignUpFinalize.mockResolvedValue({ error: null });
     mockSignUpStatus = 'complete';
 
     render(<SignUp />);
@@ -155,7 +163,9 @@ describe('Auth Screen Integration', () => {
         emailAddress: 'ada@example.com',
         password: 'passw0rd!',
       });
-      expect(mockSignUpFinalize).toHaveBeenCalled();
+      expect(mockSignUpFinalize).toHaveBeenCalledWith(
+        expect.objectContaining({ navigate: expect.any(Function) }),
+      );
       expect(mockReplace).toHaveBeenCalledWith('/(protected)/(tabs)');
     });
   });
@@ -183,7 +193,6 @@ describe('Auth Screen Integration', () => {
     mockSignUpPassword.mockResolvedValue({ error: null });
     mockSendEmailCode.mockResolvedValue({ error: null });
     mockVerifyEmailCode.mockResolvedValue({ error: null });
-    mockSignUpFinalize.mockResolvedValue({ error: null });
     mockSignUpStatus = 'missing_requirements';
 
     render(<SignUp />);
@@ -203,7 +212,9 @@ describe('Auth Screen Integration', () => {
 
     await waitFor(() => {
       expect(mockVerifyEmailCode).toHaveBeenCalledWith({ code: '123456' });
-      expect(mockSignUpFinalize).toHaveBeenCalled();
+      expect(mockSignUpFinalize).toHaveBeenCalledWith(
+        expect.objectContaining({ navigate: expect.any(Function) }),
+      );
       expect(mockReplace).toHaveBeenCalledWith('/(protected)/(tabs)');
     });
   });

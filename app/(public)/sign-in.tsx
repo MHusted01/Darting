@@ -46,12 +46,18 @@ export default function SignIn() {
       }
 
       if (signIn.status === 'complete') {
-        const { error: finalizeError } = await signIn.finalize();
+        const { error: finalizeError } = await signIn.finalize({
+          navigate: ({ session }) => {
+            if (session?.currentTask?.key) {
+              return;
+            }
+            router.replace('/(protected)/(tabs)');
+          },
+        });
         if (finalizeError) {
           Alert.alert('Error', getErrorMessage(finalizeError));
           return;
         }
-        router.replace('/(protected)/(tabs)');
         return;
       }
 

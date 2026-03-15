@@ -8,6 +8,11 @@ const mockUseAuth = jest.fn();
 
 jest.mock('@clerk/expo', () => ({
   useAuth: () => mockUseAuth(),
+  RedirectToTasks: () => {
+    const React = jest.requireActual('react') as typeof import('react');
+    const { Text } = jest.requireActual('react-native') as typeof import('react-native');
+    return React.createElement(Text, null, 'redirect-to-tasks');
+  },
 }));
 
 jest.mock('expo-router', () => ({
@@ -65,6 +70,7 @@ describe('Auth Route Integration', () => {
 
     render(<ProtectedLayout />);
 
+    expect(screen.getByText('redirect-to-tasks')).toBeTruthy();
     expect(screen.getByText('stack-rendered')).toBeTruthy();
   });
 

@@ -10,19 +10,22 @@ const mockRefetch: jest.Mock<any> = jest.fn();
 const mockUseQuery: jest.Mock<any> = jest.fn();
 
 jest.mock('expo-router', () => {
-  const TabsMock = function TabsMock({ children }: { children: React.ReactNode }) {
+  const TabsMockFunction = function TabsMock({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   };
-  TabsMock.Screen = function TabsScreen({ name }: { name: string }) {
+  const TabsScreenFunction = function TabsScreen({ name }: { name: string }) {
     const React = jest.requireActual('react') as typeof import('react');
     const { Text } = jest.requireActual('react-native') as typeof import('react-native');
     return React.createElement(Text, null, `tab:${name}`);
   };
+  const TabsMock = Object.assign(TabsMockFunction, {
+    Screen: TabsScreenFunction,
+  });
 
   return {
     Tabs: TabsMock,
     useRouter: () => ({ push: mockPush }),
-    useFocusEffect: jest.fn(),
+    useFocusEffect: jest.fn((effect: () => void | (() => void)) => effect()),
   };
 });
 

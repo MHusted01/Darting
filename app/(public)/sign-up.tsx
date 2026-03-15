@@ -64,12 +64,18 @@ export default function SignUp() {
       }
 
       if (signUp.status === 'complete') {
-        const { error: finalizeError } = await signUp.finalize();
+        const { error: finalizeError } = await signUp.finalize({
+          navigate: ({ session }) => {
+            if (session?.currentTask?.key) {
+              return;
+            }
+            router.replace('/(protected)/(tabs)');
+          },
+        });
         if (finalizeError) {
           Alert.alert('Error', getErrorMessage(finalizeError));
           return;
         }
-        router.replace('/(protected)/(tabs)');
         return;
       }
 
@@ -98,12 +104,18 @@ export default function SignUp() {
       }
 
       if (signUp.status === 'complete') {
-        const { error: finalizeError } = await signUp.finalize();
+        const { error: finalizeError } = await signUp.finalize({
+          navigate: ({ session }) => {
+            if (session?.currentTask?.key) {
+              return;
+            }
+            router.replace('/(protected)/(tabs)');
+          },
+        });
         if (finalizeError) {
           Alert.alert('Error', getErrorMessage(finalizeError));
           return;
         }
-        router.replace('/(protected)/(tabs)');
       } else {
         const missing = signUp.missingFields?.join(', ');
         Alert.alert(
