@@ -130,6 +130,9 @@ describe('Tabs + History Integration', () => {
     expect(mockPush).toHaveBeenNthCalledWith(2, '/game/x01/play?sessionId=2');
     expect(mockPush).toHaveBeenNthCalledWith(3, '/game/around-the-clock/results?sessionId=3');
 
+    // Intentionally uses UNSAFE_getByType to access the FlatList instance and trigger
+    // its onRefresh handler for pull-to-refresh behavior. This relies on internal
+    // component structure because refresh wiring is not exposed via a public test ID.
     const list = UNSAFE_getByType(FlatList);
     list.props.onRefresh();
 

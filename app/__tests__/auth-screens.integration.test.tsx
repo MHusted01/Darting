@@ -91,7 +91,7 @@ describe('Auth Screen Integration', () => {
   it('sign-in validates empty credentials', () => {
     render(<SignIn />);
 
-    fireEvent.press(screen.getAllByText('Sign In')[1]);
+    fireEvent.press(screen.getByTestId('sign-in-button'));
 
     expect(Alert.alert).toHaveBeenCalledWith('Error', 'Please enter both email and password.');
   });
@@ -105,7 +105,7 @@ describe('Auth Screen Integration', () => {
 
     fireEvent.changeText(screen.getByPlaceholderText('Email'), 'user@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'super-secret');
-    fireEvent.press(screen.getAllByText('Sign In')[1]);
+    fireEvent.press(screen.getByTestId('sign-in-button'));
 
     await waitFor(() => {
       expect(mockSignInPassword).toHaveBeenCalledWith({
@@ -125,7 +125,7 @@ describe('Auth Screen Integration', () => {
 
     fireEvent.changeText(screen.getByPlaceholderText('Email'), 'user@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'super-secret');
-    fireEvent.press(screen.getAllByText('Sign In')[1]);
+    fireEvent.press(screen.getByTestId('sign-in-button'));
 
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith(

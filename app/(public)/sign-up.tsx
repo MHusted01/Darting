@@ -6,31 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import OtpInput from '@/components/OtpInput';
 import SsoButtons from '@/components/SsoButtons';
+import { getErrorMessage } from '@/lib/errors';
 
 WebBrowser.maybeCompleteAuthSession();
-
-/**
- * Extracts a user-facing message from a variety of error object shapes.
- *
- * Looks for `errors[0].longMessage`, then `errors[0].message`, then a top-level
- * `message` property and falls back to `'Something went wrong'` if none are present.
- *
- * @returns The extracted error message or `'Something went wrong'` when unavailable.
- */
-function getErrorMessage(error: unknown): string {
-  if (typeof error === 'object' && error !== null) {
-    const withErrors = error as { errors?: { longMessage?: string; message?: string }[] };
-    const firstError = withErrors.errors?.[0];
-    if (firstError?.longMessage) return firstError.longMessage;
-    if (firstError?.message) return firstError.message;
-
-    const withMessage = error as { message?: string };
-    if (withMessage.message) return withMessage.message;
-  }
-
-  return 'Something went wrong';
-}
-
 /**
  * Renders the sign-up screen and manages account creation and email verification with Clerk.
  *

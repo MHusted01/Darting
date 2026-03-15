@@ -5,29 +5,9 @@ import { Text, TextInput, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import SsoButtons from '@/components/SsoButtons';
+import { getErrorMessage } from '@/lib/errors';
 
 WebBrowser.maybeCompleteAuthSession();
-
-/**
- * Extracts a user-friendly message from an unknown error value.
- *
- * @param error - The error value to extract a message from; may be any shape.
- * @returns The `longMessage` or `message` from the first entry of an `errors` array if present, otherwise the top-level `message`, or `'Something went wrong'` if no message is found.
- */
-function getErrorMessage(error: unknown): string {
-  if (typeof error === 'object' && error !== null) {
-    const withErrors = error as { errors?: { longMessage?: string; message?: string }[] };
-    const firstError = withErrors.errors?.[0];
-    if (firstError?.longMessage) return firstError.longMessage;
-    if (firstError?.message) return firstError.message;
-
-    const withMessage = error as { message?: string };
-    if (withMessage.message) return withMessage.message;
-  }
-
-  return 'Something went wrong';
-}
-
 /**
  * Renders the sign-in screen with email/password inputs, SSO options, and a sign-up link.
  *
@@ -105,6 +85,9 @@ export default function SignIn() {
       />
 
       <Pressable
+        testID="sign-in-button"
+        accessibilityRole="button"
+        accessibilityLabel="Sign In"
         className={`bg-black rounded-lg p-4 items-center mt-2 active:opacity-70 ${isSubmitting ? 'opacity-50' : ''}`}
         onPress={onSignIn}
         disabled={isSubmitting}
