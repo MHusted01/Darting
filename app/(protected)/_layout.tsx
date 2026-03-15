@@ -1,4 +1,4 @@
-import { useAuth } from '@clerk/expo';
+import { RedirectToTasks, useAuth } from '@clerk/expo';
 import { Redirect, Stack } from 'expo-router';
 
 export default function ProtectedLayout() {
@@ -10,5 +10,10 @@ export default function ProtectedLayout() {
     return <Redirect href="/(public)/sign-in" />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <>
+      <RedirectToTasks />
+      <Stack screenOptions={{ headerShown: false }} />
+    </>
+  );
 }

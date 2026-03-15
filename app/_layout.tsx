@@ -21,6 +21,12 @@ const CLERK_PUBLISHABLE_KEY = (() => {
   return value;
 })();
 
+const CLERK_TASK_URLS = {
+  'choose-organization': '/(protected)/(tabs)',
+  'reset-password': '/(public)/sign-in',
+  'setup-mfa': '/(public)/sign-in',
+} as const;
+
 /**
  * App root layout that performs database migrations and provides authentication and query contexts.
  *
@@ -48,7 +54,11 @@ export default function RootLayout() {
   }
 
   return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
+    <ClerkProvider
+      publishableKey={CLERK_PUBLISHABLE_KEY}
+      tokenCache={tokenCache}
+      taskUrls={CLERK_TASK_URLS}
+    >
       <ClerkLoaded>
         <SupabaseProvider>
           <Stack screenOptions={{ headerShown: false }} />
