@@ -9,6 +9,14 @@ import SsoButtons from '@/components/SsoButtons';
 
 WebBrowser.maybeCompleteAuthSession();
 
+/**
+ * Extracts a user-facing message from a variety of error object shapes.
+ *
+ * Looks for `errors[0].longMessage`, then `errors[0].message`, then a top-level
+ * `message` property and falls back to `'Something went wrong'` if none are present.
+ *
+ * @returns The extracted error message or `'Something went wrong'` when unavailable.
+ */
 function getErrorMessage(error: unknown): string {
   if (typeof error === 'object' && error !== null) {
     const withErrors = error as { errors?: { longMessage?: string; message?: string }[] };

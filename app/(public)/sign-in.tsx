@@ -8,6 +8,12 @@ import SsoButtons from '@/components/SsoButtons';
 
 WebBrowser.maybeCompleteAuthSession();
 
+/**
+ * Extracts a user-friendly message from an unknown error value.
+ *
+ * @param error - The error value to extract a message from; may be any shape.
+ * @returns The `longMessage` or `message` from the first entry of an `errors` array if present, otherwise the top-level `message`, or `'Something went wrong'` if no message is found.
+ */
 function getErrorMessage(error: unknown): string {
   if (typeof error === 'object' && error !== null) {
     const withErrors = error as { errors?: { longMessage?: string; message?: string }[] };
@@ -23,11 +29,12 @@ function getErrorMessage(error: unknown): string {
 }
 
 /**
- * Render the sign-in screen with email/password inputs, SSO buttons, and a link to sign up.
+ * Renders the sign-in screen with email/password inputs, SSO options, and a sign-up link.
  *
- * Attempts to authenticate using the entered credentials; if authentication completes successfully
- * the new session is activated and the router navigates to the protected tabs route. On failure,
- * an alert is shown with the first available error message or a generic fallback.
+ * Attempts to authenticate using the entered credentials; on successful authentication the new
+ * session is activated and navigation is replaced with the protected tabs route. On failure,
+ * an alert is shown with a user-facing error message, and when additional verification is
+ * required an alert indicates the incomplete sign-in status.
  *
  * @returns The sign-in screen's JSX element.
  */
