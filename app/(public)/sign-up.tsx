@@ -1,4 +1,4 @@
-import { useSignUp } from '@clerk/expo/legacy';
+import { useSignUp } from '@clerk/expo';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Text, TextInput, Pressable, View, Alert } from 'react-native';
@@ -9,6 +9,20 @@ import SsoButtons from '@/components/SsoButtons';
 
 WebBrowser.maybeCompleteAuthSession();
 
+function getErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null) {
+    const withErrors = error as { errors?: { longMessage?: string; message?: string }[] };
+    const firstError = withErrors.errors?.[0];
+    if (firstError?.longMessage) return firstError.longMessage;
+    if (firstError?.message) return firstError.message;
+
+    const withMessage = error as { message?: string };
+    if (withMessage.message) return withMessage.message;
+  }
+
+  return 'Something went wrong';
+}
+
 /**
  * Renders the sign-up screen and manages account creation and email verification with Clerk.
  *
@@ -17,7 +31,7 @@ WebBrowser.maybeCompleteAuthSession();
  * @returns The sign-up UI as a React element.
  */
 export default function SignUp() {
-  const { signUp, setActive, isLoaded } = useSignUp();
+  const { signUp, fetchStatus } = useSignUp();
   const router = useRouter();
 
   const [firstName, setFirstName] = useState('');
@@ -29,7 +43,7 @@ export default function SignUp() {
   const [isVerifying, setIsVerifying] = useState(false);
 
   const onSignUp = async () => {
-    if (!isLoaded || isSubmitting) return;
+    if (fetchStatus === 'fetching' || isSubmitting) return;
 
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
@@ -51,37 +65,58 @@ export default function SignUp() {
     setIsSubmitting(true);
 
     try {
-      await signUp.create({
+      const { error } = await signUp.password({
         firstName: trimmedFirst,
         lastName: trimmedLast,
         emailAddress: trimmedEmail,
         password,
       });
 
+      if (error) {
+        Alert.alert('Error', getErrorMessage(error));
+        return;
+      }
+
       if (signUp.status === 'complete') {
-        await setActive({ session: signUp.createdSessionId });
+        const { error: finalizeError } = await signUp.finalize();
+        if (finalizeError) {
+          Alert.alert('Error', getErrorMessage(finalizeError));
+          return;
+        }
         router.replace('/(protected)/(tabs)');
         return;
       }
 
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      const { error: verificationError } = await signUp.verifications.sendEmailCode();
+      if (verificationError) {
+        Alert.alert('Error', getErrorMessage(verificationError));
+        return;
+      }
       setPendingVerification(true);
-    } catch (err: any) {
-      Alert.alert('Error', err.errors?.[0]?.message ?? 'Something went wrong');
+    } catch (error: unknown) {
+      Alert.alert('Error', getErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const onVerify = async (code: string) => {
-    if (!isLoaded || isVerifying) return;
+    if (fetchStatus === 'fetching' || isVerifying) return;
     setIsVerifying(true);
 
     try {
-      const result = await signUp.attemptEmailAddressVerification({ code });
+      const { error } = await signUp.verifications.verifyEmailCode({ code });
+      if (error) {
+        Alert.alert('Error', getErrorMessage(error));
+        return;
+      }
 
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId });
+      if (signUp.status === 'complete') {
+        const { error: finalizeError } = await signUp.finalize();
+        if (finalizeError) {
+          Alert.alert('Error', getErrorMessage(finalizeError));
+          return;
+        }
         router.replace('/(protected)/(tabs)');
       } else {
         const missing = signUp.missingFields?.join(', ');
@@ -90,14 +125,8 @@ export default function SignUp() {
           missing ? `Missing fields: ${missing}` : 'Please try again.',
         );
       }
-    } catch (err: any) {
-      // If email was already verified (e.g. via email link), complete the sign-up
-      if (signUp.status === 'complete') {
-        await setActive({ session: signUp.createdSessionId });
-        router.replace('/(protected)/(tabs)');
-        return;
-      }
-      Alert.alert('Error', err.errors?.[0]?.message ?? 'Something went wrong');
+    } catch (error: unknown) {
+      Alert.alert('Error', getErrorMessage(error));
     } finally {
       setIsVerifying(false);
     }

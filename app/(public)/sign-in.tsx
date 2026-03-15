@@ -1,4 +1,4 @@
-import { useSignIn } from '@clerk/expo/legacy';
+import { useSignIn } from '@clerk/expo';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Text, TextInput, Pressable, Alert } from 'react-native';
@@ -7,6 +7,20 @@ import * as WebBrowser from 'expo-web-browser';
 import SsoButtons from '@/components/SsoButtons';
 
 WebBrowser.maybeCompleteAuthSession();
+
+function getErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null) {
+    const withErrors = error as { errors?: { longMessage?: string; message?: string }[] };
+    const firstError = withErrors.errors?.[0];
+    if (firstError?.longMessage) return firstError.longMessage;
+    if (firstError?.message) return firstError.message;
+
+    const withMessage = error as { message?: string };
+    if (withMessage.message) return withMessage.message;
+  }
+
+  return 'Something went wrong';
+}
 
 /**
  * Render the sign-in screen with email/password inputs, SSO buttons, and a link to sign up.
@@ -18,27 +32,47 @@ WebBrowser.maybeCompleteAuthSession();
  * @returns The sign-in screen's JSX element.
  */
 export default function SignIn() {
-  const { signIn, setActive, isLoaded } = useSignIn();
+  const { signIn, fetchStatus } = useSignIn();
   const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onSignIn = async () => {
-    if (!isLoaded) return;
+    if (isSubmitting || fetchStatus === 'fetching') return;
+    if (!email.trim() || !password) {
+      Alert.alert('Error', 'Please enter both email and password.');
+      return;
+    }
 
+    setIsSubmitting(true);
     try {
-      const result = await signIn.create({
-        identifier: email,
+      const { error } = await signIn.password({
+        identifier: email.trim(),
         password,
       });
 
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId });
-        router.replace('/(protected)/(tabs)');
+      if (error) {
+        Alert.alert('Error', getErrorMessage(error));
+        return;
       }
-    } catch (err: any) {
-      Alert.alert('Error', err.errors?.[0]?.message ?? 'Something went wrong');
+
+      if (signIn.status === 'complete') {
+        const { error: finalizeError } = await signIn.finalize();
+        if (finalizeError) {
+          Alert.alert('Error', getErrorMessage(finalizeError));
+          return;
+        }
+        router.replace('/(protected)/(tabs)');
+        return;
+      }
+
+      Alert.alert('Sign in incomplete', 'Please complete additional verification to continue.');
+    } catch (error: unknown) {
+      Alert.alert('Error', getErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -64,10 +98,13 @@ export default function SignIn() {
       />
 
       <Pressable
-        className="bg-black rounded-lg p-4 items-center mt-2 active:opacity-70"
+        className={`bg-black rounded-lg p-4 items-center mt-2 active:opacity-70 ${isSubmitting ? 'opacity-50' : ''}`}
         onPress={onSignIn}
+        disabled={isSubmitting}
       >
-        <Text className="text-white text-base font-semibold">Sign In</Text>
+        <Text className="text-white text-base font-semibold">
+          {isSubmitting ? 'Signing In...' : 'Sign In'}
+        </Text>
       </Pressable>
 
       <SsoButtons />
