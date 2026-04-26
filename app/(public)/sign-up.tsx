@@ -1,4 +1,4 @@
-import { useSignUp } from '@clerk/expo/legacy';
+import { useSignUp } from '@clerk/expo';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Text, TextInput, Pressable, View, Alert } from 'react-native';
@@ -6,9 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import OtpInput from '@/components/OtpInput';
 import SsoButtons from '@/components/SsoButtons';
+import { getErrorMessage } from '@/lib/errors';
 
 WebBrowser.maybeCompleteAuthSession();
-
 /**
  * Renders the sign-up screen and manages account creation and email verification with Clerk.
  *
@@ -17,7 +17,7 @@ WebBrowser.maybeCompleteAuthSession();
  * @returns The sign-up UI as a React element.
  */
 export default function SignUp() {
-  const { signUp, setActive, isLoaded } = useSignUp();
+  const { signUp, fetchStatus } = useSignUp();
   const router = useRouter();
 
   const [firstName, setFirstName] = useState('');
@@ -28,8 +28,11 @@ export default function SignUp() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
 
+  const busy = fetchStatus === 'fetching' || isSubmitting;
+  const verifyingBusy = fetchStatus === 'fetching' || isVerifying;
+
   const onSignUp = async () => {
-    if (!isLoaded || isSubmitting) return;
+    if (busy) return;
 
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
@@ -51,38 +54,65 @@ export default function SignUp() {
     setIsSubmitting(true);
 
     try {
-      await signUp.create({
+      const { error } = await signUp.password({
         firstName: trimmedFirst,
         lastName: trimmedLast,
         emailAddress: trimmedEmail,
         password,
       });
 
-      if (signUp.status === 'complete') {
-        await setActive({ session: signUp.createdSessionId });
-        router.replace('/(protected)/(tabs)');
+      if (error) {
+        Alert.alert('Error', getErrorMessage(error));
         return;
       }
 
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      if (signUp.status === 'complete') {
+        const { error: finalizeError } = await signUp.finalize({
+          navigate: () => {
+            router.replace('/(protected)/(tabs)');
+          },
+        });
+        if (finalizeError) {
+          Alert.alert('Error', getErrorMessage(finalizeError));
+          return;
+        }
+        return;
+      }
+
+      const { error: verificationError } = await signUp.verifications.sendEmailCode();
+      if (verificationError) {
+        Alert.alert('Error', getErrorMessage(verificationError));
+        return;
+      }
       setPendingVerification(true);
-    } catch (err: any) {
-      Alert.alert('Error', err.errors?.[0]?.message ?? 'Something went wrong');
+    } catch (error: unknown) {
+      Alert.alert('Error', getErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const onVerify = async (code: string) => {
-    if (!isLoaded || isVerifying) return;
+    if (verifyingBusy) return;
     setIsVerifying(true);
 
     try {
-      const result = await signUp.attemptEmailAddressVerification({ code });
+      const { error } = await signUp.verifications.verifyEmailCode({ code });
+      if (error) {
+        Alert.alert('Error', getErrorMessage(error));
+        return;
+      }
 
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId });
-        router.replace('/(protected)/(tabs)');
+      if (signUp.status === 'complete') {
+        const { error: finalizeError } = await signUp.finalize({
+          navigate: () => {
+            router.replace('/(protected)/(tabs)');
+          },
+        });
+        if (finalizeError) {
+          Alert.alert('Error', getErrorMessage(finalizeError));
+          return;
+        }
       } else {
         const missing = signUp.missingFields?.join(', ');
         Alert.alert(
@@ -90,14 +120,8 @@ export default function SignUp() {
           missing ? `Missing fields: ${missing}` : 'Please try again.',
         );
       }
-    } catch (err: any) {
-      // If email was already verified (e.g. via email link), complete the sign-up
-      if (signUp.status === 'complete') {
-        await setActive({ session: signUp.createdSessionId });
-        router.replace('/(protected)/(tabs)');
-        return;
-      }
-      Alert.alert('Error', err.errors?.[0]?.message ?? 'Something went wrong');
+    } catch (error: unknown) {
+      Alert.alert('Error', getErrorMessage(error));
     } finally {
       setIsVerifying(false);
     }
@@ -111,11 +135,11 @@ export default function SignUp() {
           We sent a verification code to {email}
         </Text>
 
-        <View className={isVerifying ? 'opacity-50' : ''} pointerEvents={isVerifying ? 'none' : 'auto'}>
+        <View className={verifyingBusy ? 'opacity-50' : ''} pointerEvents={verifyingBusy ? 'none' : 'auto'}>
           <OtpInput onComplete={onVerify} />
         </View>
 
-        {isVerifying ? (
+        {verifyingBusy ? (
           <Text className="mt-6 text-center text-gray-400">Verifying...</Text>
         ) : (
           <Pressable onPress={() => setPendingVerification(false)}>
@@ -165,12 +189,12 @@ export default function SignUp() {
       />
 
       <Pressable
-        className={`bg-black rounded-lg p-4 items-center mt-2 active:opacity-70 ${isSubmitting ? 'opacity-50' : ''}`}
+        className={`bg-black rounded-lg p-4 items-center mt-2 active:opacity-70 ${busy ? 'opacity-50' : ''}`}
         onPress={onSignUp}
-        disabled={isSubmitting}
+        disabled={busy}
       >
         <Text className="text-white text-base font-semibold">
-          {isSubmitting ? 'Creating Account...' : 'Sign Up'}
+          {busy ? 'Creating Account...' : 'Sign Up'}
         </Text>
       </Pressable>
 

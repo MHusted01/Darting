@@ -158,6 +158,7 @@ export default function HistoryScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
       <FlatList
+        testID="tabs-history-flatlist"
         data={sessions}
         keyExtractor={(item) => `${item.sessionId}`}
         contentContainerClassName="px-6 pb-6"
