@@ -28,8 +28,11 @@ export default function SignUp() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
 
+  const busy = fetchStatus === 'fetching' || isSubmitting;
+  const verifyingBusy = fetchStatus === 'fetching' || isVerifying;
+
   const onSignUp = async () => {
-    if (fetchStatus === 'fetching' || isSubmitting) return;
+    if (busy) return;
 
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
@@ -90,7 +93,7 @@ export default function SignUp() {
   };
 
   const onVerify = async (code: string) => {
-    if (fetchStatus === 'fetching' || isVerifying) return;
+    if (verifyingBusy) return;
     setIsVerifying(true);
 
     try {
@@ -132,11 +135,11 @@ export default function SignUp() {
           We sent a verification code to {email}
         </Text>
 
-        <View className={isVerifying ? 'opacity-50' : ''} pointerEvents={isVerifying ? 'none' : 'auto'}>
+        <View className={verifyingBusy ? 'opacity-50' : ''} pointerEvents={verifyingBusy ? 'none' : 'auto'}>
           <OtpInput onComplete={onVerify} />
         </View>
 
-        {isVerifying ? (
+        {verifyingBusy ? (
           <Text className="mt-6 text-center text-gray-400">Verifying...</Text>
         ) : (
           <Pressable onPress={() => setPendingVerification(false)}>
@@ -186,12 +189,12 @@ export default function SignUp() {
       />
 
       <Pressable
-        className={`bg-black rounded-lg p-4 items-center mt-2 active:opacity-70 ${isSubmitting ? 'opacity-50' : ''}`}
+        className={`bg-black rounded-lg p-4 items-center mt-2 active:opacity-70 ${busy ? 'opacity-50' : ''}`}
         onPress={onSignUp}
-        disabled={isSubmitting}
+        disabled={busy}
       >
         <Text className="text-white text-base font-semibold">
-          {isSubmitting ? 'Creating Account...' : 'Sign Up'}
+          {busy ? 'Creating Account...' : 'Sign Up'}
         </Text>
       </Pressable>
 
