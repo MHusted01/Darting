@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, expect, it, beforeEach, jest } from '@jest/globals';
-import { Alert, FlatList } from 'react-native';
+import { Alert } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import TabsLayout from '@/app/(protected)/(tabs)/_layout';
 import HistoryScreen from '@/app/(protected)/(tabs)/history';
@@ -115,7 +115,7 @@ describe('Tabs + History Integration', () => {
       refetch: mockRefetch,
     });
 
-    const { UNSAFE_getByType } = render(<HistoryScreen />);
+    render(<HistoryScreen />);
 
     expect(screen.getByText('History')).toBeTruthy();
     expect(screen.getByText('Quick stats')).toBeTruthy();
@@ -133,10 +133,7 @@ describe('Tabs + History Integration', () => {
     expect(mockPush).toHaveBeenNthCalledWith(2, '/game/x01/play?sessionId=2');
     expect(mockPush).toHaveBeenNthCalledWith(3, '/game/around-the-clock/results?sessionId=3');
 
-    // Intentionally uses UNSAFE_getByType to access the FlatList instance and trigger
-    // its onRefresh handler for pull-to-refresh behavior. This relies on internal
-    // component structure because refresh wiring is not exposed via a public test ID.
-    const list = UNSAFE_getByType(FlatList);
+    const list = screen.getByTestId('tabs-history-flatlist');
     list.props.onRefresh();
 
     await waitFor(() => {

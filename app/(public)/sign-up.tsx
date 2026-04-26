@@ -65,10 +65,7 @@ export default function SignUp() {
 
       if (signUp.status === 'complete') {
         const { error: finalizeError } = await signUp.finalize({
-          navigate: ({ session }) => {
-            if (session?.currentTask?.key) {
-              return;
-            }
+          navigate: () => {
             router.replace('/(protected)/(tabs)');
           },
         });
@@ -105,10 +102,7 @@ export default function SignUp() {
 
       if (signUp.status === 'complete') {
         const { error: finalizeError } = await signUp.finalize({
-          navigate: ({ session }) => {
-            if (session?.currentTask?.key) {
-              return;
-            }
+          navigate: () => {
             router.replace('/(protected)/(tabs)');
           },
         });

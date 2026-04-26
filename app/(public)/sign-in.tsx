@@ -26,8 +26,10 @@ export default function SignIn() {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const busy = isSubmitting || fetchStatus === 'fetching';
+
   const onSignIn = async () => {
-    if (isSubmitting || fetchStatus === 'fetching') return;
+    if (busy) return;
     if (!email.trim() || !password) {
       Alert.alert('Error', 'Please enter both email and password.');
       return;
@@ -47,10 +49,7 @@ export default function SignIn() {
 
       if (signIn.status === 'complete') {
         const { error: finalizeError } = await signIn.finalize({
-          navigate: ({ session }) => {
-            if (session?.currentTask?.key) {
-              return;
-            }
+          navigate: () => {
             router.replace('/(protected)/(tabs)');
           },
         });
@@ -94,12 +93,12 @@ export default function SignIn() {
         testID="sign-in-button"
         accessibilityRole="button"
         accessibilityLabel="Sign In"
-        className={`bg-black rounded-lg p-4 items-center mt-2 active:opacity-70 ${isSubmitting ? 'opacity-50' : ''}`}
+        className={`bg-black rounded-lg p-4 items-center mt-2 active:opacity-70 ${busy ? 'opacity-50' : ''}`}
         onPress={onSignIn}
-        disabled={isSubmitting}
+        disabled={busy}
       >
         <Text className="text-white text-base font-semibold">
-          {isSubmitting ? 'Signing In...' : 'Sign In'}
+          {busy ? 'Signing In...' : 'Sign In'}
         </Text>
       </Pressable>
 
