@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { View, Text, Pressable, Switch, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { GAMES, AROUND_THE_CLOCK_SLUG, CRICKET_SLUG } from '@/constants/games';
+import { GAMES, AROUND_THE_CLOCK_SLUG, CRICKET_SLUG, X01_SLUG } from '@/constants/games';
 import { db } from '@/db/client';
 import { players as playersTable, gameSessions, gamePlayers } from '@/db/schema';
 import {
@@ -13,6 +13,8 @@ import { getInitialPlayerState as getATCInitialState } from '@/lib/games/around-
 import type { AroundTheClockConfig } from '@/lib/games/around-the-clock';
 import { getInitialPlayerState as getCricketInitialState } from '@/lib/games/cricket';
 import type { CricketConfig } from '@/lib/games/cricket';
+import { getInitialPlayerState as getX01InitialState } from '@/lib/games/x01';
+import type { X01Config } from '@/lib/games/x01';
 
 /**
  * Renders the game setup screen for configuring players and starting a new session for the selected game mode.
@@ -28,9 +30,11 @@ export default function GameSetup() {
   const game = GAMES.find((g) => g.slug === normalizedSlug);
   const isAroundTheClock = normalizedSlug === AROUND_THE_CLOCK_SLUG;
   const isCricket = normalizedSlug === CRICKET_SLUG;
+  const isX01 = normalizedSlug === X01_SLUG;
 
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
   const [includeBull, setIncludeBull] = useState(false);
+  const [startingScore, setStartingScore] = useState<501 | 301>(501);
   const [isStarting, setIsStarting] = useState(false);
 
   const handleAddPlayer = useCallback(
@@ -53,12 +57,12 @@ export default function GameSetup() {
     setSelectedPlayers((prev) => prev.filter((p) => p.id !== playerId));
   }, []);
 
-  const minPlayers = isCricket ? 2 : 1;
+  const minPlayers = isX01 ? 1 : isCricket ? 2 : 1;
 
   const handleStartGame = async () => {
     if (selectedPlayers.length < minPlayers || isStarting) return;
 
-    if (!isAroundTheClock && !isCricket) {
+    if (!isAroundTheClock && !isCricket && !isX01) {
       Alert.alert('Not available yet', 'This game mode is not implemented yet.');
       return;
     }
@@ -66,13 +70,17 @@ export default function GameSetup() {
     setIsStarting(true);
 
     try {
-      const config = isAroundTheClock
+      const config: AroundTheClockConfig | CricketConfig | X01Config = isAroundTheClock
         ? ({ includeBull } satisfies AroundTheClockConfig)
-        : ({ variant: 'standard' } satisfies CricketConfig);
+        : isCricket
+          ? ({ variant: 'standard' } satisfies CricketConfig)
+          : ({ startingScore } satisfies X01Config);
 
       const getInitialState = isAroundTheClock
         ? getATCInitialState
-        : getCricketInitialState;
+        : isCricket
+          ? getCricketInitialState
+          : () => getX01InitialState({ startingScore } satisfies X01Config);
 
       const session = await db.transaction(async (tx) => {
         const [createdSession] = await tx
@@ -176,6 +184,42 @@ export default function GameSetup() {
           <Text className="text-sm text-gray-500 mt-1">
             Close 15–20 and Bull. Score points on segments your opponents
             have not closed.
+          </Text>
+        </View>
+      )}
+
+      {/* X01 config */}
+      {isX01 && (
+        <View className="mt-6 border border-ds-outline-variant rounded-xl p-4 bg-ds-surface">
+          <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-3">
+            Starting Score
+          </Text>
+          <View className="flex-row gap-3">
+            {([501, 301] as const).map((score) => (
+              <Pressable
+                key={score}
+                onPress={() => setStartingScore(score)}
+                className={`flex-1 rounded-xl py-3 items-center active:opacity-70 ${
+                  startingScore === score
+                    ? 'bg-ds-red'
+                    : 'bg-ds-surface-low border border-ds-outline-variant'
+                }`}
+                accessibilityRole="button"
+                accessibilityLabel={`${score} starting score`}
+                accessibilityState={{ selected: startingScore === score }}
+              >
+                <Text
+                  className={`text-lg font-barlow-semi ${
+                    startingScore === score ? 'text-white' : 'text-ds-on-surface'
+                  }`}
+                >
+                  {score}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text className="text-xs font-barlow text-ds-on-surface-variant mt-3">
+            Must finish on a double. Turn busts if remaining goes below 2 or lands on 1.
           </Text>
         </View>
       )}

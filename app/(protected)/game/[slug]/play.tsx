@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AroundTheClockPlayPanel } from '@/components/games/AroundTheClockPlayPanel';
 import { CricketPlayPanel } from '@/components/games/CricketPlayPanel';
+import { X01PlayPanel } from '@/components/games/X01PlayPanel';
 import {
   getMaxTarget,
   type AroundTheClockConfig,
@@ -10,7 +11,7 @@ import {
 import { usePlaySession } from '@/hooks/usePlaySession';
 
 /**
- * Screen component that hosts an active game session for Around the Clock or Cricket.
+ * Screen component that hosts an active game session for Around the Clock, Cricket, or X01.
  *
  * @returns The rendered Play screen element for the current game session.
  */
@@ -29,10 +30,13 @@ export default function PlayScreen() {
     isProcessing,
     isAroundTheClock,
     isCricket,
+    isX01,
     localTarget,
     localCricketState,
+    localX01State,
     handleATCDartThrown,
     handleCricketDartThrown,
+    handleX01DartThrown,
     handleQuit,
   } = usePlaySession({ slug, sessionId });
 
@@ -119,6 +123,17 @@ export default function PlayScreen() {
             turnDarts={turnDarts}
             isProcessing={isProcessing}
             onDartThrown={handleCricketDartThrown}
+          />
+        )}
+
+        {isX01 && localX01State && (
+          <X01PlayPanel
+            players={gameState.players}
+            currentPlayerId={currentPlayer.id}
+            localX01State={localX01State}
+            turnDarts={turnDarts}
+            isProcessing={isProcessing}
+            onDartThrown={handleX01DartThrown}
           />
         )}
       </ScrollView>

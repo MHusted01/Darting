@@ -31,8 +31,18 @@ export interface GameSection {
 
 export const AROUND_THE_CLOCK_SLUG = 'around-the-clock';
 export const CRICKET_SLUG = 'cricket';
+export const X01_SLUG = 'x01';
 
 export const GAMES: DartGame[] = [
+  {
+    slug: X01_SLUG,
+    name: '501 / 301',
+    description: 'Count down from 501 or 301. Must finish on a double.',
+    icon: Trophy,
+    playerCount: '2+',
+    difficulty: 'Intermediate',
+    category: 'Classic',
+  },
   {
     slug: CRICKET_SLUG,
     name: 'Cricket',
