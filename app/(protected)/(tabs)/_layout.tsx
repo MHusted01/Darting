@@ -1,20 +1,14 @@
 import { Tabs } from 'expo-router';
-import { House, History, Settings } from 'lucide-react-native';
+import { House, BarChart2, Users } from 'lucide-react-native';
 
-/**
- * Render the bottom tab navigator with Home, History, and Settings tabs.
- *
- * The navigator hides screen headers and configures active and inactive tab tint colors.
- *
- * @returns The Tabs navigator React element containing the "index" (Home), "history" (History), and "settings" (Settings) screens
- */
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: 'black',
+        tabBarActiveTintColor: '#ba1a1a',
         tabBarInactiveTintColor: '#9ca3af',
+        tabBarStyle: { backgroundColor: '#ffffff' },
       }}
     >
       <Tabs.Screen
@@ -25,17 +19,17 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="history"
+        name="stats"
         options={{
-          title: 'History',
-          tabBarIcon: ({ color, size }) => <History size={size} color={color} />,
+          title: 'Stats',
+          tabBarIcon: ({ color, size }) => <BarChart2 size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="social"
         options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, size }) => <Settings size={size} color={color} />,
+          title: 'Social',
+          tabBarIcon: ({ color, size }) => <Users size={size} color={color} />,
         }}
       />
     </Tabs>

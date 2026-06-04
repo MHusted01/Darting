@@ -3,7 +3,7 @@ import { describe, expect, it, beforeEach, jest } from '@jest/globals';
 import { Alert } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import TabsLayout from '@/app/(protected)/(tabs)/_layout';
-import HistoryScreen from '@/app/(protected)/(tabs)/history';
+import StatsScreen from '@/app/(protected)/(tabs)/stats';
 
 const mockPush: jest.Mock<any> = jest.fn();
 const mockRefetch: jest.Mock<any> = jest.fn();
@@ -37,7 +37,7 @@ jest.mock('@/lib/history', () => ({
   getHistoryData: jest.fn(),
 }));
 
-describe('Tabs + History Integration', () => {
+describe('Tabs + Stats Integration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRefetch.mockResolvedValue(undefined);
@@ -48,11 +48,11 @@ describe('Tabs + History Integration', () => {
     render(<TabsLayout />);
 
     expect(screen.getByText('tab:index')).toBeTruthy();
-    expect(screen.getByText('tab:history')).toBeTruthy();
-    expect(screen.getByText('tab:settings')).toBeTruthy();
+    expect(screen.getByText('tab:stats')).toBeTruthy();
+    expect(screen.getByText('tab:social')).toBeTruthy();
   });
 
-  it('renders history loading state', () => {
+  it('renders stats loading state', () => {
     mockUseQuery.mockReturnValue({
       data: undefined,
       isLoading: true,
@@ -61,12 +61,12 @@ describe('Tabs + History Integration', () => {
       refetch: mockRefetch,
     });
 
-    render(<HistoryScreen />);
+    render(<StatsScreen />);
 
-    expect(screen.getByText('Loading history...')).toBeTruthy();
+    expect(screen.getByText('Loading stats...')).toBeTruthy();
   });
 
-  it('renders history data and routes by status', async () => {
+  it('renders stats data and routes by status', async () => {
     mockUseQuery.mockReturnValue({
       data: {
         quickStats: {
@@ -115,15 +115,15 @@ describe('Tabs + History Integration', () => {
       refetch: mockRefetch,
     });
 
-    render(<HistoryScreen />);
+    render(<StatsScreen />);
 
-    expect(screen.getByText('History')).toBeTruthy();
-    expect(screen.getByText('Quick stats')).toBeTruthy();
-    expect(screen.getByText('3')).toBeTruthy();
+    expect(screen.getByText('STATS')).toBeTruthy();
+    expect(screen.getByText('Games Played')).toBeTruthy();
+    expect(screen.getByText('Recent Matches')).toBeTruthy();
     expect(screen.getByText('Cricket')).toBeTruthy();
     expect(screen.getByText('X01')).toBeTruthy();
     expect(screen.getByText('Around the Clock')).toBeTruthy();
-    expect(screen.getByText('Winner: Alice')).toBeTruthy();
+    expect(screen.getByText('Around the Clock')).toBeTruthy();
 
     fireEvent.press(screen.getByLabelText('Cricket Setup session'));
     fireEvent.press(screen.getByLabelText('X01 In Progress session'));
@@ -133,7 +133,7 @@ describe('Tabs + History Integration', () => {
     expect(mockPush).toHaveBeenNthCalledWith(2, '/game/x01/play?sessionId=2');
     expect(mockPush).toHaveBeenNthCalledWith(3, '/game/around-the-clock/results?sessionId=3');
 
-    const list = screen.getByTestId('tabs-history-flatlist');
+    const list = screen.getByTestId('tabs-stats-flatlist');
     list.props.onRefresh();
 
     await waitFor(() => {
@@ -150,10 +150,10 @@ describe('Tabs + History Integration', () => {
       refetch: mockRefetch,
     });
 
-    render(<HistoryScreen />);
+    render(<StatsScreen />);
 
     await waitFor(() => {
-      expect(Alert.alert).toHaveBeenCalledWith('History Error', 'Boom');
+      expect(Alert.alert).toHaveBeenCalledWith('Stats Error', 'Boom');
     });
   });
 });

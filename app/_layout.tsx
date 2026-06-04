@@ -6,6 +6,16 @@ import migrations from '@/drizzle/migrations';
 import { db } from '@/db/client';
 import { SupabaseProvider } from '@/providers/SupabaseProvider';
 import { ActivityIndicator, Text, View } from 'react-native';
+import { useFonts } from 'expo-font';
+import {
+  BarlowCondensed_700Bold,
+  BarlowCondensed_800ExtraBold,
+} from '@expo-google-fonts/barlow-condensed';
+import {
+  Barlow_400Regular,
+  Barlow_600SemiBold,
+  Barlow_700Bold,
+} from '@expo-google-fonts/barlow';
 import '../global.css';
 
 const tokenCache = {
@@ -36,6 +46,13 @@ const CLERK_TASK_URLS = {
  */
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
+  const [fontsLoaded] = useFonts({
+    BarlowCondensed_700Bold,
+    BarlowCondensed_800ExtraBold,
+    Barlow_400Regular,
+    Barlow_600SemiBold,
+    Barlow_700Bold,
+  });
 
   if (error) {
     return (
@@ -45,7 +62,7 @@ export default function RootLayout() {
     );
   }
 
-  if (!success) {
+  if (!success || !fontsLoaded) {
     return (
       <View style={{ flex: 1, justifyContent: 'center' }}>
         <ActivityIndicator size="large" />

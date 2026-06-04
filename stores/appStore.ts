@@ -11,17 +11,25 @@ const mmkvStorage: StateStorage = {
 
 interface AppState {
   theme: 'light' | 'dark';
+  notifications: boolean;
+  soundEffects: boolean;
   toggleTheme: () => void;
+  setNotifications: (v: boolean) => void;
+  setSoundEffects: (v: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
       theme: 'light',
+      notifications: true,
+      soundEffects: false,
       toggleTheme: () =>
         set((state) => ({
           theme: state.theme === 'light' ? 'dark' : 'light',
         })),
+      setNotifications: (v) => set({ notifications: v }),
+      setSoundEffects: (v) => set({ soundEffects: v }),
     }),
     {
       name: 'app-store',            // key in MMKV
