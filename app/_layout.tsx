@@ -54,10 +54,6 @@ export default function RootLayout() {
     Barlow_700Bold,
   });
 
-  if (fontsError) {
-    console.error('Font load failed, falling back to system fonts:', fontsError);
-  }
-
   if (error) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

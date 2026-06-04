@@ -123,7 +123,7 @@ describe('Tabs + Stats Integration', () => {
     expect(screen.getByText('Cricket')).toBeTruthy();
     expect(screen.getByText('X01')).toBeTruthy();
     expect(screen.getByText('Around the Clock')).toBeTruthy();
-    expect(screen.getByText('Around the Clock')).toBeTruthy();
+    expect(screen.getByLabelText('Around the Clock Completed session')).toBeTruthy();
 
     fireEvent.press(screen.getByLabelText('Cricket Setup session'));
     fireEvent.press(screen.getByLabelText('X01 In Progress session'));

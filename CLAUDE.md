@@ -144,6 +144,7 @@ Fonts loaded in `app/_layout.tsx`. Always use these — no system fonts.
 | `font-barlow-condensed-xbold` | ExtraBold | App logo, hero headings (e.g. "DARTING", "Step Up") |
 | `font-barlow-condensed` | Bold | Screen titles, card labels, nav headers |
 | `font-barlow-semi` | SemiBold | Form labels, buttons, section headers, initials |
+| `font-barlow-bold` | Bold | Large numeric displays, stat figures |
 | `font-barlow` | Regular | Body text, subtitles, input text, descriptions |
 
 #### Screen structure
