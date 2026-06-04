@@ -23,7 +23,7 @@ function SocialButton({ label, iconName, onPress, variant }: SocialButtonProps) 
       accessibilityRole="button"
       accessibilityLabel={label}
       className={`w-full flex-row items-center justify-center gap-3 rounded-xl py-4 px-4 active:opacity-70 ${
-        isDark ? 'bg-black' : 'bg-ds-surface border border-ds-outline-variant'
+        isDark ? 'bg-ds-on-surface' : 'bg-ds-surface border border-ds-outline-variant'
       }`}
       onPress={onPress}
     >

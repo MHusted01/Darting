@@ -6,6 +6,12 @@ import { useAppStore } from '@/stores/appStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronRight, ExternalLink, ArrowLeft } from 'lucide-react-native';
 
+const DS = {
+  green: '#b8f0bc',
+  outlineVariant: '#c4c7c7',
+  surface: '#ffffff',
+} as const;
+
 export default function SettingsScreen() {
   const { signOut } = useAuth();
   const { user } = useUser();
@@ -99,8 +105,8 @@ export default function SettingsScreen() {
               <Switch
                 value={notifications}
                 onValueChange={setNotifications}
-                trackColor={{ true: '#4ade80', false: '#c4c7c7' }}
-                thumbColor="#ffffff"
+                trackColor={{ true: DS.green, false: DS.outlineVariant }}
+                thumbColor={DS.surface}
               />
             </View>
             <View className="px-4 py-3 flex-row items-center justify-between">
@@ -108,8 +114,8 @@ export default function SettingsScreen() {
               <Switch
                 value={soundEffects}
                 onValueChange={setSoundEffects}
-                trackColor={{ true: '#4ade80', false: '#c4c7c7' }}
-                thumbColor="#ffffff"
+                trackColor={{ true: DS.green, false: DS.outlineVariant }}
+                thumbColor={DS.surface}
               />
             </View>
           </View>

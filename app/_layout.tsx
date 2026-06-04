@@ -46,7 +46,7 @@ const CLERK_TASK_URLS = {
  */
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontsError] = useFonts({
     BarlowCondensed_700Bold,
     BarlowCondensed_800ExtraBold,
     Barlow_400Regular,
@@ -54,15 +54,19 @@ export default function RootLayout() {
     Barlow_700Bold,
   });
 
+  if (fontsError) {
+    console.error('Font load failed, falling back to system fonts:', fontsError);
+  }
+
   if (error) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>Migration error: {error.message}</Text>
+        <Text>Something went wrong. Please restart the app.</Text>
       </View>
     );
   }
 
-  if (!success || !fontsLoaded) {
+  if (!success || (!fontsLoaded && !fontsError)) {
     return (
       <View style={{ flex: 1, justifyContent: 'center' }}>
         <ActivityIndicator size="large" />

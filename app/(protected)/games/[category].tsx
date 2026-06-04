@@ -31,7 +31,7 @@ export default function GameCategoryScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
-      <View className="flex-row items-center gap-3 px-6 pt-4 pb-3">
+      <View className="flex-row items-center gap-3 px-6 pt-4 pb-3 border-b border-ds-outline-variant">
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go back"

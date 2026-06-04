@@ -1,8 +1,25 @@
-import { ScrollView, Text, View, Pressable } from 'react-native';
+import { Alert, ScrollView, Text, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Settings } from 'lucide-react-native';
-import type { Club, Friend } from '@/types/social';
+
+interface Club {
+  id: string;
+  name: string;
+  league: string;
+  nextMatch: string | null;
+  isActive: boolean;
+}
+
+type FriendStatus = 'online' | 'in_match' | 'offline';
+
+interface Friend {
+  id: string;
+  name: string;
+  status: FriendStatus;
+  activity: string;
+  threeDartAvg: number;
+}
 
 const PLACEHOLDER_CLUBS: Club[] = [
   {
@@ -67,6 +84,7 @@ export default function SocialScreen() {
               className="bg-ds-red rounded-full px-4 py-2 active:opacity-70"
               accessibilityRole="button"
               accessibilityLabel="Create Club"
+              onPress={() => Alert.alert('Coming Soon', 'Club creation will be available soon.')}
             >
               <Text className="text-white font-barlow-semi text-sm">+ Create Club</Text>
             </Pressable>
@@ -108,6 +126,7 @@ export default function SocialScreen() {
               accessibilityRole="button"
               accessibilityLabel="Find friends"
               className="active:opacity-70"
+              onPress={() => Alert.alert('Coming Soon', 'Finding friends will be available soon.')}
             >
               <Text className="text-sm font-barlow-semi text-ds-on-surface-variant">Find</Text>
             </Pressable>
