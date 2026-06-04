@@ -258,6 +258,53 @@ SUPABASE_SERVICE_ROLE_KEY=        # Server-side only (webhook)
 CLERK_WEBHOOK_SECRET=             # Webhook verification
 ```
 
+## Roadmap
+
+### Phase 1 — Game Engine (unblocks Stats and Social)
+
+Every game needs: setup screen (add players) → play screen (turn-by-turn scoring) → results screen. Logic lives in `lib/games/<slug>.ts` as pure functions.
+
+- [ ] **501 / 301** — X01 checkout detection, double-out rule, bust handling
+- [ ] **Shanghai** — rounds 1–7, highest score wins
+- [ ] **Killer** — assign numbers, lives system, elimination
+- [ ] **Halve-it** — target sequence, halve score on miss
+- [ ] **Tactics / Gotcha** — remaining party formats from `constants/games.ts`
+- [ ] Each game: local SQLite session persistence via Drizzle schema, results screen with winner
+
+### Phase 2 — Stats (needs real game data)
+
+- [ ] Personal bests per game type
+- [ ] Three-dart average calculation stored on session complete
+- [ ] Trend chart (last 10 sessions) — evaluate Victory Native or Recharts
+- [ ] Game history filterable by game type and date
+- [ ] Cross-device sync: push completed sessions to Supabase `sessions` + `session_players` tables on game end
+
+### Phase 3 — Cloud Backend (Supabase)
+
+Schema additions needed before Social:
+
+- [ ] `sessions` table — sessionId, userId, gameSlug, status, startedAt, completedAt
+- [ ] `session_players` table — playerId, sessionId, placement, threeDartAvg, gameState
+- [ ] RLS: users can only read/write their own sessions
+- [ ] Clerk webhook already syncs users → `users` table (done)
+
+### Phase 4 — Social / Clubs / Friends
+
+- [ ] **Friends** — `friendships` table (userId, friendId, status: pending/accepted), friend request flow, mutual-follow model
+- [ ] **Clubs** — `clubs`, `club_memberships`, `club_invites` tables; create club, search + join flow, admin management
+- [ ] **Leaderboards** — club and global, driven by Supabase views + TanStack Query polling
+- [ ] **Presence** — online / in-match status via Supabase Realtime (types already defined in `social.tsx`)
+- [ ] Wire Social screen to real data, remove `PLACEHOLDER_CLUBS` and `PLACEHOLDER_FRIENDS`
+
+### Phase 5 — Production Hardening
+
+- [ ] Password reset flow (currently "Coming Soon" in sign-in)
+- [ ] Push notifications — Expo Notifications + Supabase Edge Function trigger
+- [ ] Error tracking — Sentry for React Native
+- [ ] `expo-splash-screen` — hold splash open during font + migration load
+- [ ] EAS Build configuration for App Store and Google Play submission
+- [ ] App Store / Play Store metadata, icons, screenshots
+
 ## ECC Workflow
 
 When working on features, follow this order:
