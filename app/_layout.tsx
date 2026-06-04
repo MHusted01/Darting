@@ -6,6 +6,16 @@ import migrations from '@/drizzle/migrations';
 import { db } from '@/db/client';
 import { SupabaseProvider } from '@/providers/SupabaseProvider';
 import { ActivityIndicator, Text, View } from 'react-native';
+import { useFonts } from 'expo-font';
+import {
+  BarlowCondensed_700Bold,
+  BarlowCondensed_800ExtraBold,
+} from '@expo-google-fonts/barlow-condensed';
+import {
+  Barlow_400Regular,
+  Barlow_600SemiBold,
+  Barlow_700Bold,
+} from '@expo-google-fonts/barlow';
 import '../global.css';
 
 const tokenCache = {
@@ -36,16 +46,23 @@ const CLERK_TASK_URLS = {
  */
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
+  const [fontsLoaded, fontsError] = useFonts({
+    BarlowCondensed_700Bold,
+    BarlowCondensed_800ExtraBold,
+    Barlow_400Regular,
+    Barlow_600SemiBold,
+    Barlow_700Bold,
+  });
 
   if (error) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>Migration error: {error.message}</Text>
+        <Text>Something went wrong. Please restart the app.</Text>
       </View>
     );
   }
 
-  if (!success) {
+  if (!success || (!fontsLoaded && !fontsError)) {
     return (
       <View style={{ flex: 1, justifyContent: 'center' }}>
         <ActivityIndicator size="large" />

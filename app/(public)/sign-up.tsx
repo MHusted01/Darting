@@ -1,21 +1,16 @@
 import { useSignUp } from '@clerk/expo';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Text, TextInput, Pressable, View, Alert } from 'react-native';
+import { Text, TextInput, Pressable, View, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react-native';
 import OtpInput from '@/components/OtpInput';
 import SsoButtons from '@/components/SsoButtons';
 import { getErrorMessage } from '@/lib/errors';
 
 WebBrowser.maybeCompleteAuthSession();
-/**
- * Renders the sign-up screen and manages account creation and email verification with Clerk.
- *
- * Creates a user from first name, last name, email, and password; if the sign-up completes immediately it activates the session and navigates to the protected area, otherwise it initiates an email-code verification flow and displays an OTP input. Errors are surfaced via alerts.
- *
- * @returns The sign-up UI as a React element.
- */
+
 export default function SignUp() {
   const { signUp, fetchStatus } = useSignUp();
   const router = useRouter();
@@ -24,6 +19,7 @@ export default function SignUp() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [pendingVerification, setPendingVerification] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -48,6 +44,10 @@ export default function SignUp() {
     }
     if (!password) {
       Alert.alert('Error', 'Please enter a password.');
+      return;
+    }
+    if (password.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters.');
       return;
     }
 
@@ -129,84 +129,165 @@ export default function SignUp() {
 
   if (pendingVerification) {
     return (
-      <SafeAreaView edges={['top']} className="flex-1 justify-center px-6">
-        <Text className="text-3xl font-bold text-center mb-2">Verify Email</Text>
-        <Text className="text-gray-500 text-center mb-8">
-          We sent a verification code to {email}
-        </Text>
+      <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-ds-bg">
+        <View className="flex-1 px-6 pt-8 pb-6 justify-center">
+          <Text className="text-3xl font-barlow-condensed-xbold text-ds-on-surface mb-2">Verify Email</Text>
+          <Text className="text-base font-barlow text-ds-on-surface-variant mb-8">
+            We sent a verification code to {email}
+          </Text>
 
-        <View className={verifyingBusy ? 'opacity-50' : ''} pointerEvents={verifyingBusy ? 'none' : 'auto'}>
-          <OtpInput onComplete={onVerify} />
+          <View className={verifyingBusy ? 'opacity-50' : ''} pointerEvents={verifyingBusy ? 'none' : 'auto'}>
+            <OtpInput onComplete={onVerify} />
+          </View>
+
+          {verifyingBusy ? (
+            <Text className="mt-6 text-center font-barlow text-ds-on-surface-variant">Verifying...</Text>
+          ) : (
+            <Pressable onPress={() => setPendingVerification(false)} className="active:opacity-70">
+              <Text className="mt-6 text-center font-barlow text-ds-on-surface-variant">Go back</Text>
+            </Pressable>
+          )}
         </View>
-
-        {verifyingBusy ? (
-          <Text className="mt-6 text-center text-gray-400">Verifying...</Text>
-        ) : (
-          <Pressable onPress={() => setPendingVerification(false)}>
-            <Text className="mt-6 text-center text-gray-500">
-              Go back
-            </Text>
-          </Pressable>
-        )}
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 justify-center px-6">
-      <Text className="text-3xl font-bold text-center mb-6">Create Account</Text>
-
-      <View className="flex-row gap-3 mb-3">
-        <TextInput
-          className="flex-1 border border-gray-300 rounded-lg p-4 text-base"
-          placeholder="First name"
-          value={firstName}
-          onChangeText={setFirstName}
-        />
-        <TextInput
-          className="flex-1 border border-gray-300 rounded-lg p-4 text-base"
-          placeholder="Last name"
-          value={lastName}
-          onChangeText={setLastName}
-        />
-      </View>
-
-      <TextInput
-        className="border border-gray-300 rounded-lg p-4 mb-3 text-base"
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-
-      <TextInput
-        className="border border-gray-300 rounded-lg p-4 mb-3 text-base"
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-
-      <Pressable
-        className={`bg-black rounded-lg p-4 items-center mt-2 active:opacity-70 ${busy ? 'opacity-50' : ''}`}
-        onPress={onSignUp}
-        disabled={busy}
+    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-ds-bg">
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ flexGrow: 1 }}
       >
-        <Text className="text-white text-base font-semibold">
-          {busy ? 'Creating Account...' : 'Sign Up'}
-        </Text>
-      </Pressable>
+        <View className="flex-1 px-6 pt-6 pb-6">
+          <View className="flex-row items-center gap-3 mb-8">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              onPress={() => router.back()}
+              className="active:opacity-70"
+            >
+              <ArrowLeft size={22} color="#1c1b1b" />
+            </Pressable>
+            <Text className="text-2xl font-barlow-condensed text-ds-on-surface">Create Account</Text>
+          </View>
 
-      <SsoButtons />
+          <View className="flex-row gap-3 mb-4">
+            <View className="flex-1">
+              <Text className="text-sm font-barlow-semi text-ds-on-surface mb-1.5">First Name</Text>
+              <View className="bg-ds-surface border border-ds-outline-variant rounded-xl px-4">
+                <TextInput
+                  className="py-4 text-base font-barlow text-ds-on-surface"
+                  style={{ lineHeight: 22 }}
+                  placeholder="John"
+                  placeholderTextColor="#747878"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  accessibilityLabel="First name"
+                  autoComplete="given-name"
+                />
+              </View>
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-barlow-semi text-ds-on-surface mb-1.5">Last Name</Text>
+              <View className="bg-ds-surface border border-ds-outline-variant rounded-xl px-4">
+                <TextInput
+                  className="py-4 text-base font-barlow text-ds-on-surface"
+                  style={{ lineHeight: 22 }}
+                  placeholder="Doe"
+                  placeholderTextColor="#747878"
+                  value={lastName}
+                  onChangeText={setLastName}
+                  accessibilityLabel="Last name"
+                  autoComplete="family-name"
+                />
+              </View>
+            </View>
+          </View>
 
-      <Link href="/(public)/sign-in" asChild>
-        <Pressable>
-          <Text className="mt-4 text-center text-gray-500">
-            Already have an account? Sign In
+          <View className="mb-4">
+            <Text className="text-sm font-barlow-semi text-ds-on-surface mb-1.5">Email</Text>
+            <View className="bg-ds-surface border border-ds-outline-variant rounded-xl px-4">
+              <TextInput
+                className="py-4 text-base font-barlow text-ds-on-surface"
+                style={{ lineHeight: 22 }}
+                placeholder="john.doe@example.com"
+                placeholderTextColor="#747878"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                accessibilityLabel="Email address"
+                autoComplete="email"
+              />
+            </View>
+          </View>
+
+          <View className="mb-6">
+            <Text className="text-sm font-barlow-semi text-ds-on-surface mb-1.5">Password</Text>
+            <View className="bg-ds-surface border border-ds-outline-variant rounded-xl flex-row items-center px-4">
+              <TextInput
+                className="flex-1 py-4 text-base font-barlow text-ds-on-surface"
+                style={{ lineHeight: 22 }}
+                placeholder="••••••••"
+                placeholderTextColor="#747878"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                accessibilityLabel="Password"
+                autoComplete="new-password"
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                onPress={() => setShowPassword((v) => !v)}
+                className="active:opacity-70 pl-2"
+              >
+                {showPassword
+                  ? <EyeOff size={18} color="#747878" />
+                  : <Eye size={18} color="#747878" />
+                }
+              </Pressable>
+            </View>
+            <Text className="text-xs font-barlow text-ds-on-surface-variant mt-1.5">
+              Must be at least 8 characters.
+            </Text>
+          </View>
+
+          <Pressable
+            testID="sign-up-button"
+            accessibilityRole="button"
+            accessibilityLabel="Create Account"
+            className={`bg-ds-red rounded-xl py-4 items-center active:opacity-70 ${busy ? 'opacity-50' : ''}`}
+            onPress={onSignUp}
+            disabled={busy}
+          >
+            <Text className="text-white text-base font-barlow-semi">
+              {busy ? 'Creating Account...' : 'Create Account'}
+            </Text>
+          </Pressable>
+
+          <SsoButtons signUpMode />
+
+          <View className="mt-6 items-center">
+            <Link href="/(public)/sign-in" asChild>
+              <Pressable className="active:opacity-70">
+                <Text className="text-base font-barlow text-ds-on-surface-variant">
+                  Already have an account?{' '}
+                  <Text className="font-barlow-semi text-ds-on-surface">Login</Text>
+                </Text>
+              </Pressable>
+            </Link>
+          </View>
+
+          <Text className="text-xs font-barlow text-ds-on-surface-variant text-center mt-4">
+            By creating an account, you agree to our{' '}
+            <Text className="underline">Terms of Service</Text>
+            {' '}and{' '}
+            <Text className="underline">Privacy Policy</Text>.
           </Text>
-        </Pressable>
-      </Link>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

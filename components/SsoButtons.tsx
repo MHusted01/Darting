@@ -15,54 +15,35 @@ type SocialButtonProps = {
   variant: 'light' | 'dark';
 };
 
-/**
- * Renders a stylized social sign-in button showing an icon and a label.
- *
- * @param label - Text displayed on the button
- * @param iconName - Icon identifier; expected `'google'` or `'apple'`
- * @param onPress - Callback invoked when the button is pressed
- * @param variant - Visual variant, `'light'` or `'dark'`, that controls colors and border
- * @returns A pressable element containing the icon and label, accessible via an appropriate role/label and styled according to `variant`
- */
-function SocialButton({
-  label,
-  iconName,
-  onPress,
-  variant,
-}: SocialButtonProps) {
+function SocialButton({ label, iconName, onPress, variant }: SocialButtonProps) {
   const isDark = variant === 'dark';
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      className={`self-center w-[240px] flex-row items-center justify-center gap-2 rounded-lg py-3 px-4 active:opacity-70 ${
-        isDark ? 'bg-black' : 'border border-gray-300 bg-white'
+      className={`w-full flex-row items-center justify-center gap-3 rounded-xl py-4 px-4 active:opacity-70 ${
+        isDark ? 'bg-ds-on-surface' : 'bg-ds-surface border border-ds-outline-variant'
       }`}
       onPress={onPress}
     >
       <FontAwesome
         name={iconName}
-        size={iconName === 'apple' ? 18 : 16}
+        size={18}
         color={isDark ? 'white' : 'black'}
       />
-      <Text className={`text-sm font-medium ${isDark ? 'text-white' : 'text-black'}`}>
+      <Text className={`text-base font-barlow-semi ${isDark ? 'text-white' : 'text-ds-on-surface'}`}>
         {label}
       </Text>
     </Pressable>
   );
 }
 
-/**
- * Render social sign-in buttons for Google and Apple and manage their SSO flows.
- *
- * The component warms up browser resources, starts provider SSO flows when a button is pressed,
- * activates the returned session on success, navigates to the protected tabs route, and shows
- * an alert with a provider-specific title when the flow fails.
- *
- * @returns The React element containing the social SSO UI (divider and provider buttons).
- */
-export default function SsoButtons() {
+interface SsoButtonsProps {
+  signUpMode?: boolean;
+}
+
+export default function SsoButtons({ signUpMode = false }: SsoButtonsProps) {
   useWarmUpBrowser();
   const router = useRouter();
   const { startSSOFlow } = useSSO();
@@ -85,22 +66,24 @@ export default function SsoButtons() {
         typeof error === 'object' &&
         error !== null &&
         'errors' in error &&
-        Array.isArray((error as any).errors) &&
-        (error as any).errors[0]?.message
+        Array.isArray((error as { errors: unknown[] }).errors) &&
+        (error as { errors: { message: string }[] }).errors[0]?.message
       ) {
-        message = (error as any).errors[0].message;
+        message = (error as { errors: { message: string }[] }).errors[0].message;
       }
 
       Alert.alert(`${provider} Authentication Failed`, message);
     }
   };
 
+  const dividerLabel = signUpMode ? 'Or sign up with' : 'Or continue with';
+
   return (
-    <View className="mt-6 gap-4">
-      <View className="mb-1 flex-row items-center gap-3">
-        <View className="h-px flex-1 bg-gray-300" />
-        <Text className="text-sm text-gray-400">or continue with</Text>
-        <View className="h-px flex-1 bg-gray-300" />
+    <View className="mt-6 gap-3">
+      <View className="flex-row items-center gap-3">
+        <View className="h-px flex-1 bg-ds-outline-variant" />
+        <Text className="text-sm font-barlow text-ds-on-surface-variant">{dividerLabel}</Text>
+        <View className="h-px flex-1 bg-ds-outline-variant" />
       </View>
 
       <SocialButton

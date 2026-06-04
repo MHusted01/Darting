@@ -26,7 +26,7 @@ jest.mock('@/components/SsoButtons', () => {
   const { Text } = jest.requireActual('react-native') as typeof import('react-native');
   return {
     __esModule: true,
-    default: () => React.createElement(Text, null, 'SSO Buttons'),
+    default: (_props: { signUpMode?: boolean }) => React.createElement(Text, null, 'SSO Buttons'),
   };
 });
 
@@ -110,8 +110,8 @@ describe('Auth Screen Integration', () => {
 
     render(<SignIn />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('Email'), 'user@example.com');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'super-secret');
+    fireEvent.changeText(screen.getByPlaceholderText('player@example.com'), 'user@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('••••••••'), 'super-secret');
     fireEvent.press(screen.getByTestId('sign-in-button'));
 
     await waitFor(() => {
@@ -132,8 +132,8 @@ describe('Auth Screen Integration', () => {
 
     render(<SignIn />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('Email'), 'user@example.com');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'super-secret');
+    fireEvent.changeText(screen.getByPlaceholderText('player@example.com'), 'user@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('••••••••'), 'super-secret');
     fireEvent.press(screen.getByTestId('sign-in-button'));
 
     await waitFor(() => {
@@ -150,11 +150,11 @@ describe('Auth Screen Integration', () => {
 
     render(<SignUp />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('First name'), 'Ada');
-    fireEvent.changeText(screen.getByPlaceholderText('Last name'), 'Lovelace');
-    fireEvent.changeText(screen.getByPlaceholderText('Email'), 'ada@example.com');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'passw0rd!');
-    fireEvent.press(screen.getByText('Sign Up'));
+    fireEvent.changeText(screen.getByPlaceholderText('John'), 'Ada');
+    fireEvent.changeText(screen.getByPlaceholderText('Doe'), 'Lovelace');
+    fireEvent.changeText(screen.getByPlaceholderText('john.doe@example.com'), 'ada@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('••••••••'), 'passw0rd!');
+    fireEvent.press(screen.getByTestId('sign-up-button'));
 
     await waitFor(() => {
       expect(mockSignUpPassword).toHaveBeenCalledWith({
@@ -177,11 +177,11 @@ describe('Auth Screen Integration', () => {
 
     render(<SignUp />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('First name'), 'Ada');
-    fireEvent.changeText(screen.getByPlaceholderText('Last name'), 'Lovelace');
-    fireEvent.changeText(screen.getByPlaceholderText('Email'), 'ada@example.com');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'passw0rd!');
-    fireEvent.press(screen.getByText('Sign Up'));
+    fireEvent.changeText(screen.getByPlaceholderText('John'), 'Ada');
+    fireEvent.changeText(screen.getByPlaceholderText('Doe'), 'Lovelace');
+    fireEvent.changeText(screen.getByPlaceholderText('john.doe@example.com'), 'ada@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('••••••••'), 'passw0rd!');
+    fireEvent.press(screen.getByTestId('sign-up-button'));
 
     await waitFor(() => {
       expect(mockSendEmailCode).toHaveBeenCalled();
@@ -197,11 +197,11 @@ describe('Auth Screen Integration', () => {
 
     render(<SignUp />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('First name'), 'Ada');
-    fireEvent.changeText(screen.getByPlaceholderText('Last name'), 'Lovelace');
-    fireEvent.changeText(screen.getByPlaceholderText('Email'), 'ada@example.com');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'passw0rd!');
-    fireEvent.press(screen.getByText('Sign Up'));
+    fireEvent.changeText(screen.getByPlaceholderText('John'), 'Ada');
+    fireEvent.changeText(screen.getByPlaceholderText('Doe'), 'Lovelace');
+    fireEvent.changeText(screen.getByPlaceholderText('john.doe@example.com'), 'ada@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('••••••••'), 'passw0rd!');
+    fireEvent.press(screen.getByTestId('sign-up-button'));
 
     await waitFor(() => {
       expect(screen.getByText('Submit OTP')).toBeTruthy();

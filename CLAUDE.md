@@ -56,11 +56,12 @@ npx drizzle-kit push       # Push schema to dev database
 
 ```
 app/
-  _layout.tsx              # Root: ClerkProvider + migrations
+  _layout.tsx              # Root: ClerkProvider + fonts + migrations
   (public)/                # Unauthenticated: sign-in, sign-up
   (protected)/             # Auth-gated routes
-    (tabs)/                # Bottom tab nav (home, settings)
-    game/[slug]/           # Game screens: setup → play → results
+    (tabs)/                # Bottom tab nav: index, stats, social
+    games/                 # Game screens: setup → play → results
+    settings.tsx           # Settings (pushed screen, not a tab)
 components/                # Reusable UI (GameCard, PlayerManager, etc.)
 db/
   client.ts                # Drizzle + expo-sqlite client
@@ -111,13 +112,124 @@ supabase/
 - **TanStack React Query**: Server state, caching, background refetch
 - Do NOT mix: Zustand for local, React Query for remote
 
-### Styling (NativeWind)
+### Styling (NativeWind + Design System)
+
 - Tailwind classes directly on React Native components via `className`
 - No `StyleSheet.create()` — use NativeWind exclusively
-- Color palette: black/white primary, gray-100–600, emerald-500 (success), red-500 (danger)
-- Layout: `flex-1`, `flex-row`, padding `px-6 py-4`, rounded `rounded-xl`
-- Active states: `active:opacity-70`
-- SafeAreaView with `edges={['top']}` on screen roots
+- Always use `ds-*` tokens (defined in `tailwind.config.js`) — never raw hex or old gray/emerald classes
+
+#### Color tokens
+
+| Token | Value | When to use |
+| --- | --- | --- |
+| `ds-bg` | `#fdf8f8` | Screen/page background |
+| `ds-surface` | `#ffffff` | Cards, input backgrounds |
+| `ds-surface-low` | `#f7f3f2` | Subtle fills, avatar backgrounds |
+| `ds-surface-container` | `#f1edec` | Deeper container backgrounds |
+| `ds-on-surface` | `#1c1b1b` | Primary text, strong icons |
+| `ds-on-surface-variant` | `#444748` | Secondary text, muted icons |
+| `ds-outline` | `#747878` | Placeholder text, tertiary icons |
+| `ds-outline-variant` | `#c4c7c7` | Borders, dividers |
+| `ds-red` | `#ba1a1a` | Primary actions, brand accent, danger |
+| `ds-red-container` | `#ffdad6` | Light red backgrounds |
+| `ds-green` | `#b8f0bc` | Success badge backgrounds |
+| `ds-green-dark` | `#1e502a` | Success badge text |
+
+#### Typography
+
+Fonts loaded in `app/_layout.tsx`. Always use these — no system fonts.
+
+| Class | Weight | When to use |
+| --- | --- | --- |
+| `font-barlow-condensed-xbold` | ExtraBold | App logo, hero headings (e.g. "DARTING", "Step Up") |
+| `font-barlow-condensed` | Bold | Screen titles, card labels, nav headers |
+| `font-barlow-semi` | SemiBold | Form labels, buttons, section headers, initials |
+| `font-barlow-bold` | Bold | Large numeric displays, stat figures |
+| `font-barlow` | Regular | Body text, subtitles, input text, descriptions |
+
+#### Screen structure
+
+```tsx
+// Standard tab screen
+<SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
+  {/* header row */}
+  <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
+    <Text className="text-2xl font-barlow-condensed-xbold text-ds-on-surface tracking-tight">TITLE</Text>
+  </View>
+  <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+    <View className="px-6">...</View>
+  </ScrollView>
+</SafeAreaView>
+
+// Pushed screen (with back button)
+<SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
+  <View className="flex-row items-center gap-3 px-6 pt-4 pb-3 border-b border-ds-outline-variant">
+    <Pressable onPress={() => router.back()} className="active:opacity-70">
+      <ArrowLeft size={22} color="#1c1b1b" />
+    </Pressable>
+    <Text className="text-xl font-barlow-condensed text-ds-on-surface">Screen Title</Text>
+  </View>
+  ...
+</SafeAreaView>
+```
+
+#### Common patterns
+
+```tsx
+// Card / surface container
+<View className="bg-ds-surface border border-ds-outline-variant rounded-xl">...</View>
+
+// Section label (above a group of items)
+<Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-2">
+  Section Name
+</Text>
+
+// List row inside a card
+<Pressable className="px-4 py-4 flex-row items-center justify-between active:opacity-70 border-b border-ds-outline-variant">
+  <Text className="text-base font-barlow text-ds-on-surface">Label</Text>
+  <ChevronRight size={18} color="#747878" />
+</Pressable>
+
+// Primary button (red)
+<Pressable className="bg-ds-red rounded-xl py-4 items-center active:opacity-70">
+  <Text className="text-white text-base font-barlow-semi">Action</Text>
+</Pressable>
+
+// Input field with icon
+<View className="bg-ds-surface border border-ds-outline-variant rounded-xl flex-row items-center px-4">
+  <SomeIcon size={18} color="#747878" />
+  <TextInput className="flex-1 py-4 pl-3 text-base font-barlow text-ds-on-surface" />
+</View>
+
+// Large feature card (home screen style)
+<Pressable className="bg-ds-red rounded-2xl p-5 active:opacity-80" style={{ minHeight: 140 }}>
+  <View className="w-11 h-11 rounded-full bg-white/20 items-center justify-center mb-auto">
+    <SomeIcon size={22} color="white" />
+  </View>
+  <View className="mt-6 flex-row items-end justify-between">
+    <Text className="text-2xl font-barlow-condensed text-white">Label</Text>
+    <ChevronRight size={20} color="white" />
+  </View>
+</Pressable>
+```
+
+#### Active / disabled states
+
+- All tappable elements: `active:opacity-70` (cards: `active:opacity-80`)
+- Disabled loading state: add `opacity-50` conditionally
+
+#### Icons (lucide-react-native)
+
+- `#1c1b1b` (`ds-on-surface`) — primary/strong icons
+- `#444748` (`ds-on-surface-variant`) — secondary icons
+- `#747878` (`ds-outline`) — tertiary icons in rows, placeholders
+- Sizes: 18 (inline rows), 20–22 (headers/nav), 24 (standalone emphasis)
+
+#### Tab bar
+
+Active: `#ba1a1a` | Inactive: `#9ca3af` | Background: `#ffffff`
+
+Tabs: **Home** (House), **Stats** (BarChart2), **Social** (Users)
 
 ### Imports
 - Always use `@/*` path alias (maps to project root)
@@ -145,6 +257,53 @@ EXPO_PUBLIC_SUPABASE_KEY=
 SUPABASE_SERVICE_ROLE_KEY=        # Server-side only (webhook)
 CLERK_WEBHOOK_SECRET=             # Webhook verification
 ```
+
+## Roadmap
+
+### Phase 1 — Game Engine (unblocks Stats and Social)
+
+Every game needs: setup screen (add players) → play screen (turn-by-turn scoring) → results screen. Logic lives in `lib/games/<slug>.ts` as pure functions.
+
+- [ ] **501 / 301** — X01 checkout detection, double-out rule, bust handling
+- [ ] **Shanghai** — rounds 1–7, highest score wins
+- [ ] **Killer** — assign numbers, lives system, elimination
+- [ ] **Halve-it** — target sequence, halve score on miss
+- [ ] **Tactics / Gotcha** — remaining party formats from `constants/games.ts`
+- [ ] Each game: local SQLite session persistence via Drizzle schema, results screen with winner
+
+### Phase 2 — Stats (needs real game data)
+
+- [ ] Personal bests per game type
+- [ ] Three-dart average calculation stored on session complete
+- [ ] Trend chart (last 10 sessions) — evaluate Victory Native or Recharts
+- [ ] Game history filterable by game type and date
+- [ ] Cross-device sync: push completed sessions to Supabase `sessions` + `session_players` tables on game end
+
+### Phase 3 — Cloud Backend (Supabase)
+
+Schema additions needed before Social:
+
+- [ ] `sessions` table — sessionId, userId, gameSlug, status, startedAt, completedAt
+- [ ] `session_players` table — playerId, sessionId, placement, threeDartAvg, gameState
+- [ ] RLS: users can only read/write their own sessions
+- [ ] Clerk webhook already syncs users → `users` table (done)
+
+### Phase 4 — Social / Clubs / Friends
+
+- [ ] **Friends** — `friendships` table (userId, friendId, status: pending/accepted), friend request flow, mutual-follow model
+- [ ] **Clubs** — `clubs`, `club_memberships`, `club_invites` tables; create club, search + join flow, admin management
+- [ ] **Leaderboards** — club and global, driven by Supabase views + TanStack Query polling
+- [ ] **Presence** — online / in-match status via Supabase Realtime (types already defined in `social.tsx`)
+- [ ] Wire Social screen to real data, remove `PLACEHOLDER_CLUBS` and `PLACEHOLDER_FRIENDS`
+
+### Phase 5 — Production Hardening
+
+- [ ] Password reset flow (currently "Coming Soon" in sign-in)
+- [ ] Push notifications — Expo Notifications + Supabase Edge Function trigger
+- [ ] Error tracking — Sentry for React Native
+- [ ] `expo-splash-screen` — hold splash open during font + migration load
+- [ ] EAS Build configuration for App Store and Google Play submission
+- [ ] App Store / Play Store metadata, icons, screenshots
 
 ## ECC Workflow
 
