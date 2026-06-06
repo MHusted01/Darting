@@ -35,7 +35,9 @@ export function BermudaTrianglePlayPanel({
   if (!currentPlayer) return null;
 
   const state = currentPlayer.gameState as BermudaTrianglePlayerState;
-  const target = BERMUDA_TRIANGLE_TARGETS[state.currentRound - 1];
+  const roundIndex = state.currentRound - 1;
+  if (roundIndex < 0 || roundIndex >= BERMUDA_TRIANGLE_TARGETS.length) return null;
+  const target = BERMUDA_TRIANGLE_TARGETS[roundIndex];
 
   return (
     <View className="gap-6">

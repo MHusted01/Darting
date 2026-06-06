@@ -41,7 +41,7 @@ export function KillerPlayPanel({
         ? 'Eliminate!'
         : 'Earn Killer status';
 
-  const dartSlots = phase === 'assign' ? 3 : 3;
+  const dartSlots = 3;
 
   return (
     <View className="gap-6">

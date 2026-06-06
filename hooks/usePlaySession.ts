@@ -640,7 +640,6 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
 
       const idx = gameState.currentPlayerIndex;
       const allStates = gameState.players.map((p) => p.gameState as KillerPlayerState);
-      const currentState = allStates[idx];
       const phase = deriveKillerPhase(allStates);
 
       const takenNumbers = new Set(
