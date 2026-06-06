@@ -4,11 +4,11 @@ import { retryFailedSyncs } from '@/lib/sync-manager';
 
 export function SyncRetryOnMount() {
   const { isLoaded, isSignedIn, userId, getToken } = useAuth();
-  const fired = useRef(false);
+  const firedForUser = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn || !userId || fired.current) return;
-    fired.current = true;
+    if (!isLoaded || !isSignedIn || !userId || firedForUser.current === userId) return;
+    firedForUser.current = userId;
     retryFailedSyncs(userId, getToken).catch(console.error);
   }, [isLoaded, isSignedIn, userId, getToken]);
 

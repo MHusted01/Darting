@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { db as defaultDb } from '@/db/client';
 import { gameSessions } from '@/db/schema';
 import { syncCompletedSession } from '@/lib/supabase-sync';
@@ -25,7 +25,7 @@ export async function retryFailedSyncs(
   const failedSessions = await db.query.gameSessions.findMany({
     where: and(
       eq(gameSessions.status, 'completed'),
-      eq(gameSessions.cloudSyncStatus, 'failed'),
+      ne(gameSessions.cloudSyncStatus, 'synced'),
     ),
   });
 

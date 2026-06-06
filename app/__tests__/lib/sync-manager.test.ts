@@ -9,15 +9,15 @@ import { retryFailedSyncs } from '@/lib/sync-manager';
 
 const getToken = async () => 'fake-token';
 
-const makeFailedSession = (id: number) => ({
+const makePendingSession = (id: number, cloudSyncStatus: 'failed' | 'unsynced' = 'failed') => ({
   id,
   gameSlug: 'x01',
   status: 'completed' as const,
-  cloudSyncStatus: 'failed' as const,
+  cloudSyncStatus,
   cloudSessionId: null,
 });
 
-function makeFakeDb(sessions: ReturnType<typeof makeFailedSession>[]) {
+function makeFakeDb(sessions: ReturnType<typeof makePendingSession>[]) {
   return {
     query: {
       gameSessions: {
@@ -42,8 +42,8 @@ describe('retryFailedSyncs', () => {
     expect(syncOne).not.toHaveBeenCalled();
   });
 
-  it('calls syncOne for each failed session', async () => {
-    const fakeDb = makeFakeDb([makeFailedSession(1), makeFailedSession(2)]);
+  it('calls syncOne for each pending session (failed or unsynced)', async () => {
+    const fakeDb = makeFakeDb([makePendingSession(1, 'failed'), makePendingSession(2, 'unsynced')]);
     const syncOne = jest.fn<() => Promise<{ cloudSessionId: string }>>().mockResolvedValue({ cloudSessionId: 'uuid' });
 
     const result = await retryFailedSyncs('user_abc', getToken, {
@@ -58,7 +58,7 @@ describe('retryFailedSyncs', () => {
   });
 
   it('one failure does not abort others (Promise.allSettled semantics)', async () => {
-    const fakeDb = makeFakeDb([makeFailedSession(1), makeFailedSession(2), makeFailedSession(3)]);
+    const fakeDb = makeFakeDb([makePendingSession(1), makePendingSession(2), makePendingSession(3)]);
     const syncOne = jest.fn<(id: number) => Promise<{ cloudSessionId: string }>>()
       .mockImplementation((id) => {
         if (id === 2) return Promise.reject(new Error('network error'));
@@ -73,7 +73,7 @@ describe('retryFailedSyncs', () => {
     expect(result).toEqual({ attempted: 3, succeeded: 2, failed: 1 });
   });
 
-  it('returns zeroed summary when there are no failed sessions', async () => {
+  it('returns zeroed summary when there are no pending sessions', async () => {
     const fakeDb = makeFakeDb([]);
     const syncOne = jest.fn();
 
