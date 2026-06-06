@@ -2,6 +2,7 @@ import {
   sqliteTable,
   text,
   integer,
+  real,
   index,
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
@@ -56,6 +57,7 @@ export const gamePlayers = sqliteTable(
     currentScore: integer('current_score').notNull().default(0),
     gameState: text('game_state', { mode: 'json' }),
     isWinner: integer('is_winner', { mode: 'boolean' }).notNull().default(false),
+    threeDartAvg: real('three_dart_avg'),
   },
   (table) => [
     uniqueIndex('game_players_session_player_unique').on(
