@@ -32,7 +32,7 @@ import { getInitialPlayerState as getHighScoreInitialState } from '@/lib/games/h
 import { getInitialPlayerState as getHalveItInitialState } from '@/lib/games/halve-it';
 import { getInitialPlayerState as getBobs27InitialState } from '@/lib/games/bobs-27';
 
-function getInitialState(slug: string, startingScore: 501 | 301 = 501): unknown {
+function getInitialState(slug: string, startingScore: 501 | 301 = 501) {
   switch (slug) {
     case AROUND_THE_CLOCK_SLUG: return getATCInitialState();
     case CRICKET_SLUG: return getCricketInitialState();
@@ -42,7 +42,7 @@ function getInitialState(slug: string, startingScore: 501 | 301 = 501): unknown 
     case HIGH_SCORE_SLUG: return getHighScoreInitialState();
     case HALVE_IT_SLUG: return getHalveItInitialState();
     case BOBS_27_SLUG: return getBobs27InitialState();
-    default: return {};
+    default: throw new Error(`Unknown game slug: ${slug}`);
   }
 }
 

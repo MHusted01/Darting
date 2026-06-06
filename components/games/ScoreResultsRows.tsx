@@ -40,7 +40,7 @@ export function ScoreResultsRows({
               {player.score} {scoreLabel}
             </Text>
             {player.isWinner && (
-              <Trophy size={14} color="#f59e0b" style={{ marginTop: 2 }} />
+              <Trophy size={18} color="#1c1b1b" style={{ marginTop: 2 }} />
             )}
           </View>
         </View>

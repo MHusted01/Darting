@@ -80,7 +80,7 @@ export function RoundTargetInput({
       <Pressable
         onPress={() => setPendingMultiplier(true)}
         disabled={isProcessing}
-        className={`py-5 bg-ds-red rounded-xl items-center active:opacity-80${isProcessing ? ' opacity-50' : ''}`}
+        className={`py-5 bg-ds-red rounded-xl items-center active:opacity-70${isProcessing ? ' opacity-50' : ''}`}
         accessibilityRole="button"
         accessibilityLabel={`Hit ${targetSegment}`}
       >

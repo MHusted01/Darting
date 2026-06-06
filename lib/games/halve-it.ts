@@ -2,7 +2,7 @@ import type { DartThrow } from '@/types/game';
 
 export type HalveItTarget = number | 'bull' | 'doubles' | 'triples';
 
-export const HALVE_IT_TARGETS: HalveItTarget[] = [
+export const HALVE_IT_TARGETS: readonly HalveItTarget[] = [
   20, 19, 18, 17, 16, 15, 'bull', 'doubles', 'triples',
 ] as const;
 

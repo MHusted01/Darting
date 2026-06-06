@@ -166,10 +166,18 @@ export default function ResultsScreen() {
   }
 
   const isDraw = results.players.every((p) => !p.isWinner);
+  const noWinnerSelected = isDraw;
+  const allPlayersTied =
+    noWinnerSelected &&
+    results.type === 'score' &&
+    results.players.every((p) => p.score === results.players[0].score);
   const winnerName = isDraw ? 'Draw!' : results.players.find((p) => p.isWinner)?.name;
 
   const winnerSubtitle = (() => {
-    if (isDraw) return 'All players tied';
+    if (noWinnerSelected) {
+      if (results.type === 'atc') return 'All players tied';
+      return allPlayersTied ? 'All players tied' : 'No winner selected';
+    }
     if (results.type === 'atc') {
       const winner = results.players.find((p) => p.isWinner);
       return winner ? `${winner.targetsHit}/${winner.maxTarget} in ${winner.turns} turns` : '';
@@ -197,7 +205,7 @@ export default function ResultsScreen() {
         {winnerName && (
           <View className="items-center mb-8">
             <View className="w-16 h-16 rounded-full bg-ds-red-container items-center justify-center mb-3">
-              <Trophy size={32} color="#f59e0b" />
+              <Trophy size={24} color="#1c1b1b" />
             </View>
             <Text className="text-sm font-barlow text-ds-on-surface-variant mb-1">
               {isDraw ? 'Result' : 'Winner'}

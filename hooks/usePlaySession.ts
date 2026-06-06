@@ -572,14 +572,16 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
           : null
         : undefined;
 
-    void finishTurn(
+    finishTurn(
       misses,
       result.scoreDelta,
       result.newState,
       result.newState.score,
       result.isComplete,
       winnerGamePlayerId,
-    );
+    ).catch(() => {
+      bobs27AutoSubmitRef.current = null;
+    });
   }, [gameState, isBobs27, isProcessing, finishTurn]);
 
   const currentPlayer =
