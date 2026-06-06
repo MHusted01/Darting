@@ -37,6 +37,14 @@ jest.mock('@/lib/history', () => ({
   getHistoryData: jest.fn(),
 }));
 
+jest.mock('@clerk/expo', () => ({
+  useAuth: () => ({ userId: 'test-clerk-user' }),
+}));
+
+jest.mock('@/lib/player', () => ({
+  getUserPlayerId: jest.fn(),
+}));
+
 jest.mock('@/lib/stats', () => ({
   getPersonalBests: jest.fn(),
   getOverallThreeDartAvg: jest.fn(),
@@ -73,11 +81,20 @@ describe('Tabs + Stats Integration', () => {
     refetch: mockRefetch,
   };
 
+  const playerIdResult = {
+    data: 5,
+    isLoading: false,
+    isRefetching: false,
+    error: null,
+    refetch: mockRefetch,
+  };
+
   it('renders stats loading state', () => {
     mockUseQuery.mockImplementation((opts: any) => {
       if (opts.queryKey[0] === 'history') {
         return { data: undefined, isLoading: true, isRefetching: false, error: null, refetch: mockRefetch };
       }
+      if (opts.queryKey[0] === 'user-player-id') return playerIdResult;
       return emptyQueryResult;
     });
 
@@ -88,6 +105,7 @@ describe('Tabs + Stats Integration', () => {
 
   it('renders stats data and routes by status', async () => {
     mockUseQuery.mockImplementation((opts: any) => {
+      if (opts.queryKey[0] === 'user-player-id') return playerIdResult;
       if (opts.queryKey[0] === 'history') {
         return {
           data: {
@@ -185,6 +203,7 @@ describe('Tabs + Stats Integration', () => {
 
   it('renders personal bests when data is available', () => {
     mockUseQuery.mockImplementation((opts: any) => {
+      if (opts.queryKey[0] === 'user-player-id') return playerIdResult;
       if (opts.queryKey[0] === 'history') {
         return { data: { quickStats: { gamesPlayed: 0, completedCount: 0, winRate: 0, inProgressSessions: 0, abandonedSessions: 0 }, sessions: [] }, isLoading: false, isRefetching: false, error: null, refetch: mockRefetch };
       }
@@ -210,8 +229,27 @@ describe('Tabs + Stats Integration', () => {
     expect(screen.getByText('Avg: 22.5')).toBeTruthy();
   });
 
+  it('personal-bests query has enabled:false when playerId is null', () => {
+    const capturedOpts: any[] = [];
+    mockUseQuery.mockImplementation((opts: any) => {
+      capturedOpts.push(opts);
+      if (opts.queryKey[0] === 'user-player-id') {
+        return { data: null, isLoading: false, isRefetching: false, error: null, refetch: mockRefetch };
+      }
+      return emptyQueryResult;
+    });
+
+    render(<StatsScreen />);
+
+    const bests = capturedOpts.find((o) => o.queryKey[1] === 'personal-bests');
+    const avg = capturedOpts.find((o) => o.queryKey[1] === 'three-dart-avg');
+    expect(bests?.enabled).toBe(false);
+    expect(avg?.enabled).toBe(false);
+  });
+
   it('alerts when query returns an error', async () => {
     mockUseQuery.mockImplementation((opts: any) => {
+      if (opts.queryKey[0] === 'user-player-id') return playerIdResult;
       if (opts.queryKey[0] === 'history') {
         return { data: { quickStats: undefined, sessions: [] }, isLoading: false, isRefetching: false, error: new Error('Boom'), refetch: mockRefetch };
       }
