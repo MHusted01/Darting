@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
+import { useAuth } from '@clerk/expo';
 import { useRouter } from 'expo-router';
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { gamePlayers, gameSessions, gameTurns } from '@/db/schema';
 import {
@@ -51,6 +52,8 @@ import {
   type Bobs27PlayerState,
 } from '@/lib/games/bobs-27';
 import type { DartThrow } from '@/types/game';
+import { computeThreeDartAvg } from '@/lib/stats';
+import { syncCompletedSession } from '@/lib/supabase-sync';
 
 export interface LoadedPlayer {
   id: number; // gamePlayers.id
@@ -79,6 +82,7 @@ interface UsePlaySessionParams {
 
 export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
   const router = useRouter();
+  const { userId, getToken } = useAuth();
 
   const [gameState, setGameState] = useState<LoadedGameState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -224,6 +228,36 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
           }
 
           if (isComplete) {
+            const allTurns = await tx
+              .select({
+                playerId: gameTurns.playerId,
+                darts: gameTurns.darts,
+                scoreDelta: gameTurns.scoreDelta,
+              })
+              .from(gameTurns)
+              .where(eq(gameTurns.gameSessionId, gameState.sessionId));
+
+            const turnsByPlayer = new Map<number, Array<{ darts: number; scoreDelta: number }>>();
+            for (const turn of allTurns) {
+              const dartCount = (turn.darts as DartThrow[]).length;
+              const entry = turnsByPlayer.get(turn.playerId) ?? [];
+              entry.push({ darts: dartCount, scoreDelta: turn.scoreDelta });
+              turnsByPlayer.set(turn.playerId, entry);
+            }
+
+            for (const [pid, turns] of turnsByPlayer) {
+              const playerAvg = computeThreeDartAvg(turns);
+              await tx
+                .update(gamePlayers)
+                .set({ threeDartAvg: playerAvg })
+                .where(
+                  and(
+                    eq(gamePlayers.gameSessionId, gameState.sessionId),
+                    eq(gamePlayers.playerId, pid),
+                  ),
+                );
+            }
+
             await tx
               .update(gameSessions)
               .set({ status: 'completed', completedAt: new Date() })
@@ -247,6 +281,11 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
         });
 
         if (isComplete) {
+          if (userId) {
+            syncCompletedSession(gameState.sessionId, userId, getToken).catch((err) => {
+              console.error('Cloud sync failed (non-blocking):', err);
+            });
+          }
           router.replace(`/game/${slug}/results?sessionId=${gameState.sessionId}`);
         } else {
           await loadSession();
@@ -263,7 +302,7 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
         setIsProcessing(false);
       }
     },
-    [gameState, loadSession, router, slug],
+    [gameState, loadSession, router, slug, userId, getToken],
   );
 
   const handleATCDartThrown = useCallback(

@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef } from 'react';
-import { Alert, FlatList, Pressable, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Settings, TrendingUp } from 'lucide-react-native';
 import { getHistoryData, type HistoryQuickStats, type HistorySessionItem } from '@/lib/history';
+import { getPersonalBests, getOverallThreeDartAvg, type PersonalBest } from '@/lib/stats';
+import { GAMES, IMPLEMENTED_SLUGS } from '@/constants/games';
 
 const STATUS_LABELS: Record<HistorySessionItem['status'], string> = {
   setup: 'Setup',
@@ -28,16 +30,33 @@ const EMPTY_STATS: HistoryQuickStats = {
   abandonedSessions: 0,
 };
 
-/**
- * Render the Stats screen showing aggregate quick stats and a list of past game sessions with refresh and navigation.
- *
- * Displays a header with aggregated statistics, a scrollable list of sessions, pull-to-refresh and retry-on-error controls, and navigates to the appropriate game screen when a session is opened.
- *
- * @returns The Stats screen component as a JSX element
- */
+type TimeFilter = '7d' | '30d' | 'all';
+
+const TIME_FILTERS: { key: TimeFilter; label: string }[] = [
+  { key: 'all', label: 'All time' },
+  { key: '30d', label: 'Last 30d' },
+  { key: '7d', label: 'Last 7d' },
+];
+
+const IMPLEMENTED_GAME_NAMES = GAMES.filter((g) => IMPLEMENTED_SLUGS.has(g.slug));
+
+function filterByTime(sessions: HistorySessionItem[], filter: TimeFilter): HistorySessionItem[] {
+  if (filter === 'all') return sessions;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - (filter === '7d' ? 7 : 30));
+  return sessions.filter((s) => s.lastActivityAt >= cutoff);
+}
+
+function filterBySlug(sessions: HistorySessionItem[], slug: string | null): HistorySessionItem[] {
+  if (!slug) return sessions;
+  return sessions.filter((s) => s.gameSlug === slug);
+}
+
 export default function StatsScreen() {
   const router = useRouter();
   const hasFocusedOnce = useRef(false);
+  const [activeSlug, setActiveSlug] = useState<string | null>(null);
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
 
   const historyQuery = useQuery({
     queryKey: ['history'],
@@ -45,7 +64,22 @@ export default function StatsScreen() {
     staleTime: 60_000,
     refetchOnWindowFocus: true,
   });
+
+  const statsQuery = useQuery({
+    queryKey: ['stats', 'personal-bests'],
+    queryFn: getPersonalBests,
+    staleTime: 60_000,
+  });
+
+  const avgQuery = useQuery({
+    queryKey: ['stats', 'three-dart-avg'],
+    queryFn: getOverallThreeDartAvg,
+    staleTime: 60_000,
+  });
+
   const { data, isLoading, isRefetching, error: historyError, refetch } = historyQuery;
+  const refetchPersonalBests = statsQuery.refetch;
+  const refetchOverallAvg = avgQuery.refetch;
 
   useEffect(() => {
     if (!historyError) return;
@@ -55,11 +89,15 @@ export default function StatsScreen() {
     );
   }, [historyError]);
 
-  const sessions: HistorySessionItem[] = data?.sessions ?? [];
+  const allSessions: HistorySessionItem[] = data?.sessions ?? [];
   const quickStats: HistoryQuickStats = data?.quickStats ?? EMPTY_STATS;
+  const personalBests: PersonalBest[] = statsQuery.data ?? [];
+  const overallAvg: number | null = avgQuery.data ?? null;
   const loading = isLoading;
   const refreshing = isRefetching;
   const hasError = Boolean(historyError);
+
+  const filteredSessions = filterBySlug(filterByTime(allSessions, timeFilter), activeSlug);
 
   useFocusEffect(
     useCallback(() => {
@@ -68,7 +106,9 @@ export default function StatsScreen() {
         return;
       }
       void refetch();
-    }, [refetch]),
+      void refetchPersonalBests();
+      void refetchOverallAvg();
+    }, [refetch, refetchPersonalBests, refetchOverallAvg]),
   );
 
   const handleOpenSession = useCallback(
@@ -86,7 +126,7 @@ export default function StatsScreen() {
     [router],
   );
 
-  const recentForChart = sessions.slice(0, 10);
+  const recentForChart = allSessions.slice(0, 10);
 
   const renderSessionRow = useCallback(
     ({ item }: { item: HistorySessionItem }) => {
@@ -131,14 +171,17 @@ export default function StatsScreen() {
     );
   }
 
+  const avgDisplay = overallAvg != null ? overallAvg.toFixed(1) : '—';
+  const hasAvg = overallAvg != null;
+
   return (
     <SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
       <FlatList
         testID="tabs-stats-flatlist"
-        data={sessions}
+        data={filteredSessions}
         keyExtractor={(item) => `${item.sessionId}`}
         contentContainerStyle={{ paddingBottom: 32 }}
-        onRefresh={() => { void refetch(); }}
+        onRefresh={() => { void refetch(); void refetchPersonalBests(); void refetchOverallAvg(); }}
         refreshing={refreshing}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
@@ -162,10 +205,14 @@ export default function StatsScreen() {
               <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-2">
                 3-Dart Average
               </Text>
-              <Text className="text-6xl font-barlow-bold text-ds-on-surface leading-none mb-3">—</Text>
+              <Text className="text-6xl font-barlow-bold text-ds-on-surface leading-none mb-3">
+                {avgDisplay}
+              </Text>
               <View className="self-start bg-ds-green rounded-full px-3 py-1 flex-row items-center gap-1">
-                <TrendingUp size={12} color="#1e502a" />
-                <Text className="text-xs font-barlow-semi text-ds-green-dark">Coming soon</Text>
+                <TrendingUp size={18} color="#444748" />
+                <Text className="text-xs font-barlow-semi text-ds-green-dark">
+                  {hasAvg ? 'Across all completed games' : 'Play a game to see your average'}
+                </Text>
               </View>
             </View>
 
@@ -188,6 +235,42 @@ export default function StatsScreen() {
                 </Text>
               </View>
             </View>
+
+            {/* Personal Bests */}
+            {personalBests.length > 0 && (
+              <View className="mx-6 mb-4 bg-ds-surface border border-ds-outline-variant rounded-2xl overflow-hidden">
+                <View className="px-4 pt-4 pb-2">
+                  <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest">
+                    Personal Bests
+                  </Text>
+                </View>
+                {personalBests.map((pb, idx) => (
+                  <View
+                    key={pb.gameSlug}
+                    className={`px-4 py-3 flex-row items-center justify-between${idx < personalBests.length - 1 ? ' border-b border-ds-outline-variant' : ''}`}
+                  >
+                    <View className="flex-1">
+                      <Text className="text-sm font-barlow-semi text-ds-on-surface">{pb.gameName}</Text>
+                      <Text className="text-xs font-barlow text-ds-on-surface-variant">
+                        {pb.gamesPlayed} played · {pb.gamesWon} won
+                      </Text>
+                    </View>
+                    <View className="items-end">
+                      {pb.bestScore != null && (
+                        <Text className="text-sm font-barlow-semi text-ds-on-surface">
+                          Best: {pb.bestScore}
+                        </Text>
+                      )}
+                      {pb.avgThreeDartAvg != null && (
+                        <Text className="text-xs font-barlow text-ds-on-surface-variant">
+                          Avg: {pb.avgThreeDartAvg.toFixed(1)}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
 
             {/* Form chart */}
             {recentForChart.length > 0 && (
@@ -235,20 +318,90 @@ export default function StatsScreen() {
               </View>
             )}
 
-            {/* Recent Matches header */}
+            {/* Recent Matches header + filters */}
             <View className="px-6 mb-2">
-              <Text className="text-xl font-barlow-condensed text-ds-on-surface">Recent Matches</Text>
+              <Text className="text-xl font-barlow-condensed text-ds-on-surface mb-3">Recent Matches</Text>
+
+              {/* Time filter pills */}
+              <View className="flex-row gap-2 mb-2">
+                {TIME_FILTERS.map(({ key, label }) => (
+                  <Pressable
+                    key={key}
+                    onPress={() => setTimeFilter(key)}
+                    className={`px-3 py-1.5 rounded-full border active:opacity-70 ${
+                      timeFilter === key
+                        ? 'bg-ds-red border-ds-red'
+                        : 'bg-ds-surface border-ds-outline-variant'
+                    }`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Filter by ${label}`}
+                  >
+                    <Text
+                      className={`text-xs font-barlow-semi ${
+                        timeFilter === key ? 'text-white' : 'text-ds-on-surface-variant'
+                      }`}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              {/* Game type filter pills */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-6 px-6">
+                <View className="flex-row gap-2 pb-1">
+                  <Pressable
+                    onPress={() => setActiveSlug(null)}
+                    className={`px-3 py-1.5 rounded-full border active:opacity-70 ${
+                      activeSlug === null
+                        ? 'bg-ds-on-surface border-ds-on-surface'
+                        : 'bg-ds-surface border-ds-outline-variant'
+                    }`}
+                    accessibilityRole="button"
+                    accessibilityLabel="Show all games"
+                  >
+                    <Text
+                      className={`text-xs font-barlow-semi ${
+                        activeSlug === null ? 'text-white' : 'text-ds-on-surface-variant'
+                      }`}
+                    >
+                      All
+                    </Text>
+                  </Pressable>
+                  {IMPLEMENTED_GAME_NAMES.map((game) => (
+                    <Pressable
+                      key={game.slug}
+                      onPress={() => setActiveSlug(activeSlug === game.slug ? null : game.slug)}
+                      className={`px-3 py-1.5 rounded-full border active:opacity-70 ${
+                        activeSlug === game.slug
+                          ? 'bg-ds-red border-ds-red'
+                          : 'bg-ds-surface border-ds-outline-variant'
+                      }`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Filter by ${game.name}`}
+                    >
+                      <Text
+                        className={`text-xs font-barlow-semi ${
+                          activeSlug === game.slug ? 'text-white' : 'text-ds-on-surface-variant'
+                        }`}
+                      >
+                        {game.name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </ScrollView>
             </View>
 
             {/* Session list container top border */}
-            {sessions.length > 0 && (
+            {filteredSessions.length > 0 && (
               <View className="mx-6 bg-ds-surface border border-ds-outline-variant rounded-2xl overflow-hidden" />
             )}
           </View>
         }
         renderItem={({ item, index }) => (
           <View className={`mx-6 bg-ds-surface border-x border-ds-outline-variant ${
-            index === sessions.length - 1 ? 'border-b rounded-b-2xl' : 'border-b'
+            index === filteredSessions.length - 1 ? 'border-b rounded-b-2xl' : 'border-b'
           } ${index === 0 ? 'border-t rounded-t-2xl' : ''}`}>
             {renderSessionRow({ item })}
           </View>
@@ -258,7 +411,9 @@ export default function StatsScreen() {
             <View className="mx-6 border border-dashed border-ds-outline-variant rounded-2xl p-8 items-center">
               <Text className="text-base font-barlow-semi text-ds-on-surface mb-1">No sessions yet</Text>
               <Text className="text-sm font-barlow text-ds-on-surface-variant text-center">
-                Start a game from Home and your sessions will appear here.
+                {activeSlug || timeFilter !== 'all'
+                  ? 'No sessions match the current filter.'
+                  : 'Start a game from Home and your sessions will appear here.'}
               </Text>
             </View>
           )

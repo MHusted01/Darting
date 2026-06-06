@@ -278,13 +278,13 @@ Every game needs: setup screen (add players) → play screen (turn-by-turn scori
 - [ ] **Killer** — assign numbers, earn Killer status, eliminate opponents (3+ players)
 - [ ] **Bermuda Triangle** — penalty zones, shifting targets each round
 
-### Phase 2 — Stats (needs real game data)
+### Phase 2 — Stats (needs real game data) ✅
 
-- [ ] Personal bests per game type
-- [ ] Three-dart average calculation stored on session complete
-- [ ] Trend chart (last 10 sessions) — evaluate Victory Native or Recharts
-- [ ] Game history filterable by game type and date
-- [ ] Cross-device sync: push completed sessions to Supabase `sessions` + `session_players` tables on game end
+- [x] Personal bests per game type
+- [x] Three-dart average calculation stored on session complete
+- [x] Trend chart (last 10 sessions)
+- [x] Game history filterable by game type and date
+- [x] Cross-device sync: push completed sessions to Supabase on game end
 
 ### Phase 3 — Cloud Backend (Supabase)
 
@@ -302,6 +302,18 @@ Schema additions needed before Social:
 - [ ] **Leaderboards** — club and global, driven by Supabase views + TanStack Query polling
 - [ ] **Presence** — online / in-match status via Supabase Realtime (types already defined in `social.tsx`)
 - [ ] Wire Social screen to real data, remove `PLACEHOLDER_CLUBS` and `PLACEHOLDER_FRIENDS`
+
+### Phase 4.5 — Smart Game Setup (depends on Social)
+
+The current setup screen requires typing every player name manually every game. The intended model:
+
+- **You** — the signed-in user is auto-added as the first player (no typing). Needs `useUser()` lookup against `players.userId`. This can ship independently as a quick win before Phase 4.
+- **Friends / club members** — selectable from a contact picker once the `friendships` and `club_memberships` tables exist (Phase 4). Shown as a list above the guest input.
+- **Guests** — the "Add Player" text input remains, but only for people playing in-person who do not have an account.
+
+Order of delivery:
+1. Auto-add signed-in user (quick win, no Social needed)
+2. Pick from friends / club members (after Phase 4 ships social graph)
 
 ### Phase 5 — Production Hardening
 
