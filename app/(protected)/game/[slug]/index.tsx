@@ -78,17 +78,24 @@ export default function GameSetup() {
       setIsLoadingUser(false);
       return;
     }
+    let cancelled = false;
     const displayName = user.firstName ?? user.username ?? 'Me';
     getOrCreateUserPlayer(user.id, displayName)
       .then((player) => {
-        setSelectedPlayers([{ id: player.id, name: player.name, avatarColor: player.avatarColor }]);
+        if (cancelled) return;
+        setSelectedPlayers((prev) => {
+          const withoutUser = prev.filter((p) => p.id !== player.id);
+          return [{ id: player.id, name: player.name, avatarColor: player.avatarColor }, ...withoutUser];
+        });
         setUserPlayerId(player.id);
         setIsLoadingUser(false);
       })
       .catch(() => {
+        if (cancelled) return;
         setIsLoadingUser(false);
         Alert.alert('Error', 'Could not load your player profile. Please try again.');
       });
+    return () => { cancelled = true; };
   }, [isLoaded, user]);
 
   const handleAddPlayer = useCallback(
