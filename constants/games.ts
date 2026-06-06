@@ -37,6 +37,8 @@ export const BASEBALL_SLUG = 'baseball';
 export const HALVE_IT_SLUG = 'halve-it';
 export const HIGH_SCORE_SLUG = 'high-score';
 export const BOBS_27_SLUG = 'bobs-27';
+export const KILLER_SLUG = 'killer';
+export const BERMUDA_TRIANGLE_SLUG = 'bermuda-triangle';
 
 export const IMPLEMENTED_SLUGS: ReadonlySet<string> = new Set([
   AROUND_THE_CLOCK_SLUG,
@@ -47,6 +49,8 @@ export const IMPLEMENTED_SLUGS: ReadonlySet<string> = new Set([
   HALVE_IT_SLUG,
   HIGH_SCORE_SLUG,
   BOBS_27_SLUG,
+  KILLER_SLUG,
+  BERMUDA_TRIANGLE_SLUG,
 ]);
 
 export const GAMES: DartGame[] = [

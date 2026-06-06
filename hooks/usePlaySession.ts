@@ -8,10 +8,12 @@ import { gamePlayers, gameSessions, gameTurns } from '@/db/schema';
 import {
   AROUND_THE_CLOCK_SLUG,
   BASEBALL_SLUG,
+  BERMUDA_TRIANGLE_SLUG,
   BOBS_27_SLUG,
   CRICKET_SLUG,
   HALVE_IT_SLUG,
   HIGH_SCORE_SLUG,
+  KILLER_SLUG,
   SHANGHAI_SLUG,
   X01_SLUG,
 } from '@/constants/games';
@@ -51,6 +53,16 @@ import {
   processTurn as processBobs27Turn,
   type Bobs27PlayerState,
 } from '@/lib/games/bobs-27';
+import {
+  processTurn as processBermudaTriangleTurn,
+  type BermudaTrianglePlayerState,
+} from '@/lib/games/bermuda-triangle';
+import {
+  processTurn as processKillerTurn,
+  derivePhase as deriveKillerPhase,
+  getNextPlayerIndex as getKillerNextPlayerIndex,
+  type KillerPlayerState,
+} from '@/lib/games/killer';
 import type { DartThrow } from '@/types/game';
 import { computeThreeDartAvg } from '@/lib/stats';
 import { syncCompletedSession } from '@/lib/supabase-sync';
@@ -103,6 +115,8 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
   const isHighScore = gameState?.gameSlug === HIGH_SCORE_SLUG;
   const isHalveIt = gameState?.gameSlug === HALVE_IT_SLUG;
   const isBobs27 = gameState?.gameSlug === BOBS_27_SLUG;
+  const isBermudaTriangle = gameState?.gameSlug === BERMUDA_TRIANGLE_SLUG;
+  const isKiller = gameState?.gameSlug === KILLER_SLUG;
 
   const loadSession = useCallback(async () => {
     setLoadError(null);
@@ -185,6 +199,8 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
       isComplete: boolean,
       // undefined = current player wins; null = tie (no winner); number = specific winner id
       winnerGamePlayerId?: number | null,
+      additionalUpdates?: { gamePlayerId: number; newState: unknown; newScore?: number }[],
+      nextPlayerOverride?: number,
     ) => {
       if (!gameState) return;
       setIsProcessing(true);
@@ -213,6 +229,18 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
                 (winnerGamePlayerId ?? currentPlayer.id) === currentPlayer.id,
             })
             .where(eq(gamePlayers.id, currentPlayer.id));
+
+          if (additionalUpdates) {
+            for (const update of additionalUpdates) {
+              await tx
+                .update(gamePlayers)
+                .set({
+                  gameState: update.newState as Record<string, unknown>,
+                  ...(update.newScore !== undefined ? { currentScore: update.newScore } : {}),
+                })
+                .where(eq(gamePlayers.id, update.gamePlayerId));
+            }
+          }
 
           if (
             !isTie &&
@@ -264,9 +292,10 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
               .where(eq(gameSessions.id, gameState.sessionId));
           } else {
             const playerCount = gameState.players.length;
-            const nextIdx = (gameState.currentPlayerIndex + 1) % playerCount;
+            const nextIdx =
+              nextPlayerOverride ?? (gameState.currentPlayerIndex + 1) % playerCount;
             const nextRound =
-              nextIdx === 0
+              nextIdx <= gameState.currentPlayerIndex
                 ? gameState.currentRound + 1
                 : gameState.currentRound;
 
@@ -452,7 +481,7 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
       // undefined = current player wins, null = tie, number = specific winner id
       let winnerGamePlayerId: number | null | undefined;
 
-      if (!isShanghai && !isBaseball && !isHighScore && !isHalveIt && !isBobs27) {
+      if (!isShanghai && !isBaseball && !isHighScore && !isHalveIt && !isBobs27 && !isBermudaTriangle) {
         console.warn('handleRoundDartThrown: unhandled game slug', gameState.gameSlug);
         return;
       }
@@ -538,6 +567,21 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
         newPlayerState = result.newState;
         newScore = result.newState.score;
         resolveWinner(result.winnerIndex);
+      } else if (isBermudaTriangle) {
+        const allStates = gameState.players.map(
+          (p) => p.gameState as BermudaTrianglePlayerState,
+        );
+        const result = processBermudaTriangleTurn(
+          newDarts,
+          currentPlayer.gameState as BermudaTrianglePlayerState,
+          allStates,
+          idx,
+        );
+        isComplete = result.isComplete;
+        scoreDelta = result.scoreDelta;
+        newPlayerState = result.newState;
+        newScore = result.newState.totalScore;
+        resolveWinner(result.winnerIndex);
       }
 
       await finishTurn(
@@ -559,6 +603,7 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
       isHighScore,
       isHalveIt,
       isBobs27,
+      isBermudaTriangle,
     ],
   );
 
@@ -585,6 +630,72 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
       },
     ]);
   }, [gameState, router]);
+
+  const handleKillerDartThrown = useCallback(
+    async (dart: DartThrow) => {
+      if (!gameState || isProcessing) return;
+
+      const newDarts = [...turnDarts, dart];
+      setTurnDarts(newDarts);
+
+      const idx = gameState.currentPlayerIndex;
+      const allStates = gameState.players.map((p) => p.gameState as KillerPlayerState);
+      const phase = deriveKillerPhase(allStates);
+
+      const takenNumbers = new Set(
+        allStates.filter((s) => s.assignedNumber !== null).map((s) => s.assignedNumber as number),
+      );
+
+      const assignPhaseComplete =
+        phase === 'assign' &&
+        (dart.segment >= 1 &&
+          dart.segment <= 20 &&
+          !takenNumbers.has(dart.segment));
+
+      const shouldSubmit =
+        phase === 'play'
+          ? newDarts.length === 3
+          : assignPhaseComplete || newDarts.length === 3;
+
+      if (!shouldSubmit) return;
+
+      const result = processKillerTurn(newDarts, allStates, idx, takenNumbers);
+      const updatedStates = result.updatedPlayerStates;
+
+      const currentUpdated = updatedStates[idx];
+      const additionalUpdates = updatedStates
+        .map((s, i) => ({ index: i, state: s }))
+        .filter(({ index }) => index !== idx)
+        .map(({ index, state }) => ({
+          gamePlayerId: gameState.players[index].id,
+          newState: state,
+          newScore: state.lives,
+        }));
+
+      const winnerGamePlayerId =
+        result.isComplete
+          ? result.winnerIndex !== null
+            ? gameState.players[result.winnerIndex].id
+            : null
+          : undefined;
+
+      const nextIdx = result.isComplete
+        ? undefined
+        : getKillerNextPlayerIndex(updatedStates, idx);
+
+      await finishTurn(
+        newDarts,
+        result.scoreDelta,
+        currentUpdated,
+        currentUpdated.lives,
+        result.isComplete,
+        winnerGamePlayerId,
+        additionalUpdates,
+        nextIdx,
+      );
+    },
+    [finishTurn, gameState, turnDarts, isProcessing],
+  );
 
   useEffect(() => {
     if (!isBobs27 || !gameState || isProcessing) return;
@@ -641,6 +752,8 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
     isHighScore,
     isHalveIt,
     isBobs27,
+    isBermudaTriangle,
+    isKiller,
     localTarget,
     localCricketState,
     localX01State,
@@ -648,6 +761,7 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
     handleCricketDartThrown,
     handleX01DartThrown,
     handleRoundDartThrown,
+    handleKillerDartThrown,
     handleQuit,
     isX01,
   };

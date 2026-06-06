@@ -273,10 +273,10 @@ Every game needs: setup screen (add players) → play screen (turn-by-turn scori
 - [x] **High Score** — 10 rounds, all segments score, highest total wins
 - [x] **Bob's 27** — 20 rounds targeting double-N, elimination on zero
 
-### Phase 1.5 — Remaining Game Formats
+### Phase 1.5 — Remaining Game Formats ✅
 
-- [ ] **Killer** — assign numbers, earn Killer status, eliminate opponents (3+ players)
-- [ ] **Bermuda Triangle** — penalty zones, shifting targets each round
+- [x] **Killer** — assign numbers, earn Killer status, eliminate opponents (3+ players)
+- [x] **Bermuda Triangle** — 12-round fixed target sequence, highest score wins
 
 ### Phase 2 — Stats (needs real game data) ✅
 
@@ -327,6 +327,7 @@ Order of delivery:
 ## ECC Workflow
 
 When working on features, follow this order:
+
 1. `/plan` — Design the approach
 2. `/code-review` — Review changes before finalizing
 3. `/verify` — Verify everything works

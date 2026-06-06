@@ -8,10 +8,12 @@ import {
   IMPLEMENTED_SLUGS,
   AROUND_THE_CLOCK_SLUG,
   BASEBALL_SLUG,
+  BERMUDA_TRIANGLE_SLUG,
   BOBS_27_SLUG,
   CRICKET_SLUG,
   HALVE_IT_SLUG,
   HIGH_SCORE_SLUG,
+  KILLER_SLUG,
   SHANGHAI_SLUG,
   X01_SLUG,
 } from '@/constants/games';
@@ -33,6 +35,8 @@ import { getInitialPlayerState as getBaseballInitialState } from '@/lib/games/ba
 import { getInitialPlayerState as getHighScoreInitialState } from '@/lib/games/high-score';
 import { getInitialPlayerState as getHalveItInitialState } from '@/lib/games/halve-it';
 import { getInitialPlayerState as getBobs27InitialState } from '@/lib/games/bobs-27';
+import { getInitialPlayerState as getBermudaTriangleInitialState } from '@/lib/games/bermuda-triangle';
+import { getInitialPlayerState as getKillerInitialState } from '@/lib/games/killer';
 
 function getInitialState(slug: string, startingScore: 501 | 301 = 501) {
   switch (slug) {
@@ -44,6 +48,8 @@ function getInitialState(slug: string, startingScore: 501 | 301 = 501) {
     case HIGH_SCORE_SLUG: return getHighScoreInitialState();
     case HALVE_IT_SLUG: return getHalveItInitialState();
     case BOBS_27_SLUG: return getBobs27InitialState();
+    case BERMUDA_TRIANGLE_SLUG: return getBermudaTriangleInitialState();
+    case KILLER_SLUG: return getKillerInitialState();
     default: throw new Error(`Unknown game slug: ${slug}`);
   }
 }
@@ -63,6 +69,7 @@ export default function GameSetup() {
   const isAroundTheClock = normalizedSlug === AROUND_THE_CLOCK_SLUG;
   const isCricket = normalizedSlug === CRICKET_SLUG;
   const isX01 = normalizedSlug === X01_SLUG;
+  const isKiller = normalizedSlug === KILLER_SLUG;
 
   const { isLoaded, user } = useUser();
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
@@ -121,7 +128,7 @@ export default function GameSetup() {
     setSelectedPlayers((prev) => prev.filter((p) => p.id !== playerId));
   }, []);
 
-  const minPlayers = isX01 ? 1 : isCricket ? 2 : 1;
+  const minPlayers = isX01 ? 1 : isCricket ? 2 : isKiller ? 3 : 1;
 
   const handleStartGame = async () => {
     if (selectedPlayers.length < minPlayers || isStarting || isLoadingUser) return;
