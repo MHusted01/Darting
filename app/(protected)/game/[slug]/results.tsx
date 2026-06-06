@@ -6,13 +6,28 @@ import { eq, asc } from 'drizzle-orm';
 import { Trophy } from 'lucide-react-native';
 import { db } from '@/db/client';
 import { gameSessions, gamePlayers } from '@/db/schema';
-import { AROUND_THE_CLOCK_SLUG, CRICKET_SLUG, X01_SLUG } from '@/constants/games';
+import {
+  AROUND_THE_CLOCK_SLUG,
+  BASEBALL_SLUG,
+  BOBS_27_SLUG,
+  CRICKET_SLUG,
+  HALVE_IT_SLUG,
+  HIGH_SCORE_SLUG,
+  SHANGHAI_SLUG,
+  X01_SLUG,
+} from '@/constants/games';
 import { ATCResultsRows } from '@/components/games/ATCResultsRows';
 import { CricketResultsRows } from '@/components/games/CricketResultsRows';
+import { ScoreResultsRows } from '@/components/games/ScoreResultsRows';
 import { X01ResultsRows } from '@/components/games/X01ResultsRows';
 import {
   buildATCResults,
+  buildBaseballResults,
+  buildBobs27Results,
   buildCricketResults,
+  buildHalveItResults,
+  buildHighScoreResults,
+  buildShanghaiResults,
   buildX01Results,
   type GameResults,
   type SessionResultPlayerInput,
@@ -22,11 +37,14 @@ import type { AroundTheClockConfig } from '@/lib/games/around-the-clock';
 import type { X01Config } from '@/lib/games/x01';
 import type { DartThrow } from '@/types/game';
 
-/**
- * Displays the results screen for a completed game session.
- *
- * @returns A React element rendering winner details, rankings, and action buttons.
- */
+const SCORE_LABEL: Record<string, string> = {
+  [SHANGHAI_SLUG]: 'pts',
+  [BASEBALL_SLUG]: 'runs',
+  [HIGH_SCORE_SLUG]: 'pts',
+  [HALVE_IT_SLUG]: 'pts',
+  [BOBS_27_SLUG]: 'pts',
+};
+
 export default function ResultsScreen() {
   const router = useRouter();
   const { slug, sessionId } = useLocalSearchParams<{
@@ -75,35 +93,40 @@ export default function ResultsScreen() {
         darts: turn.darts as DartThrow[],
       }));
 
-      if (session.gameSlug === AROUND_THE_CLOCK_SLUG) {
-        setResults({
-          type: 'atc',
-          players: buildATCResults(
-            players,
-            turns,
-            session.config as AroundTheClockConfig,
-          ),
-        });
-        return;
+      switch (session.gameSlug) {
+        case AROUND_THE_CLOCK_SLUG:
+          setResults({
+            type: 'atc',
+            players: buildATCResults(players, turns, session.config as AroundTheClockConfig),
+          });
+          break;
+        case CRICKET_SLUG:
+          setResults({ type: 'cricket', players: buildCricketResults(players, turns) });
+          break;
+        case SHANGHAI_SLUG:
+          setResults({ type: 'score', players: buildShanghaiResults(players, turns) });
+          break;
+        case BASEBALL_SLUG:
+          setResults({ type: 'score', players: buildBaseballResults(players, turns) });
+          break;
+        case HIGH_SCORE_SLUG:
+          setResults({ type: 'score', players: buildHighScoreResults(players, turns) });
+          break;
+        case HALVE_IT_SLUG:
+          setResults({ type: 'score', players: buildHalveItResults(players, turns) });
+          break;
+        case BOBS_27_SLUG:
+          setResults({ type: 'score', players: buildBobs27Results(players, turns) });
+          break;
+        case X01_SLUG:
+          setResults({
+            type: 'x01',
+            players: buildX01Results(players, turns, session.config as X01Config),
+          });
+          break;
+        default:
+          setResults(null);
       }
-
-      if (session.gameSlug === CRICKET_SLUG) {
-        setResults({
-          type: 'cricket',
-          players: buildCricketResults(players, turns),
-        });
-        return;
-      }
-
-      if (session.gameSlug === X01_SLUG) {
-        setResults({
-          type: 'x01',
-          players: buildX01Results(players, turns, session.config as X01Config),
-        });
-        return;
-      }
-
-      setResults(null);
     } catch (error) {
       console.error('Failed to load game results:', error);
       setResults(null);
@@ -118,80 +141,88 @@ export default function ResultsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-white justify-center items-center">
-        <Text className="text-gray-400">Loading results...</Text>
+      <SafeAreaView className="flex-1 bg-ds-bg justify-center items-center">
+        <Text className="text-ds-outline font-barlow">Loading results...</Text>
       </SafeAreaView>
     );
   }
 
   if (!results) {
     return (
-      <SafeAreaView className="flex-1 bg-white justify-center items-center px-6">
-        <Text className="text-base text-gray-500 text-center mb-4">
+      <SafeAreaView className="flex-1 bg-ds-bg justify-center items-center px-6">
+        <Text className="text-base font-barlow text-ds-on-surface-variant text-center mb-4">
           Could not load results for this session.
         </Text>
         <Pressable
           onPress={() => router.replace('/(protected)/(tabs)')}
-          className="bg-black rounded-xl px-5 py-3"
+          className="bg-ds-red rounded-xl px-5 py-3 active:opacity-70"
           accessibilityRole="button"
           accessibilityLabel="Go to home"
         >
-          <Text className="text-white font-semibold">Home</Text>
+          <Text className="text-white font-barlow-semi">Home</Text>
         </Pressable>
       </SafeAreaView>
     );
   }
 
-  const winnerName = results.players.find((player) => player.isWinner)?.name;
+  const isDraw = results.players.every((p) => !p.isWinner);
+  const winnerName = isDraw ? 'Draw!' : results.players.find((p) => p.isWinner)?.name;
+
   const winnerSubtitle = (() => {
+    if (isDraw) return 'All players tied';
     if (results.type === 'atc') {
-      const winner = results.players.find((player) => player.isWinner);
-      return winner
-        ? `${winner.targetsHit}/${winner.maxTarget} in ${winner.turns} turns`
-        : '';
+      const winner = results.players.find((p) => p.isWinner);
+      return winner ? `${winner.targetsHit}/${winner.maxTarget} in ${winner.turns} turns` : '';
     }
     if (results.type === 'cricket') {
-      const winner = results.players.find((player) => player.isWinner);
-      return winner
-        ? `${winner.points} pts \u2022 ${winner.segmentsClosed}/7 closed`
-        : '';
+      const winner = results.players.find((p) => p.isWinner);
+      return winner ? `${winner.points} pts • ${winner.segmentsClosed}/7 closed` : '';
     }
     if (results.type === 'x01') {
-      const winner = results.players.find((player) => player.isWinner);
+      const winner = results.players.find((p) => p.isWinner);
       return winner
-        ? `${winner.threeDartAvg.toFixed(1)} avg \u2022 ${winner.dartsThrown} darts`
+        ? `${winner.threeDartAvg.toFixed(1)} avg • ${winner.dartsThrown} darts`
         : '';
     }
-    return '';
+    const winner = results.players.find((p) => p.isWinner);
+    return winner ? `${winner.score} ${SCORE_LABEL[slug ?? ''] ?? 'pts'}` : '';
   })();
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-6 pb-12 pt-6"
       >
         {winnerName && (
           <View className="items-center mb-8">
-            <View className="w-16 h-16 rounded-full bg-amber-100 items-center justify-center mb-3">
+            <View className="w-16 h-16 rounded-full bg-ds-red-container items-center justify-center mb-3">
               <Trophy size={32} color="#f59e0b" />
             </View>
-            <Text className="text-sm text-gray-500 mb-1">Winner</Text>
-            <Text className="text-3xl font-bold text-black">{winnerName}</Text>
-            <Text className="text-base text-gray-500 mt-1">{winnerSubtitle}</Text>
+            <Text className="text-sm font-barlow text-ds-on-surface-variant mb-1">
+              {isDraw ? 'Result' : 'Winner'}
+            </Text>
+            <Text className="text-3xl font-barlow-condensed-xbold text-ds-on-surface">
+              {winnerName}
+            </Text>
+            <Text className="text-base font-barlow text-ds-on-surface-variant mt-1">
+              {winnerSubtitle}
+            </Text>
           </View>
         )}
 
         <View className="mb-8">
-          <Text className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">
+          <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-3">
             Rankings
           </Text>
 
-          {results.type === 'atc' && (
-            <ATCResultsRows players={results.players} />
-          )}
-          {results.type === 'cricket' && (
-            <CricketResultsRows players={results.players} />
+          {results.type === 'atc' && <ATCResultsRows players={results.players} />}
+          {results.type === 'cricket' && <CricketResultsRows players={results.players} />}
+          {results.type === 'score' && (
+            <ScoreResultsRows
+              players={results.players}
+              scoreLabel={SCORE_LABEL[slug ?? ''] ?? 'pts'}
+            />
           )}
           {results.type === 'x01' && (
             <X01ResultsRows players={results.players} />
@@ -201,20 +232,20 @@ export default function ResultsScreen() {
         <View className="gap-3">
           <Pressable
             onPress={() => router.replace(`/game/${slug}`)}
-            className="bg-black rounded-xl py-4 items-center active:opacity-70"
+            className="bg-ds-red rounded-xl py-4 items-center active:opacity-70"
             accessibilityRole="button"
             accessibilityLabel="Play again"
           >
-            <Text className="text-white text-lg font-bold">Play Again</Text>
+            <Text className="text-white text-lg font-barlow-semi">Play Again</Text>
           </Pressable>
 
           <Pressable
             onPress={() => router.replace('/(protected)/(tabs)')}
-            className="border border-gray-300 rounded-xl py-4 items-center active:opacity-70"
+            className="border border-ds-outline-variant rounded-xl py-4 items-center active:opacity-70"
             accessibilityRole="button"
             accessibilityLabel="Go to home"
           >
-            <Text className="text-gray-600 text-lg font-bold">Home</Text>
+            <Text className="text-ds-on-surface text-lg font-barlow-semi">Home</Text>
           </Pressable>
         </View>
       </ScrollView>

@@ -1,10 +1,19 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { asc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { gamePlayers, gameSessions, gameTurns } from '@/db/schema';
-import { AROUND_THE_CLOCK_SLUG, CRICKET_SLUG, X01_SLUG } from '@/constants/games';
+import {
+  AROUND_THE_CLOCK_SLUG,
+  BASEBALL_SLUG,
+  BOBS_27_SLUG,
+  CRICKET_SLUG,
+  HALVE_IT_SLUG,
+  HIGH_SCORE_SLUG,
+  SHANGHAI_SLUG,
+  X01_SLUG,
+} from '@/constants/games';
 import {
   getMaxTarget,
   getTargetSegment,
@@ -21,6 +30,26 @@ import {
   type X01Config,
   type X01PlayerState,
 } from '@/lib/games/x01';
+import {
+  processTurn as processShanghaiTurn,
+  type ShanghaiPlayerState,
+} from '@/lib/games/shanghai';
+import {
+  processTurn as processBaseballTurn,
+  type BaseballPlayerState,
+} from '@/lib/games/baseball';
+import {
+  processTurn as processHighScoreTurn,
+  type HighScorePlayerState,
+} from '@/lib/games/high-score';
+import {
+  processTurn as processHalveItTurn,
+  type HalveItPlayerState,
+} from '@/lib/games/halve-it';
+import {
+  processTurn as processBobs27Turn,
+  type Bobs27PlayerState,
+} from '@/lib/games/bobs-27';
 import type { DartThrow } from '@/types/game';
 
 export interface LoadedPlayer {
@@ -55,6 +84,7 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [turnDarts, setTurnDarts] = useState<DartThrow[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const bobs27AutoSubmitRef = useRef<string | null>(null);
 
   const [localTarget, setLocalTarget] = useState<number>(1);
   const [localCricketState, setLocalCricketState] =
@@ -64,6 +94,11 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
   const isAroundTheClock = gameState?.gameSlug === AROUND_THE_CLOCK_SLUG;
   const isCricket = gameState?.gameSlug === CRICKET_SLUG;
   const isX01 = gameState?.gameSlug === X01_SLUG;
+  const isShanghai = gameState?.gameSlug === SHANGHAI_SLUG;
+  const isBaseball = gameState?.gameSlug === BASEBALL_SLUG;
+  const isHighScore = gameState?.gameSlug === HIGH_SCORE_SLUG;
+  const isHalveIt = gameState?.gameSlug === HALVE_IT_SLUG;
+  const isBobs27 = gameState?.gameSlug === BOBS_27_SLUG;
 
   const loadSession = useCallback(async () => {
     setLoadError(null);
@@ -144,12 +179,14 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
       newPlayerState: unknown,
       newScore: number,
       isComplete: boolean,
-      winnerGamePlayerId?: number,
+      // undefined = current player wins; null = tie (no winner); number = specific winner id
+      winnerGamePlayerId?: number | null,
     ) => {
       if (!gameState) return;
       setIsProcessing(true);
 
       const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+      const isTie = isComplete && winnerGamePlayerId === null;
 
       try {
         await db.transaction(async (tx) => {
@@ -167,14 +204,17 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
               currentScore: newScore,
               gameState: newPlayerState as Record<string, unknown>,
               isWinner:
+                !isTie &&
                 isComplete &&
                 (winnerGamePlayerId ?? currentPlayer.id) === currentPlayer.id,
             })
             .where(eq(gamePlayers.id, currentPlayer.id));
 
           if (
+            !isTie &&
             isComplete &&
             winnerGamePlayerId !== undefined &&
+            winnerGamePlayerId !== null &&
             winnerGamePlayerId !== currentPlayer.id
           ) {
             await tx
@@ -341,7 +381,6 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
         result.isComplete || result.isBust || newDarts.length === 3;
 
       if (shouldEndTurn) {
-        // currentScore tracks points scored (startingScore - remaining)
         const newScore = config.startingScore - result.newState.remaining;
         await finishTurn(
           newDarts,
@@ -353,6 +392,135 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
       }
     },
     [finishTurn, gameState, turnDarts, localX01State, isProcessing],
+  );
+
+  const handleRoundDartThrown = useCallback(
+    async (dart: DartThrow) => {
+      if (!gameState || isProcessing) return;
+
+      const newDarts = [...turnDarts, dart];
+      setTurnDarts(newDarts);
+
+      if (newDarts.length < 3) return;
+
+      const idx = gameState.currentPlayerIndex;
+      const currentPlayer = gameState.players[idx];
+
+      let isComplete = false;
+      let scoreDelta = 0;
+      let newPlayerState: unknown = null;
+      let newScore = currentPlayer.currentScore;
+      // undefined = current player wins, null = tie, number = specific winner id
+      let winnerGamePlayerId: number | null | undefined;
+
+      if (!isShanghai && !isBaseball && !isHighScore && !isHalveIt && !isBobs27) {
+        console.warn('handleRoundDartThrown: unhandled game slug', gameState.gameSlug);
+        return;
+      }
+
+      const resolveWinner = (winnerIndex: number | null) => {
+        if (!isComplete) return;
+        winnerGamePlayerId =
+          winnerIndex !== null ? gameState.players[winnerIndex].id : null;
+      };
+
+      if (isShanghai) {
+        const allStates = gameState.players.map(
+          (p) => p.gameState as ShanghaiPlayerState,
+        );
+        const result = processShanghaiTurn(
+          newDarts,
+          currentPlayer.gameState as ShanghaiPlayerState,
+          allStates,
+          idx,
+        );
+        isComplete = result.isComplete;
+        scoreDelta = result.scoreDelta;
+        newPlayerState = result.newState;
+        newScore = result.newState.totalScore;
+        resolveWinner(result.winnerIndex);
+      } else if (isBaseball) {
+        const allStates = gameState.players.map(
+          (p) => p.gameState as BaseballPlayerState,
+        );
+        const result = processBaseballTurn(
+          newDarts,
+          currentPlayer.gameState as BaseballPlayerState,
+          allStates,
+          idx,
+        );
+        isComplete = result.isComplete;
+        scoreDelta = result.scoreDelta;
+        newPlayerState = result.newState;
+        newScore = result.newState.totalRuns;
+        resolveWinner(result.winnerIndex);
+      } else if (isHighScore) {
+        const allStates = gameState.players.map(
+          (p) => p.gameState as HighScorePlayerState,
+        );
+        const result = processHighScoreTurn(
+          newDarts,
+          currentPlayer.gameState as HighScorePlayerState,
+          allStates,
+          idx,
+        );
+        isComplete = result.isComplete;
+        scoreDelta = result.scoreDelta;
+        newPlayerState = result.newState;
+        newScore = result.newState.totalScore;
+        resolveWinner(result.winnerIndex);
+      } else if (isHalveIt) {
+        const allStates = gameState.players.map(
+          (p) => p.gameState as HalveItPlayerState,
+        );
+        const result = processHalveItTurn(
+          newDarts,
+          currentPlayer.gameState as HalveItPlayerState,
+          allStates,
+          idx,
+        );
+        isComplete = result.isComplete;
+        scoreDelta = result.scoreDelta;
+        newPlayerState = result.newState;
+        newScore = result.newState.score;
+        resolveWinner(result.winnerIndex);
+      } else if (isBobs27) {
+        const allStates = gameState.players.map(
+          (p) => p.gameState as Bobs27PlayerState,
+        );
+        const result = processBobs27Turn(
+          newDarts,
+          currentPlayer.gameState as Bobs27PlayerState,
+          allStates,
+          idx,
+        );
+        isComplete = result.isComplete;
+        scoreDelta = result.scoreDelta;
+        newPlayerState = result.newState;
+        newScore = result.newState.score;
+        resolveWinner(result.winnerIndex);
+      }
+
+      await finishTurn(
+        newDarts,
+        scoreDelta,
+        newPlayerState,
+        newScore,
+        isComplete,
+        winnerGamePlayerId,
+      );
+    },
+    [
+      finishTurn,
+      gameState,
+      turnDarts,
+      isProcessing,
+      isShanghai,
+      isBaseball,
+      isHighScore,
+      isHalveIt,
+      isBobs27,
+    ],
   );
 
   const handleQuit = useCallback(() => {
@@ -379,6 +547,41 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
     ]);
   }, [gameState, router]);
 
+  useEffect(() => {
+    if (!isBobs27 || !gameState || isProcessing) return;
+    const idx = gameState.currentPlayerIndex;
+    const player = gameState.players[idx];
+    const state = player?.gameState as Bobs27PlayerState | undefined;
+    if (!state?.eliminated) return;
+
+    const key = `${player.id}:${state.currentRound}`;
+    if (bobs27AutoSubmitRef.current === key) return;
+    bobs27AutoSubmitRef.current = key;
+
+    const misses: DartThrow[] = [
+      { segment: 0, multiplier: 0 },
+      { segment: 0, multiplier: 0 },
+      { segment: 0, multiplier: 0 },
+    ];
+    const allStates = gameState.players.map((p) => p.gameState as Bobs27PlayerState);
+    const result = processBobs27Turn(misses, state, allStates, idx);
+    const winnerGamePlayerId: number | null | undefined =
+      result.isComplete
+        ? result.winnerIndex !== null
+          ? gameState.players[result.winnerIndex].id
+          : null
+        : undefined;
+
+    void finishTurn(
+      misses,
+      result.scoreDelta,
+      result.newState,
+      result.newState.score,
+      result.isComplete,
+      winnerGamePlayerId,
+    );
+  }, [gameState, isBobs27, isProcessing, finishTurn]);
+
   const currentPlayer =
     gameState !== null
       ? gameState.players[gameState.currentPlayerIndex]
@@ -392,12 +595,18 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
     isProcessing,
     isAroundTheClock,
     isCricket,
+    isShanghai,
+    isBaseball,
+    isHighScore,
+    isHalveIt,
+    isBobs27,
     localTarget,
     localCricketState,
     localX01State,
     handleATCDartThrown,
     handleCricketDartThrown,
     handleX01DartThrown,
+    handleRoundDartThrown,
     handleQuit,
     isX01,
   };

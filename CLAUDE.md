@@ -260,16 +260,23 @@ CLERK_WEBHOOK_SECRET=             # Webhook verification
 
 ## Roadmap
 
-### Phase 1 — Game Engine (unblocks Stats and Social)
+### Phase 1 — Game Engine (unblocks Stats and Social) ✅
 
 Every game needs: setup screen (add players) → play screen (turn-by-turn scoring) → results screen. Logic lives in `lib/games/<slug>.ts` as pure functions.
 
-- [ ] **501 / 301** — X01 checkout detection, double-out rule, bust handling
-- [ ] **Shanghai** — rounds 1–7, highest score wins
-- [ ] **Killer** — assign numbers, lives system, elimination
-- [ ] **Halve-it** — target sequence, halve score on miss
-- [ ] **Tactics / Gotcha** — remaining party formats from `constants/games.ts`
-- [ ] Each game: local SQLite session persistence via Drizzle schema, results screen with winner
+- [x] **501 / 301** — X01 checkout detection, double-out rule, bust handling
+- [x] **Cricket** — close 15–20 and Bull, mark system, points scoring
+- [x] **Around the Clock** — sequential targeting 1–20, optional Bull
+- [x] **Shanghai** — rounds 1–7, target segment per round, Shanghai instant-win
+- [x] **Baseball** — 9 innings, runs counting per inning segment
+- [x] **Halve-It** — 9-round target sequence, miss = halve score
+- [x] **High Score** — 10 rounds, all segments score, highest total wins
+- [x] **Bob's 27** — 20 rounds targeting double-N, elimination on zero
+
+### Phase 1.5 — Remaining Game Formats
+
+- [ ] **Killer** — assign numbers, earn Killer status, eliminate opponents (3+ players)
+- [ ] **Bermuda Triangle** — penalty zones, shifting targets each round
 
 ### Phase 2 — Stats (needs real game data)
 

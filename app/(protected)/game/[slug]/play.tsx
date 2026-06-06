@@ -2,7 +2,12 @@ import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AroundTheClockPlayPanel } from '@/components/games/AroundTheClockPlayPanel';
+import { BaseballPlayPanel } from '@/components/games/BaseballPlayPanel';
+import { Bobs27PlayPanel } from '@/components/games/Bobs27PlayPanel';
 import { CricketPlayPanel } from '@/components/games/CricketPlayPanel';
+import { HalveItPlayPanel } from '@/components/games/HalveItPlayPanel';
+import { HighScorePlayPanel } from '@/components/games/HighScorePlayPanel';
+import { ShanghaiPlayPanel } from '@/components/games/ShanghaiPlayPanel';
 import { X01PlayPanel } from '@/components/games/X01PlayPanel';
 import {
   getMaxTarget,
@@ -10,11 +15,6 @@ import {
 } from '@/lib/games/around-the-clock';
 import { usePlaySession } from '@/hooks/usePlaySession';
 
-/**
- * Screen component that hosts an active game session for Around the Clock, Cricket, or X01.
- *
- * @returns The rendered Play screen element for the current game session.
- */
 export default function PlayScreen() {
   const router = useRouter();
   const { slug, sessionId } = useLocalSearchParams<{
@@ -31,26 +31,34 @@ export default function PlayScreen() {
     isAroundTheClock,
     isCricket,
     isX01,
+    isShanghai,
+    isBaseball,
+    isHighScore,
+    isHalveIt,
+    isBobs27,
     localTarget,
     localCricketState,
     localX01State,
     handleATCDartThrown,
     handleCricketDartThrown,
     handleX01DartThrown,
+    handleRoundDartThrown,
     handleQuit,
   } = usePlaySession({ slug, sessionId });
 
   if (loadError) {
     return (
-      <SafeAreaView className="flex-1 bg-white justify-center items-center px-6">
-        <Text className="text-base text-gray-500 text-center mb-4">{loadError}</Text>
+      <SafeAreaView className="flex-1 bg-ds-bg justify-center items-center px-6">
+        <Text className="text-base font-barlow text-ds-on-surface-variant text-center mb-4">
+          {loadError}
+        </Text>
         <Pressable
           onPress={() => router.replace('/(protected)/(tabs)')}
-          className="bg-black rounded-xl px-5 py-3"
+          className="bg-ds-red rounded-xl px-5 py-3 active:opacity-70"
           accessibilityRole="button"
           accessibilityLabel="Go back to games"
         >
-          <Text className="text-white font-semibold">Back to games</Text>
+          <Text className="text-white font-barlow-semi">Back to games</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -58,8 +66,8 @@ export default function PlayScreen() {
 
   if (!gameState || !currentPlayer) {
     return (
-      <SafeAreaView className="flex-1 bg-white justify-center items-center">
-        <Text className="text-gray-400">Loading...</Text>
+      <SafeAreaView className="flex-1 bg-ds-bg justify-center items-center">
+        <Text className="text-ds-outline font-barlow">Loading...</Text>
       </SafeAreaView>
     );
   }
@@ -69,14 +77,14 @@ export default function PlayScreen() {
     : null;
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-6 pb-8"
         bounces={false}
       >
         <View className="flex-row items-center justify-between mt-2 mb-6">
-          <Text className="text-sm text-gray-500">
+          <Text className="text-sm font-barlow text-ds-on-surface-variant">
             Round {gameState.currentRound}
           </Text>
           <Pressable
@@ -85,20 +93,20 @@ export default function PlayScreen() {
             accessibilityRole="button"
             accessibilityLabel="Quit game"
           >
-            <Text className="text-sm text-red-500 font-medium">Quit</Text>
+            <Text className="text-sm font-barlow-semi text-ds-red">Quit</Text>
           </Pressable>
         </View>
 
-        <View className="items-center mb-4">
+        <View className="items-center mb-6">
           <View
             className="w-12 h-12 rounded-full items-center justify-center mb-2"
             style={{ backgroundColor: currentPlayer.avatarColor }}
           >
-            <Text className="text-white text-lg font-bold">
+            <Text className="text-white text-lg font-barlow-bold">
               {currentPlayer.name.charAt(0).toUpperCase()}
             </Text>
           </View>
-          <Text className="text-xl font-bold text-black">
+          <Text className="text-xl font-barlow-condensed text-ds-on-surface">
             {currentPlayer.name}
           </Text>
         </View>
@@ -134,6 +142,56 @@ export default function PlayScreen() {
             turnDarts={turnDarts}
             isProcessing={isProcessing}
             onDartThrown={handleX01DartThrown}
+          />
+        )}
+
+        {isShanghai && (
+          <ShanghaiPlayPanel
+            players={gameState.players}
+            currentPlayerId={currentPlayer.id}
+            turnDarts={turnDarts}
+            isProcessing={isProcessing}
+            onDartThrown={handleRoundDartThrown}
+          />
+        )}
+
+        {isBaseball && (
+          <BaseballPlayPanel
+            players={gameState.players}
+            currentPlayerId={currentPlayer.id}
+            turnDarts={turnDarts}
+            isProcessing={isProcessing}
+            onDartThrown={handleRoundDartThrown}
+          />
+        )}
+
+        {isHighScore && (
+          <HighScorePlayPanel
+            players={gameState.players}
+            currentPlayerId={currentPlayer.id}
+            turnDarts={turnDarts}
+            isProcessing={isProcessing}
+            onDartThrown={handleRoundDartThrown}
+          />
+        )}
+
+        {isHalveIt && (
+          <HalveItPlayPanel
+            players={gameState.players}
+            currentPlayerId={currentPlayer.id}
+            turnDarts={turnDarts}
+            isProcessing={isProcessing}
+            onDartThrown={handleRoundDartThrown}
+          />
+        )}
+
+        {isBobs27 && (
+          <Bobs27PlayPanel
+            players={gameState.players}
+            currentPlayerId={currentPlayer.id}
+            turnDarts={turnDarts}
+            isProcessing={isProcessing}
+            onDartThrown={handleRoundDartThrown}
           />
         )}
       </ScrollView>

@@ -1,7 +1,18 @@
 import { useState, useCallback } from 'react';
 import { View, Text, Pressable, Switch, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { GAMES, AROUND_THE_CLOCK_SLUG, CRICKET_SLUG, X01_SLUG } from '@/constants/games';
+import {
+  GAMES,
+  IMPLEMENTED_SLUGS,
+  AROUND_THE_CLOCK_SLUG,
+  BASEBALL_SLUG,
+  BOBS_27_SLUG,
+  CRICKET_SLUG,
+  HALVE_IT_SLUG,
+  HIGH_SCORE_SLUG,
+  SHANGHAI_SLUG,
+  X01_SLUG,
+} from '@/constants/games';
 import { db } from '@/db/client';
 import { players as playersTable, gameSessions, gamePlayers } from '@/db/schema';
 import {
@@ -15,14 +26,33 @@ import { getInitialPlayerState as getCricketInitialState } from '@/lib/games/cri
 import type { CricketConfig } from '@/lib/games/cricket';
 import { getInitialPlayerState as getX01InitialState } from '@/lib/games/x01';
 import type { X01Config } from '@/lib/games/x01';
+import { getInitialPlayerState as getShanghaiInitialState } from '@/lib/games/shanghai';
+import { getInitialPlayerState as getBaseballInitialState } from '@/lib/games/baseball';
+import { getInitialPlayerState as getHighScoreInitialState } from '@/lib/games/high-score';
+import { getInitialPlayerState as getHalveItInitialState } from '@/lib/games/halve-it';
+import { getInitialPlayerState as getBobs27InitialState } from '@/lib/games/bobs-27';
 
-/**
- * Renders the game setup screen for configuring players and starting a new session for the selected game mode.
- *
- * Supports Around The Clock and Cricket modes, provides player add/remove management, exposes mode-specific configuration options (e.g., include bull for Around The Clock), enforces mode-dependent minimum player counts, persists players and a game session to the local database, and navigates to the game's play screen when a session is created.
- *
- * @returns The React element for the game setup UI that allows configuring players and starting a game session.
- */
+function getInitialState(slug: string, startingScore: 501 | 301 = 501): unknown {
+  switch (slug) {
+    case AROUND_THE_CLOCK_SLUG: return getATCInitialState();
+    case CRICKET_SLUG: return getCricketInitialState();
+    case X01_SLUG: return getX01InitialState({ startingScore });
+    case SHANGHAI_SLUG: return getShanghaiInitialState();
+    case BASEBALL_SLUG: return getBaseballInitialState();
+    case HIGH_SCORE_SLUG: return getHighScoreInitialState();
+    case HALVE_IT_SLUG: return getHalveItInitialState();
+    case BOBS_27_SLUG: return getBobs27InitialState();
+    default: return {};
+  }
+}
+
+function getConfig(slug: string, includeBull: boolean, startingScore: 501 | 301 = 501): unknown {
+  if (slug === AROUND_THE_CLOCK_SLUG) return { includeBull } satisfies AroundTheClockConfig;
+  if (slug === CRICKET_SLUG) return { variant: 'standard' } satisfies CricketConfig;
+  if (slug === X01_SLUG) return { startingScore } satisfies X01Config;
+  return {};
+}
+
 export default function GameSetup() {
   const router = useRouter();
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -62,7 +92,7 @@ export default function GameSetup() {
   const handleStartGame = async () => {
     if (selectedPlayers.length < minPlayers || isStarting) return;
 
-    if (!isAroundTheClock && !isCricket && !isX01) {
+    if (!IMPLEMENTED_SLUGS.has(normalizedSlug)) {
       Alert.alert('Not available yet', 'This game mode is not implemented yet.');
       return;
     }
@@ -70,17 +100,7 @@ export default function GameSetup() {
     setIsStarting(true);
 
     try {
-      const config: AroundTheClockConfig | CricketConfig | X01Config = isAroundTheClock
-        ? ({ includeBull } satisfies AroundTheClockConfig)
-        : isCricket
-          ? ({ variant: 'standard' } satisfies CricketConfig)
-          : ({ startingScore } satisfies X01Config);
-
-      const getInitialState = isAroundTheClock
-        ? getATCInitialState
-        : isCricket
-          ? getCricketInitialState
-          : () => getX01InitialState({ startingScore } satisfies X01Config);
+      const config = getConfig(normalizedSlug, includeBull, startingScore);
 
       const session = await db.transaction(async (tx) => {
         const [createdSession] = await tx
@@ -101,7 +121,7 @@ export default function GameSetup() {
             playerId: selectedPlayers[i].id,
             playerOrder: i,
             currentScore: 0,
-            gameState: getInitialState(),
+            gameState: getInitialState(normalizedSlug, startingScore) as Record<string, unknown>,
           });
         }
 
@@ -118,8 +138,8 @@ export default function GameSetup() {
 
   if (!game) {
     return (
-      <View className="flex-1 justify-center items-center bg-white">
-        <Text className="text-lg text-gray-500">Game not found</Text>
+      <View className="flex-1 justify-center items-center bg-ds-bg">
+        <Text className="text-lg font-barlow text-ds-on-surface-variant">Game not found</Text>
       </View>
     );
   }
@@ -129,22 +149,20 @@ export default function GameSetup() {
 
   return (
     <ScrollView
-      className="flex-1 bg-white"
+      className="flex-1 bg-ds-bg"
       contentContainerClassName="px-6 pb-12 pt-6"
       keyboardShouldPersistTaps="handled"
     >
-      {/* Game header */}
       <View className="items-center mb-8">
-        <View className="w-16 h-16 rounded-2xl bg-gray-100 items-center justify-center mb-4">
-          <Icon size={32} color="black" />
+        <View className="w-16 h-16 rounded-2xl bg-ds-surface-container items-center justify-center mb-4">
+          <Icon size={32} color="#1c1b1b" />
         </View>
-        <Text className="text-2xl font-bold text-black mb-1">{game.name}</Text>
-        <Text className="text-base text-gray-500 text-center">
+        <Text className="text-2xl font-barlow-condensed text-ds-on-surface mb-1">{game.name}</Text>
+        <Text className="text-base font-barlow text-ds-on-surface-variant text-center">
           {game.description}
         </Text>
       </View>
 
-      {/* Player management */}
       <PlayerManager
         players={selectedPlayers}
         onAddPlayer={handleAddPlayer}
@@ -152,22 +170,21 @@ export default function GameSetup() {
         minPlayers={minPlayers}
       />
 
-      {/* Game config */}
       {isAroundTheClock && (
-        <View className="mt-6 border border-gray-200 rounded-xl p-4">
+        <View className="mt-6 bg-ds-surface border border-ds-outline-variant rounded-xl p-4">
           <View className="flex-row items-center justify-between">
             <View className="flex-1 mr-4">
-              <Text className="text-base font-semibold text-black">
+              <Text className="text-base font-barlow-semi text-ds-on-surface">
                 Include Bull
               </Text>
-              <Text className="text-sm text-gray-500 mt-1">
+              <Text className="text-sm font-barlow text-ds-on-surface-variant mt-1">
                 Add bullseye as target #21 after completing 1–20
               </Text>
             </View>
             <Switch
               value={includeBull}
               onValueChange={setIncludeBull}
-              trackColor={{ false: '#d1d5db', true: '#000000' }}
+              trackColor={{ false: '#c4c7c7', true: '#ba1a1a' }}
               thumbColor="white"
               accessibilityLabel="Include bull as target 21"
             />
@@ -175,20 +192,15 @@ export default function GameSetup() {
         </View>
       )}
 
-      {/* Cricket config */}
       {isCricket && (
-        <View className="mt-6 border border-gray-200 rounded-xl p-4">
-          <Text className="text-base font-semibold text-black">
-            Standard Cricket
-          </Text>
-          <Text className="text-sm text-gray-500 mt-1">
-            Close 15–20 and Bull. Score points on segments your opponents
-            have not closed.
+        <View className="mt-6 bg-ds-surface border border-ds-outline-variant rounded-xl p-4">
+          <Text className="text-base font-barlow-semi text-ds-on-surface">Standard Cricket</Text>
+          <Text className="text-sm font-barlow text-ds-on-surface-variant mt-1">
+            Close 15–20 and Bull. Score points on segments your opponents have not closed.
           </Text>
         </View>
       )}
 
-      {/* X01 config */}
       {isX01 && (
         <View className="mt-6 border border-ds-outline-variant rounded-xl p-4 bg-ds-surface">
           <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-3">
@@ -224,18 +236,17 @@ export default function GameSetup() {
         </View>
       )}
 
-      {/* Start button */}
       <Pressable
         onPress={handleStartGame}
         disabled={!canStart}
         className={`mt-8 rounded-xl py-4 items-center ${
-          canStart ? 'bg-black active:opacity-70' : 'bg-gray-200'
+          canStart ? 'bg-ds-red active:opacity-70' : 'bg-ds-surface-container'
         }`}
         accessibilityRole="button"
         accessibilityLabel="Start game"
       >
         <Text
-          className={`text-lg font-bold ${canStart ? 'text-white' : 'text-gray-400'}`}
+          className={`text-lg font-barlow-semi ${canStart ? 'text-white' : 'text-ds-outline'}`}
         >
           {isStarting ? 'Starting...' : 'Start Game'}
         </Text>
