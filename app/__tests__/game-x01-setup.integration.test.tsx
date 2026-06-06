@@ -19,7 +19,7 @@ const mockUseUser = jest.fn(() => ({
 }));
 
 jest.mock('@clerk/expo', () => ({
-  useUser: (...args: unknown[]) => mockUseUser(...args),
+  useUser: () => mockUseUser(),
 }));
 
 jest.mock('@/lib/player', () => ({
@@ -147,7 +147,7 @@ describe('GameSetup — X01', () => {
   });
 
   it('Start Game button is disabled while Clerk user is loading', () => {
-    mockUseUser.mockReturnValue({ isLoaded: false, user: null });
+    mockUseUser.mockReturnValue({ isLoaded: false, user: null } as any);
     render(<GameSetup />);
 
     const startBtn = screen.getByLabelText('Start game');
