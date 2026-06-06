@@ -1,8 +1,11 @@
 import { eq, asc } from 'drizzle-orm';
+import * as ExpoCrypto from 'expo-crypto';
 import { db } from '@/db/client';
 import { gameSessions, gamePlayers, gameTurns, players } from '@/db/schema';
 import { createClerkSupabaseClient } from '@/lib/supabase';
 import type { DartThrow } from '@/types/game';
+
+const randomUUID = () => ExpoCrypto.randomUUID();
 
 export async function syncCompletedSession(
   sessionId: number,
@@ -24,7 +27,7 @@ export async function syncCompletedSession(
 
   if (!session || session.status !== 'completed') return;
 
-  const cloudSessionId = crypto.randomUUID();
+  const cloudSessionId = randomUUID();
 
   const { error: sessionErr } = await supabase
     .from('game_sessions')
@@ -41,7 +44,7 @@ export async function syncCompletedSession(
   if (sessionErr) throw new Error(`sync: session insert failed: ${sessionErr.message}`);
 
   const playerRows = session.gamePlayers.map((gp) => ({
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     game_session_id: cloudSessionId,
     user_id: gp.player.userId ?? null,
     player_name: gp.player.name,
@@ -49,6 +52,7 @@ export async function syncCompletedSession(
     final_score: gp.currentScore,
     is_winner: gp.isWinner,
     game_state: gp.gameState ?? null,
+    three_dart_avg: gp.threeDartAvg ?? null,
   }));
 
   const playerIdToName = new Map(
@@ -60,7 +64,7 @@ export async function syncCompletedSession(
 
   if (session.gameTurns.length > 0) {
     const turnRows = session.gameTurns.map((turn) => ({
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       game_session_id: cloudSessionId,
       user_id: session.gamePlayers.find((gp) => gp.playerId === turn.playerId)?.player.userId ?? null,
       player_name: playerIdToName.get(turn.playerId) ?? 'Unknown',

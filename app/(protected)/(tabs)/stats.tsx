@@ -78,6 +78,8 @@ export default function StatsScreen() {
   });
 
   const { data, isLoading, isRefetching, error: historyError, refetch } = historyQuery;
+  const refetchPersonalBests = statsQuery.refetch;
+  const refetchOverallAvg = avgQuery.refetch;
 
   useEffect(() => {
     if (!historyError) return;
@@ -104,9 +106,9 @@ export default function StatsScreen() {
         return;
       }
       void refetch();
-      void statsQuery.refetch();
-      void avgQuery.refetch();
-    }, [refetch, statsQuery, avgQuery]),
+      void refetchPersonalBests();
+      void refetchOverallAvg();
+    }, [refetch, refetchPersonalBests, refetchOverallAvg]),
   );
 
   const handleOpenSession = useCallback(
@@ -179,7 +181,7 @@ export default function StatsScreen() {
         data={filteredSessions}
         keyExtractor={(item) => `${item.sessionId}`}
         contentContainerStyle={{ paddingBottom: 32 }}
-        onRefresh={() => { void refetch(); }}
+        onRefresh={() => { void refetch(); void refetchPersonalBests(); void refetchOverallAvg(); }}
         refreshing={refreshing}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
@@ -207,7 +209,7 @@ export default function StatsScreen() {
                 {avgDisplay}
               </Text>
               <View className="self-start bg-ds-green rounded-full px-3 py-1 flex-row items-center gap-1">
-                <TrendingUp size={12} color="#1e502a" />
+                <TrendingUp size={18} color="#444748" />
                 <Text className="text-xs font-barlow-semi text-ds-green-dark">
                   {hasAvg ? 'Across all completed games' : 'Play a game to see your average'}
                 </Text>

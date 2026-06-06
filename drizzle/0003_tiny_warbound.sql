@@ -12,7 +12,7 @@ CREATE TABLE `__new_game_players` (
 	FOREIGN KEY (`player_id`) REFERENCES `players`(`id`) ON UPDATE no action ON DELETE restrict
 );
 --> statement-breakpoint
-INSERT INTO `__new_game_players`("id", "game_session_id", "player_id", "player_order", "current_score", "game_state", "is_winner", "three_dart_avg") SELECT "id", "game_session_id", "player_id", "player_order", "current_score", "game_state", "is_winner", "three_dart_avg" FROM `game_players`;--> statement-breakpoint
+INSERT INTO `__new_game_players`("id", "game_session_id", "player_id", "player_order", "current_score", "game_state", "is_winner", "three_dart_avg") SELECT "id", "game_session_id", "player_id", "player_order", "current_score", "game_state", "is_winner", NULL FROM `game_players`;--> statement-breakpoint
 DROP TABLE `game_players`;--> statement-breakpoint
 ALTER TABLE `__new_game_players` RENAME TO `game_players`;--> statement-breakpoint
 PRAGMA foreign_keys=ON;--> statement-breakpoint
