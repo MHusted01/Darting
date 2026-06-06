@@ -13,6 +13,19 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
+const mockUseUser = jest.fn(() => ({
+  isLoaded: true,
+  user: { id: 'clerk-test-user', firstName: 'Marcus', username: null },
+}));
+
+jest.mock('@clerk/expo', () => ({
+  useUser: () => mockUseUser(),
+}));
+
+jest.mock('@/lib/player', () => ({
+  getOrCreateUserPlayer: jest.fn(),
+}));
+
 jest.mock('@/db/client', () => ({
   db: {
     insert: jest.fn(),
@@ -20,7 +33,6 @@ jest.mock('@/db/client', () => ({
   },
 }));
 
-// Simplified PlayerManager: adds a player when "Add Player" button is pressed
 jest.mock('@/components/PlayerManager', () => {
   const React = jest.requireActual('react') as typeof import('react');
   const { View, Text, Pressable } = jest.requireActual('react-native') as typeof import('react-native');
@@ -31,11 +43,13 @@ jest.mock('@/components/PlayerManager', () => {
     players,
     onAddPlayer,
     onRemovePlayer,
+    lockedPlayerId,
   }: {
     players: { id: number; name: string; avatarColor: string }[];
     onAddPlayer: (name: string) => void;
     onRemovePlayer: (id: number) => void;
     minPlayers: number;
+    lockedPlayerId?: number;
   }) {
     return React.createElement(
       View,
@@ -51,14 +65,20 @@ jest.mock('@/components/PlayerManager', () => {
       ),
       ...players.map((p) =>
         React.createElement(
-          Pressable,
-          {
-            key: p.id,
-            onPress: () => onRemovePlayer(p.id),
-            accessibilityRole: 'button',
-            accessibilityLabel: `Remove ${p.name}`,
-          },
+          View,
+          { key: p.id },
           React.createElement(Text, null, p.name),
+          p.id !== lockedPlayerId
+            ? React.createElement(
+                Pressable,
+                {
+                  onPress: () => onRemovePlayer(p.id),
+                  accessibilityRole: 'button',
+                  accessibilityLabel: `Remove ${p.name}`,
+                },
+                React.createElement(Text, null, 'Remove'),
+              )
+            : null,
         ),
       ),
     );
@@ -73,12 +93,16 @@ describe('GameSetup — X01', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSlug = 'x01';
+    mockUseUser.mockReturnValue({ isLoaded: true, user: { id: 'clerk-test-user', firstName: 'Marcus', username: null } });
     jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const playerMock = require('@/lib/player') as { getOrCreateUserPlayer: jest.Mock<any> };
+    playerMock.getOrCreateUserPlayer.mockResolvedValue({ id: 99, name: 'Marcus', avatarColor: '#6366f1' });
 
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     dbMock = (require('@/db/client') as { db: typeof dbMock }).db;
 
-    // Mock player insert: extend a Promise with .returning()
     const playerResult = [{ id: 1, name: 'Alice', avatarColor: '#6366f1' }];
     dbMock.insert.mockReturnValue({
       values: jest.fn().mockReturnValue(
@@ -88,7 +112,6 @@ describe('GameSetup — X01', () => {
       ),
     });
 
-    // Mock transaction: execute the callback with a fake tx
     dbMock.transaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => {
       let insertCallCount = 0;
       const tx = {
@@ -123,15 +146,37 @@ describe('GameSetup — X01', () => {
     expect(screen.getByLabelText('301 starting score')).toBeTruthy();
   });
 
-  it('Start Game button is disabled with no players', () => {
+  it('Start Game button is disabled while Clerk user is loading', () => {
+    mockUseUser.mockReturnValue({ isLoaded: false, user: null } as any);
     render(<GameSetup />);
 
     const startBtn = screen.getByLabelText('Start game');
     expect(startBtn.props.accessibilityState?.disabled).toBe(true);
   });
 
-  it('Start Game button enables after adding a player', async () => {
+  it('Start Game button enables after signed-in user auto-loads', async () => {
     render(<GameSetup />);
+
+    await waitFor(() => {
+      const startBtn = screen.getByLabelText('Start game');
+      expect(startBtn.props.accessibilityState?.disabled).toBeFalsy();
+    });
+  });
+
+  it('signed-in user is auto-added as first player', async () => {
+    render(<GameSetup />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Marcus')).toBeTruthy();
+    });
+  });
+
+  it('Start Game button enables after adding a guest player too', async () => {
+    render(<GameSetup />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Marcus')).toBeTruthy();
+    });
 
     fireEvent.press(screen.getByLabelText('Add player'));
 
@@ -143,8 +188,6 @@ describe('GameSetup — X01', () => {
 
   it('starting game navigates to play screen with session id', async () => {
     render(<GameSetup />);
-
-    fireEvent.press(screen.getByLabelText('Add player'));
 
     await waitFor(() => {
       const startBtn = screen.getByLabelText('Start game');
@@ -174,5 +217,15 @@ describe('GameSetup — X01', () => {
     render(<GameSetup />);
 
     expect(screen.getByText('Game not found')).toBeTruthy();
+  });
+
+  it('locked player (signed-in user) has no remove button', async () => {
+    render(<GameSetup />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Marcus')).toBeTruthy();
+    });
+
+    expect(screen.queryByLabelText('Remove Marcus')).toBeNull();
   });
 });

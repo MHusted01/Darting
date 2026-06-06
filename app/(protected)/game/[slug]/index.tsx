@@ -1,6 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { View, Text, Pressable, Switch, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useUser } from '@clerk/expo';
+import { getOrCreateUserPlayer } from '@/lib/player';
 import {
   GAMES,
   IMPLEMENTED_SLUGS,
@@ -62,23 +64,55 @@ export default function GameSetup() {
   const isCricket = normalizedSlug === CRICKET_SLUG;
   const isX01 = normalizedSlug === X01_SLUG;
 
+  const { isLoaded, user } = useUser();
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
+  const [userPlayerId, setUserPlayerId] = useState<number | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [includeBull, setIncludeBull] = useState(false);
   const [startingScore, setStartingScore] = useState<501 | 301>(501);
   const [isStarting, setIsStarting] = useState(false);
 
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!user) {
+      setIsLoadingUser(false);
+      return;
+    }
+    let cancelled = false;
+    const displayName = user.firstName ?? user.username ?? 'Me';
+    getOrCreateUserPlayer(user.id, displayName)
+      .then((player) => {
+        if (cancelled) return;
+        setSelectedPlayers((prev) => {
+          const withoutUser = prev.filter((p) => p.id !== player.id);
+          return [{ id: player.id, name: player.name, avatarColor: player.avatarColor }, ...withoutUser];
+        });
+        setUserPlayerId(player.id);
+        setIsLoadingUser(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setIsLoadingUser(false);
+        Alert.alert('Error', 'Could not load your player profile. Please try again.');
+      });
+    return () => { cancelled = true; };
+  }, [isLoaded, user]);
+
   const handleAddPlayer = useCallback(
     async (name: string) => {
-      const color = getNextAvatarColor(selectedPlayers.length);
-      const [inserted] = await db
-        .insert(playersTable)
-        .values({ name, avatarColor: color })
-        .returning();
-
-      setSelectedPlayers((prev) => [
-        ...prev,
-        { id: inserted.id, name: inserted.name, avatarColor: inserted.avatarColor },
-      ]);
+      try {
+        const color = getNextAvatarColor(selectedPlayers.length);
+        const [inserted] = await db
+          .insert(playersTable)
+          .values({ name, avatarColor: color })
+          .returning();
+        setSelectedPlayers((prev) => [
+          ...prev,
+          { id: inserted.id, name: inserted.name, avatarColor: inserted.avatarColor },
+        ]);
+      } catch {
+        Alert.alert('Error', 'Failed to add player. Please try again.');
+      }
     },
     [selectedPlayers.length],
   );
@@ -90,7 +124,7 @@ export default function GameSetup() {
   const minPlayers = isX01 ? 1 : isCricket ? 2 : 1;
 
   const handleStartGame = async () => {
-    if (selectedPlayers.length < minPlayers || isStarting) return;
+    if (selectedPlayers.length < minPlayers || isStarting || isLoadingUser) return;
 
     if (!IMPLEMENTED_SLUGS.has(normalizedSlug)) {
       Alert.alert('Not available yet', 'This game mode is not implemented yet.');
@@ -129,8 +163,7 @@ export default function GameSetup() {
       });
 
       router.push(`/game/${normalizedSlug}/play?sessionId=${session.id}`);
-    } catch (error) {
-      console.error('Failed to start game session:', error);
+    } catch {
       Alert.alert('Error', 'Failed to start game. Please try again.');
       setIsStarting(false);
     }
@@ -145,7 +178,7 @@ export default function GameSetup() {
   }
 
   const Icon = game.icon;
-  const canStart = selectedPlayers.length >= minPlayers && !isStarting;
+  const canStart = selectedPlayers.length >= minPlayers && !isStarting && !isLoadingUser;
 
   return (
     <ScrollView
@@ -168,6 +201,7 @@ export default function GameSetup() {
         onAddPlayer={handleAddPlayer}
         onRemovePlayer={handleRemovePlayer}
         minPlayers={minPlayers}
+        lockedPlayerId={userPlayerId ?? undefined}
       />
 
       {isAroundTheClock && (

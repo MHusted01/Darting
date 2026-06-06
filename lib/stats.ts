@@ -38,7 +38,7 @@ export function buildPersonalBestsFromRows(rows: PersonalBestRow[]): PersonalBes
   }));
 }
 
-export async function getPersonalBests(): Promise<PersonalBest[]> {
+export async function getPersonalBests(playerId: number): Promise<PersonalBest[]> {
   const rows = await db
     .select({
       gameSlug: gameSessions.gameSlug,
@@ -49,7 +49,7 @@ export async function getPersonalBests(): Promise<PersonalBest[]> {
     })
     .from(gameSessions)
     .innerJoin(gamePlayers, eq(gamePlayers.gameSessionId, gameSessions.id))
-    .where(eq(gameSessions.status, 'completed'))
+    .where(and(eq(gameSessions.status, 'completed'), eq(gamePlayers.playerId, playerId)))
     .groupBy(gameSessions.gameSlug);
 
   const mapped: PersonalBestRow[] = rows.map((r) => ({
@@ -63,12 +63,12 @@ export async function getPersonalBests(): Promise<PersonalBest[]> {
   return buildPersonalBestsFromRows(mapped);
 }
 
-export async function getOverallThreeDartAvg(): Promise<number | null> {
+export async function getOverallThreeDartAvg(playerId: number): Promise<number | null> {
   const [result] = await db
     .select({ value: avg(gamePlayers.threeDartAvg) })
     .from(gamePlayers)
     .innerJoin(gameSessions, eq(gameSessions.id, gamePlayers.gameSessionId))
-    .where(eq(gameSessions.status, 'completed'));
+    .where(and(eq(gameSessions.status, 'completed'), eq(gamePlayers.playerId, playerId)));
 
   if (result?.value == null) return null;
   const n = Number(result.value);

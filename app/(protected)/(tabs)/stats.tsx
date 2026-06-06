@@ -3,9 +3,11 @@ import { Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@clerk/expo';
 import { Settings, TrendingUp } from 'lucide-react-native';
 import { getHistoryData, type HistoryQuickStats, type HistorySessionItem } from '@/lib/history';
 import { getPersonalBests, getOverallThreeDartAvg, type PersonalBest } from '@/lib/stats';
+import { getUserPlayerId } from '@/lib/player';
 import { GAMES, IMPLEMENTED_SLUGS } from '@/constants/games';
 
 const STATUS_LABELS: Record<HistorySessionItem['status'], string> = {
@@ -54,6 +56,7 @@ function filterBySlug(sessions: HistorySessionItem[], slug: string | null): Hist
 
 export default function StatsScreen() {
   const router = useRouter();
+  const { userId } = useAuth();
   const hasFocusedOnce = useRef(false);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
@@ -65,15 +68,26 @@ export default function StatsScreen() {
     refetchOnWindowFocus: true,
   });
 
+  const playerIdQuery = useQuery({
+    queryKey: ['user-player-id', userId],
+    queryFn: () => getUserPlayerId(userId!),
+    enabled: Boolean(userId),
+    staleTime: Infinity,
+  });
+
+  const playerId = playerIdQuery.data ?? null;
+
   const statsQuery = useQuery({
-    queryKey: ['stats', 'personal-bests'],
-    queryFn: getPersonalBests,
+    queryKey: ['stats', 'personal-bests', playerId],
+    queryFn: () => getPersonalBests(playerId!),
+    enabled: playerId != null,
     staleTime: 60_000,
   });
 
   const avgQuery = useQuery({
-    queryKey: ['stats', 'three-dart-avg'],
-    queryFn: getOverallThreeDartAvg,
+    queryKey: ['stats', 'three-dart-avg', playerId],
+    queryFn: () => getOverallThreeDartAvg(playerId!),
+    enabled: playerId != null,
     staleTime: 60_000,
   });
 
