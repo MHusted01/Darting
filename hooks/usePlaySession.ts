@@ -311,9 +311,8 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
 
         if (isComplete) {
           if (userId) {
-            syncCompletedSession(gameState.sessionId, userId, getToken).catch((err) => {
-              console.error('Cloud sync failed (non-blocking):', err);
-            });
+            void syncCompletedSession(gameState.sessionId, userId, getToken)
+              .catch((err) => console.error('Sync failed, will retry on next launch:', err));
           }
           router.replace(`/game/${slug}/results?sessionId=${gameState.sessionId}`);
         } else {

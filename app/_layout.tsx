@@ -5,6 +5,7 @@ import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import migrations from '@/drizzle/migrations';
 import { db } from '@/db/client';
 import { SupabaseProvider } from '@/providers/SupabaseProvider';
+import { SyncRetryOnMount } from '@/components/SyncRetryOnMount';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { useFonts } from 'expo-font';
 import {
@@ -78,6 +79,7 @@ export default function RootLayout() {
     >
       <ClerkLoaded>
         <SupabaseProvider>
+          <SyncRetryOnMount />
           <Stack screenOptions={{ headerShown: false }} />
         </SupabaseProvider>
       </ClerkLoaded>

@@ -41,6 +41,12 @@ export const gameSessions = sqliteTable('game_sessions', {
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),
+  cloudSyncStatus: text('cloud_sync_status', {
+    enum: ['unsynced', 'synced', 'failed'],
+  })
+    .notNull()
+    .default('unsynced'),
+  cloudSessionId: text('cloud_session_id'),
 });
 
 export const gamePlayers = sqliteTable(
