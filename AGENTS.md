@@ -54,7 +54,7 @@ npx drizzle-kit push       # Push schema to dev database
 
 ## Project Structure
 
-```
+```text
 app/
   _layout.tsx              # Root: ClerkProvider + fonts + migrations
   (public)/                # Unauthenticated: sign-in, sign-up
@@ -250,7 +250,7 @@ Tabs: **Home** (House), **Stats** (BarChart2), **Social** (Users)
 
 ## Environment Variables
 
-```
+```bash
 EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=
 EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_KEY=

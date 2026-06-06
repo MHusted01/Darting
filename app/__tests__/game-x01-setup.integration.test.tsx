@@ -13,11 +13,13 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
+const mockUseUser = jest.fn(() => ({
+  isLoaded: true,
+  user: { id: 'clerk-test-user', firstName: 'Marcus', username: null },
+}));
+
 jest.mock('@clerk/expo', () => ({
-  useUser: () => ({
-    isLoaded: true,
-    user: { id: 'clerk-test-user', firstName: 'Marcus', username: null },
-  }),
+  useUser: (...args: unknown[]) => mockUseUser(...args),
 }));
 
 jest.mock('@/lib/player', () => ({
@@ -91,6 +93,7 @@ describe('GameSetup — X01', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSlug = 'x01';
+    mockUseUser.mockReturnValue({ isLoaded: true, user: { id: 'clerk-test-user', firstName: 'Marcus', username: null } });
     jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
 
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -143,7 +146,8 @@ describe('GameSetup — X01', () => {
     expect(screen.getByLabelText('301 starting score')).toBeTruthy();
   });
 
-  it('Start Game button is disabled while user is loading', () => {
+  it('Start Game button is disabled while Clerk user is loading', () => {
+    mockUseUser.mockReturnValue({ isLoaded: false, user: null });
     render(<GameSetup />);
 
     const startBtn = screen.getByLabelText('Start game');
