@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native';
-import { X01Input } from './X01Input';
+import { X01Input } from '@/components/games/X01Input';
 import type { LoadedPlayer } from '@/hooks/usePlaySession';
 import type { X01PlayerState } from '@/lib/games/x01';
 import type { DartThrow } from '@/types/game';

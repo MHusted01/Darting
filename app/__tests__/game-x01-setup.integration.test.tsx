@@ -162,10 +162,11 @@ describe('GameSetup — X01', () => {
     render(<GameSetup />);
 
     const btn301 = screen.getByLabelText('301 starting score');
+    expect(btn301.props.accessibilityState?.selected).toBeFalsy();
+
     fireEvent.press(btn301);
 
-    // 301 button should now be selected (bg-ds-red = accessible)
-    expect(btn301).toBeTruthy();
+    expect(btn301.props.accessibilityState?.selected).toBe(true);
   });
 
   it('shows fallback for unknown slug', () => {

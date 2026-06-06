@@ -39,7 +39,7 @@ export const GAMES: DartGame[] = [
     name: '501 / 301',
     description: 'Count down from 501 or 301. Must finish on a double.',
     icon: Trophy,
-    playerCount: '2+',
+    playerCount: '1+',
     difficulty: 'Intermediate',
     category: 'Classic',
   },

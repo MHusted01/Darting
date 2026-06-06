@@ -46,7 +46,8 @@ export function X01Input({ onDartThrown, isProcessing }: X01InputProps) {
         <View className="flex-row gap-2">
           <Pressable
             onPress={() => confirmDart(1)}
-            className="flex-1 py-4 bg-ds-surface border border-ds-outline-variant rounded-xl items-center active:opacity-70"
+            disabled={isProcessing}
+            className={`flex-1 py-4 bg-ds-surface border border-ds-outline-variant rounded-xl items-center active:opacity-70${isProcessing ? ' opacity-50' : ''}`}
             accessibilityRole="button"
             accessibilityLabel={`Single ${label}`}
           >
@@ -60,7 +61,8 @@ export function X01Input({ onDartThrown, isProcessing }: X01InputProps) {
 
           <Pressable
             onPress={() => confirmDart(2)}
-            className="flex-1 py-4 bg-ds-red rounded-xl items-center active:opacity-70"
+            disabled={isProcessing}
+            className={`flex-1 py-4 bg-ds-red rounded-xl items-center active:opacity-70${isProcessing ? ' opacity-50' : ''}`}
             accessibilityRole="button"
             accessibilityLabel={`Double ${label}`}
           >
@@ -73,7 +75,8 @@ export function X01Input({ onDartThrown, isProcessing }: X01InputProps) {
           {!isBull && (
             <Pressable
               onPress={() => confirmDart(3)}
-              className="flex-1 py-4 bg-ds-surface border border-ds-outline-variant rounded-xl items-center active:opacity-70"
+              disabled={isProcessing}
+              className={`flex-1 py-4 bg-ds-surface border border-ds-outline-variant rounded-xl items-center active:opacity-70${isProcessing ? ' opacity-50' : ''}`}
               accessibilityRole="button"
               accessibilityLabel={`Triple ${label}`}
             >
@@ -89,7 +92,8 @@ export function X01Input({ onDartThrown, isProcessing }: X01InputProps) {
 
         <Pressable
           onPress={() => setPendingSegment(null)}
-          className="py-2 items-center active:opacity-70"
+          disabled={isProcessing}
+          className={`py-2 items-center active:opacity-70${isProcessing ? ' opacity-50' : ''}`}
           accessibilityRole="button"
           accessibilityLabel="Cancel"
         >
