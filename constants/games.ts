@@ -32,6 +32,22 @@ export interface GameSection {
 export const AROUND_THE_CLOCK_SLUG = 'around-the-clock';
 export const CRICKET_SLUG = 'cricket';
 export const X01_SLUG = 'x01';
+export const SHANGHAI_SLUG = 'shanghai';
+export const BASEBALL_SLUG = 'baseball';
+export const HALVE_IT_SLUG = 'halve-it';
+export const HIGH_SCORE_SLUG = 'high-score';
+export const BOBS_27_SLUG = 'bobs-27';
+
+export const IMPLEMENTED_SLUGS: ReadonlySet<string> = new Set([
+  AROUND_THE_CLOCK_SLUG,
+  CRICKET_SLUG,
+  X01_SLUG,
+  SHANGHAI_SLUG,
+  BASEBALL_SLUG,
+  HALVE_IT_SLUG,
+  HIGH_SCORE_SLUG,
+  BOBS_27_SLUG,
+]);
 
 export const GAMES: DartGame[] = [
   {

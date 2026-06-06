@@ -10,6 +10,11 @@ import {
   type CricketPlayerState,
 } from '@/lib/games/cricket';
 import type { X01Config, X01PlayerState } from '@/lib/games/x01';
+import type { ShanghaiPlayerState } from '@/lib/games/shanghai';
+import type { BaseballPlayerState } from '@/lib/games/baseball';
+import type { HighScorePlayerState } from '@/lib/games/high-score';
+import type { HalveItPlayerState } from '@/lib/games/halve-it';
+import type { Bobs27PlayerState } from '@/lib/games/bobs-27';
 import type { DartThrow } from '@/types/game';
 
 export interface SessionResultPlayerInput {
@@ -52,18 +57,27 @@ export interface X01PlayerResult {
   name: string;
   avatarColor: string;
   isWinner: boolean;
-  /** Remaining score at end of game (0 for winner). */
   finalScore: number;
   dartsThrown: number;
-  /** Three-dart average: (startingScore - finalScore) / dartsThrown * 3 */
   threeDartAvg: number;
+  turns: number;
+}
+
+export interface ScorePlayerResult {
+  playerId: number;
+  name: string;
+  avatarColor: string;
+  isWinner: boolean;
+  score: number;
+  totalDarts: number;
   turns: number;
 }
 
 export type GameResults =
   | { type: 'atc'; players: ATCPlayerResult[] }
   | { type: 'cricket'; players: CricketPlayerResult[] }
-  | { type: 'x01'; players: X01PlayerResult[] };
+  | { type: 'x01'; players: X01PlayerResult[] }
+  | { type: 'score'; players: ScorePlayerResult[] };
 
 function groupTurnsByPlayer(
   turns: SessionTurnInput[],
@@ -210,4 +224,89 @@ export function buildX01Results(
   });
 
   return x01Results;
+}
+
+function buildScoreResults(
+  players: SessionResultPlayerInput[],
+  turns: SessionTurnInput[],
+  getScore: (state: unknown) => number,
+): ScorePlayerResult[] {
+  const turnsByPlayer = groupTurnsByPlayer(turns);
+
+  const scoreResults = players.map((player) => {
+    const playerTurns = turnsByPlayer.get(player.playerId) ?? [];
+    const totalDarts = playerTurns.reduce((sum, t) => sum + t.darts.length, 0);
+    return {
+      playerId: player.playerId,
+      name: player.name,
+      avatarColor: player.avatarColor,
+      isWinner: player.isWinner,
+      score: getScore(player.gameState),
+      totalDarts,
+      turns: playerTurns.length,
+    };
+  });
+
+  scoreResults.sort((a, b) => {
+    if (a.isWinner && !b.isWinner) return -1;
+    if (!a.isWinner && b.isWinner) return 1;
+    return b.score - a.score;
+  });
+
+  return scoreResults;
+}
+
+export function buildShanghaiResults(
+  players: SessionResultPlayerInput[],
+  turns: SessionTurnInput[],
+): ScorePlayerResult[] {
+  return buildScoreResults(
+    players,
+    turns,
+    (s) => (s as ShanghaiPlayerState).totalScore,
+  );
+}
+
+export function buildBaseballResults(
+  players: SessionResultPlayerInput[],
+  turns: SessionTurnInput[],
+): ScorePlayerResult[] {
+  return buildScoreResults(
+    players,
+    turns,
+    (s) => (s as BaseballPlayerState).totalRuns,
+  );
+}
+
+export function buildHighScoreResults(
+  players: SessionResultPlayerInput[],
+  turns: SessionTurnInput[],
+): ScorePlayerResult[] {
+  return buildScoreResults(
+    players,
+    turns,
+    (s) => (s as HighScorePlayerState).totalScore,
+  );
+}
+
+export function buildHalveItResults(
+  players: SessionResultPlayerInput[],
+  turns: SessionTurnInput[],
+): ScorePlayerResult[] {
+  return buildScoreResults(
+    players,
+    turns,
+    (s) => (s as HalveItPlayerState).score,
+  );
+}
+
+export function buildBobs27Results(
+  players: SessionResultPlayerInput[],
+  turns: SessionTurnInput[],
+): ScorePlayerResult[] {
+  return buildScoreResults(
+    players,
+    turns,
+    (s) => (s as Bobs27PlayerState).score,
+  );
 }

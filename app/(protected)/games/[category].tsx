@@ -2,7 +2,7 @@ import { FlatList, Text, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
-import { GAMES, CRICKET_SLUG, AROUND_THE_CLOCK_SLUG, X01_SLUG, type GameCategory } from '@/constants/games';
+import { GAMES, IMPLEMENTED_SLUGS, type GameCategory } from '@/constants/games';
 import { GameCard } from '@/components/GameCard';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -11,7 +11,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   Party: 'Party',
 };
 
-const IMPLEMENTED_SLUGS = new Set([CRICKET_SLUG, AROUND_THE_CLOCK_SLUG, X01_SLUG]);
 const VALID_CATEGORIES = new Set<string>(['Classic', 'Practice', 'Party']);
 
 export default function GameCategoryScreen() {
