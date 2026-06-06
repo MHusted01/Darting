@@ -1,20 +1,27 @@
 import { eq, asc } from 'drizzle-orm';
-import * as ExpoCrypto from 'expo-crypto';
-import { db } from '@/db/client';
-import { gameSessions, gamePlayers, gameTurns, players } from '@/db/schema';
+import { db as defaultDb } from '@/db/client';
+import { gameSessions, gamePlayers, gameTurns } from '@/db/schema';
 import { createClerkSupabaseClient } from '@/lib/supabase';
 import type { DartThrow } from '@/types/game';
 
-const randomUUID = () => ExpoCrypto.randomUUID();
+type GetToken = (opts?: { template: string }) => Promise<string | null>;
 
-export async function syncCompletedSession(
-  sessionId: number,
-  clerkUserId: string,
-  getToken: (opts?: { template: string }) => Promise<string | null>,
-): Promise<void> {
-  const supabase = createClerkSupabaseClient(getToken);
+type SyncableSession = NonNullable<Awaited<ReturnType<typeof loadSession>>>;
 
-  const session = await db.query.gameSessions.findFirst({
+type SyncDeps = {
+  db: typeof defaultDb;
+  createSupabaseClient: typeof createClerkSupabaseClient;
+};
+
+export type SyncResult = { cloudSessionId: string };
+
+const defaultDeps: SyncDeps = {
+  db: defaultDb,
+  createSupabaseClient: createClerkSupabaseClient,
+};
+
+async function loadSession(db: typeof defaultDb, sessionId: number) {
+  return db.query.gameSessions.findFirst({
     where: eq(gameSessions.id, sessionId),
     with: {
       gamePlayers: {
@@ -24,27 +31,28 @@ export async function syncCompletedSession(
       gameTurns: true,
     },
   });
+}
 
-  if (!session || session.status !== 'completed') return;
+export function buildSessionPayload(
+  session: SyncableSession,
+  clerkUserId: string,
+): Record<string, unknown> {
+  return {
+    game_slug: session.gameSlug,
+    status: 'completed',
+    created_by: clerkUserId,
+    source_session_id: String(session.id),
+    config: session.config ?? null,
+    started_at: session.startedAt?.toISOString() ?? new Date().toISOString(),
+    completed_at: session.completedAt?.toISOString() ?? null,
+  };
+}
 
-  const cloudSessionId = randomUUID();
-
-  const { error: sessionErr } = await supabase
-    .from('game_sessions')
-    .insert({
-      id: cloudSessionId,
-      game_slug: session.gameSlug,
-      status: 'completed',
-      created_by: clerkUserId,
-      config: session.config ?? null,
-      started_at: session.startedAt?.toISOString() ?? new Date().toISOString(),
-      completed_at: session.completedAt?.toISOString() ?? null,
-    });
-
-  if (sessionErr) throw new Error(`sync: session insert failed: ${sessionErr.message}`);
-
-  const playerRows = session.gamePlayers.map((gp) => ({
-    id: randomUUID(),
+export function buildPlayerPayloads(
+  session: SyncableSession,
+  cloudSessionId: string,
+): Record<string, unknown>[] {
+  return session.gamePlayers.map((gp) => ({
     game_session_id: cloudSessionId,
     user_id: gp.player.userId ?? null,
     player_name: gp.player.name,
@@ -54,26 +62,92 @@ export async function syncCompletedSession(
     game_state: gp.gameState ?? null,
     three_dart_avg: gp.threeDartAvg ?? null,
   }));
+}
 
-  const playerIdToName = new Map(
-    session.gamePlayers.map((gp) => [gp.playerId, gp.player.name] as const),
+export function buildTurnPayloads(
+  session: SyncableSession,
+  cloudSessionId: string,
+): Record<string, unknown>[] {
+  const playerMap = new Map(
+    session.gamePlayers.map((gp) => [
+      gp.playerId,
+      { userId: gp.player.userId ?? null, name: gp.player.name },
+    ]),
   );
 
-  const { error: playersErr } = await supabase.from('game_players').insert(playerRows);
-  if (playersErr) throw new Error(`sync: players insert failed: ${playersErr.message}`);
-
-  if (session.gameTurns.length > 0) {
-    const turnRows = session.gameTurns.map((turn) => ({
-      id: randomUUID(),
+  return session.gameTurns.map((turn) => {
+    const playerInfo = playerMap.get(turn.playerId);
+    return {
       game_session_id: cloudSessionId,
-      user_id: session.gamePlayers.find((gp) => gp.playerId === turn.playerId)?.player.userId ?? null,
-      player_name: playerIdToName.get(turn.playerId) ?? 'Unknown',
+      user_id: playerInfo?.userId ?? null,
+      player_name: playerInfo?.name ?? 'Unknown',
       round_number: turn.roundNumber,
       darts: turn.darts as DartThrow[],
       score_delta: turn.scoreDelta,
-    }));
+    };
+  });
+}
 
-    const { error: turnsErr } = await supabase.from('game_turns').insert(turnRows);
-    if (turnsErr) throw new Error(`sync: turns insert failed: ${turnsErr.message}`);
+export async function syncCompletedSession(
+  sessionId: number,
+  clerkUserId: string,
+  getToken: GetToken,
+  deps: SyncDeps = defaultDeps,
+): Promise<SyncResult> {
+  const { db, createSupabaseClient } = deps;
+  const supabase = createSupabaseClient(getToken);
+
+  const session = await loadSession(db, sessionId);
+  if (!session || session.status !== 'completed') {
+    return { cloudSessionId: '' };
+  }
+
+  const markStatus = (cloudSyncStatus: 'synced' | 'failed', cloudSessionId?: string) =>
+    db
+      .update(gameSessions)
+      .set(cloudSessionId ? { cloudSyncStatus, cloudSessionId } : { cloudSyncStatus })
+      .where(eq(gameSessions.id, sessionId));
+
+  try {
+    const { data: sessionData, error: sessionErr } = await supabase
+      .from('game_sessions')
+      .upsert([buildSessionPayload(session, clerkUserId)], {
+        onConflict: 'created_by,source_session_id',
+      })
+      .select('id')
+      .single();
+
+    if (sessionErr) throw new Error(sessionErr.message);
+
+    const cloudSessionId = (sessionData as { id: string }).id;
+
+    const { error: playersErr } = await supabase
+      .from('game_players')
+      .upsert(buildPlayerPayloads(session, cloudSessionId), {
+        onConflict: 'game_session_id,player_order',
+      });
+
+    if (playersErr) throw new Error(playersErr.message);
+
+    const turnRows = buildTurnPayloads(session, cloudSessionId);
+    if (turnRows.length > 0) {
+      // Non-atomic: Supabase REST has no multi-table transactions. Delete then insert is
+      // idempotent across retries — a failed insert marks the session as 'failed' and the
+      // next retry re-deletes (no-op) and re-inserts. Local SQLite is always the source of truth.
+      const { error: deleteErr } = await supabase
+        .from('game_turns')
+        .delete()
+        .eq('game_session_id', cloudSessionId);
+      if (deleteErr) throw new Error(deleteErr.message);
+
+      const { error: insertErr } = await supabase.from('game_turns').insert(turnRows);
+      if (insertErr) throw new Error(insertErr.message);
+    }
+
+    await markStatus('synced', cloudSessionId);
+    return { cloudSessionId };
+  } catch (err) {
+    await markStatus('failed');
+    throw err;
   }
 }

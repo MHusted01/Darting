@@ -286,14 +286,17 @@ Every game needs: setup screen (add players) → play screen (turn-by-turn scori
 - [x] Game history filterable by game type and date
 - [x] Cross-device sync: push completed sessions to Supabase on game end
 
-### Phase 3 — Cloud Backend (Supabase)
+### Phase 3 — Cloud Backend (Supabase) ✅
 
-Schema additions needed before Social:
+Schema and sync shipped:
 
-- [ ] `sessions` table — sessionId, userId, gameSlug, status, startedAt, completedAt
-- [ ] `session_players` table — playerId, sessionId, placement, threeDartAvg, gameState
-- [ ] RLS: users can only read/write their own sessions
-- [ ] Clerk webhook already syncs users → `users` table (done)
+- [x] `game_sessions` table — gameSlug, userId, status, startedAt, completedAt, `source_session_id` dedup key
+- [x] `game_players` table — playerId, sessionId, placement, threeDartAvg, gameState
+- [x] RLS: users can only read/write/update/delete their own sessions
+- [x] Clerk webhook already syncs users → `users` table (done)
+- [x] Idempotent upsert sync keyed on `(created_by, source_session_id)` — no duplicates on retry
+- [x] Local `cloudSyncStatus` + `cloudSessionId` tracking on every completed session
+- [x] `retryFailedSyncs` — retries all `failed` completed sessions on app launch via `SyncRetryOnMount`
 
 ### Phase 4 — Social / Clubs / Friends
 
