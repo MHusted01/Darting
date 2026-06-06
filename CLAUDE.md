@@ -327,6 +327,7 @@ Order of delivery:
 ## ECC Workflow
 
 When working on features, follow this order:
+
 1. `/plan` — Design the approach
 2. `/code-review` — Review changes before finalizing
 3. `/verify` — Verify everything works
