@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { asc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { gamePlayers, gameSessions, gameTurns } from '@/db/schema';
-import { AROUND_THE_CLOCK_SLUG, CRICKET_SLUG } from '@/constants/games';
+import { AROUND_THE_CLOCK_SLUG, CRICKET_SLUG, X01_SLUG } from '@/constants/games';
 import {
   getMaxTarget,
   getTargetSegment,
@@ -16,6 +16,11 @@ import {
   type CricketConfig,
   type CricketPlayerState,
 } from '@/lib/games/cricket';
+import {
+  processTurn as processX01Turn,
+  type X01Config,
+  type X01PlayerState,
+} from '@/lib/games/x01';
 import type { DartThrow } from '@/types/game';
 
 export interface LoadedPlayer {
@@ -54,9 +59,11 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
   const [localTarget, setLocalTarget] = useState<number>(1);
   const [localCricketState, setLocalCricketState] =
     useState<CricketPlayerState | null>(null);
+  const [localX01State, setLocalX01State] = useState<X01PlayerState | null>(null);
 
   const isAroundTheClock = gameState?.gameSlug === AROUND_THE_CLOCK_SLUG;
   const isCricket = gameState?.gameSlug === CRICKET_SLUG;
+  const isX01 = gameState?.gameSlug === X01_SLUG;
 
   const loadSession = useCallback(async () => {
     setLoadError(null);
@@ -111,8 +118,13 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
         const atcState = currentPlayer.gameState as AroundTheClockPlayerState;
         setLocalTarget(atcState.currentTarget);
         setLocalCricketState(null);
+        setLocalX01State(null);
       } else if (session.gameSlug === CRICKET_SLUG) {
         setLocalCricketState(currentPlayer.gameState as CricketPlayerState);
+        setLocalX01State(null);
+      } else if (session.gameSlug === X01_SLUG) {
+        setLocalX01State(currentPlayer.gameState as X01PlayerState);
+        setLocalCricketState(null);
       }
     } catch (error) {
       console.error('Failed to load game session:', error);
@@ -310,6 +322,39 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
     [finishTurn, gameState, turnDarts, isProcessing],
   );
 
+  const handleX01DartThrown = useCallback(
+    async (dart: DartThrow) => {
+      if (!gameState || isProcessing || !localX01State) return;
+
+      const newDarts = [...turnDarts, dart];
+      setTurnDarts(newDarts);
+
+      const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+      const startState = currentPlayer.gameState as X01PlayerState;
+      const config = gameState.config as X01Config;
+
+      const result = processX01Turn(newDarts, startState, config);
+
+      setLocalX01State(result.newState);
+
+      const shouldEndTurn =
+        result.isComplete || result.isBust || newDarts.length === 3;
+
+      if (shouldEndTurn) {
+        // currentScore tracks points scored (startingScore - remaining)
+        const newScore = config.startingScore - result.newState.remaining;
+        await finishTurn(
+          newDarts,
+          result.scoreDelta,
+          result.newState,
+          newScore,
+          result.isComplete,
+        );
+      }
+    },
+    [finishTurn, gameState, turnDarts, localX01State, isProcessing],
+  );
+
   const handleQuit = useCallback(() => {
     Alert.alert('Quit Game', 'Are you sure you want to abandon this game?', [
       { text: 'Cancel', style: 'cancel' },
@@ -349,8 +394,11 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
     isCricket,
     localTarget,
     localCricketState,
+    localX01State,
     handleATCDartThrown,
     handleCricketDartThrown,
+    handleX01DartThrown,
     handleQuit,
+    isX01,
   };
 }

@@ -6,17 +6,20 @@ import { eq, asc } from 'drizzle-orm';
 import { Trophy } from 'lucide-react-native';
 import { db } from '@/db/client';
 import { gameSessions, gamePlayers } from '@/db/schema';
-import { AROUND_THE_CLOCK_SLUG, CRICKET_SLUG } from '@/constants/games';
+import { AROUND_THE_CLOCK_SLUG, CRICKET_SLUG, X01_SLUG } from '@/constants/games';
 import { ATCResultsRows } from '@/components/games/ATCResultsRows';
 import { CricketResultsRows } from '@/components/games/CricketResultsRows';
+import { X01ResultsRows } from '@/components/games/X01ResultsRows';
 import {
   buildATCResults,
   buildCricketResults,
+  buildX01Results,
   type GameResults,
   type SessionResultPlayerInput,
   type SessionTurnInput,
 } from '@/lib/games/results';
 import type { AroundTheClockConfig } from '@/lib/games/around-the-clock';
+import type { X01Config } from '@/lib/games/x01';
 import type { DartThrow } from '@/types/game';
 
 /**
@@ -92,6 +95,14 @@ export default function ResultsScreen() {
         return;
       }
 
+      if (session.gameSlug === X01_SLUG) {
+        setResults({
+          type: 'x01',
+          players: buildX01Results(players, turns, session.config as X01Config),
+        });
+        return;
+      }
+
       setResults(null);
     } catch (error) {
       console.error('Failed to load game results:', error);
@@ -132,20 +143,27 @@ export default function ResultsScreen() {
   }
 
   const winnerName = results.players.find((player) => player.isWinner)?.name;
-  const winnerSubtitle =
-    results.type === 'atc'
-      ? (() => {
-          const winner = results.players.find((player) => player.isWinner);
-          return winner
-            ? `${winner.targetsHit}/${winner.maxTarget} in ${winner.turns} turns`
-            : '';
-        })()
-      : (() => {
-          const winner = results.players.find((player) => player.isWinner);
-          return winner
-            ? `${winner.points} pts \u2022 ${winner.segmentsClosed}/7 closed`
-            : '';
-        })();
+  const winnerSubtitle = (() => {
+    if (results.type === 'atc') {
+      const winner = results.players.find((player) => player.isWinner);
+      return winner
+        ? `${winner.targetsHit}/${winner.maxTarget} in ${winner.turns} turns`
+        : '';
+    }
+    if (results.type === 'cricket') {
+      const winner = results.players.find((player) => player.isWinner);
+      return winner
+        ? `${winner.points} pts \u2022 ${winner.segmentsClosed}/7 closed`
+        : '';
+    }
+    if (results.type === 'x01') {
+      const winner = results.players.find((player) => player.isWinner);
+      return winner
+        ? `${winner.threeDartAvg.toFixed(1)} avg \u2022 ${winner.dartsThrown} darts`
+        : '';
+    }
+    return '';
+  })();
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
@@ -169,10 +187,14 @@ export default function ResultsScreen() {
             Rankings
           </Text>
 
-          {results.type === 'atc' ? (
+          {results.type === 'atc' && (
             <ATCResultsRows players={results.players} />
-          ) : (
+          )}
+          {results.type === 'cricket' && (
             <CricketResultsRows players={results.players} />
+          )}
+          {results.type === 'x01' && (
+            <X01ResultsRows players={results.players} />
           )}
         </View>
 

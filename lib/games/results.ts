@@ -9,6 +9,7 @@ import {
   isSegmentClosed,
   type CricketPlayerState,
 } from '@/lib/games/cricket';
+import type { X01Config, X01PlayerState } from '@/lib/games/x01';
 import type { DartThrow } from '@/types/game';
 
 export interface SessionResultPlayerInput {
@@ -47,9 +48,22 @@ export interface CricketPlayerResult {
   turns: number;
 }
 
+export interface X01PlayerResult {
+  name: string;
+  avatarColor: string;
+  isWinner: boolean;
+  /** Remaining score at end of game (0 for winner). */
+  finalScore: number;
+  dartsThrown: number;
+  /** Three-dart average: (startingScore - finalScore) / dartsThrown * 3 */
+  threeDartAvg: number;
+  turns: number;
+}
+
 export type GameResults =
   | { type: 'atc'; players: ATCPlayerResult[] }
-  | { type: 'cricket'; players: CricketPlayerResult[] };
+  | { type: 'cricket'; players: CricketPlayerResult[] }
+  | { type: 'x01'; players: X01PlayerResult[] };
 
 function groupTurnsByPlayer(
   turns: SessionTurnInput[],
@@ -157,4 +171,43 @@ export function buildCricketResults(
   });
 
   return cricketResults;
+}
+
+export function buildX01Results(
+  players: SessionResultPlayerInput[],
+  turns: SessionTurnInput[],
+  config: X01Config,
+): X01PlayerResult[] {
+  const turnsByPlayer = groupTurnsByPlayer(turns);
+
+  const x01Results = players.map((player) => {
+    const state = player.gameState as X01PlayerState;
+    const playerTurns = turnsByPlayer.get(player.playerId) ?? [];
+
+    let dartsThrown = 0;
+    for (const turn of playerTurns) {
+      dartsThrown += turn.darts.length;
+    }
+
+    const scored = config.startingScore - state.remaining;
+    const threeDartAvg = dartsThrown > 0 ? (scored / dartsThrown) * 3 : 0;
+
+    return {
+      name: player.name,
+      avatarColor: player.avatarColor,
+      isWinner: player.isWinner,
+      finalScore: state.remaining,
+      dartsThrown,
+      threeDartAvg,
+      turns: playerTurns.length,
+    };
+  });
+
+  x01Results.sort((a, b) => {
+    if (a.isWinner && !b.isWinner) return -1;
+    if (!a.isWinner && b.isWinner) return 1;
+    return a.finalScore - b.finalScore;
+  });
+
+  return x01Results;
 }
