@@ -3,10 +3,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AroundTheClockPlayPanel } from '@/components/games/AroundTheClockPlayPanel';
 import { BaseballPlayPanel } from '@/components/games/BaseballPlayPanel';
+import { BermudaTrianglePlayPanel } from '@/components/games/BermudaTrianglePlayPanel';
 import { Bobs27PlayPanel } from '@/components/games/Bobs27PlayPanel';
 import { CricketPlayPanel } from '@/components/games/CricketPlayPanel';
 import { HalveItPlayPanel } from '@/components/games/HalveItPlayPanel';
 import { HighScorePlayPanel } from '@/components/games/HighScorePlayPanel';
+import { KillerPlayPanel } from '@/components/games/KillerPlayPanel';
 import { ShanghaiPlayPanel } from '@/components/games/ShanghaiPlayPanel';
 import { X01PlayPanel } from '@/components/games/X01PlayPanel';
 import {
@@ -36,6 +38,8 @@ export default function PlayScreen() {
     isHighScore,
     isHalveIt,
     isBobs27,
+    isBermudaTriangle,
+    isKiller,
     localTarget,
     localCricketState,
     localX01State,
@@ -43,6 +47,7 @@ export default function PlayScreen() {
     handleCricketDartThrown,
     handleX01DartThrown,
     handleRoundDartThrown,
+    handleKillerDartThrown,
     handleQuit,
   } = usePlaySession({ slug, sessionId });
 
@@ -192,6 +197,26 @@ export default function PlayScreen() {
             turnDarts={turnDarts}
             isProcessing={isProcessing}
             onDartThrown={handleRoundDartThrown}
+          />
+        )}
+
+        {isBermudaTriangle && (
+          <BermudaTrianglePlayPanel
+            players={gameState.players}
+            currentPlayerId={currentPlayer.id}
+            turnDarts={turnDarts}
+            isProcessing={isProcessing}
+            onDartThrown={handleRoundDartThrown}
+          />
+        )}
+
+        {isKiller && (
+          <KillerPlayPanel
+            players={gameState.players}
+            currentPlayerId={currentPlayer.id}
+            turnDarts={turnDarts}
+            isProcessing={isProcessing}
+            onDartThrown={handleKillerDartThrown}
           />
         )}
       </ScrollView>
