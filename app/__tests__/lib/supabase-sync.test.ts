@@ -97,6 +97,12 @@ describe('buildSessionPayload', () => {
     expect(payload.completed_at).toBeNull();
   });
 
+  it('falls back to createdAt (not new Date) when startedAt is null', () => {
+    const createdAt = new Date('2026-06-01T09:00:00Z');
+    const payload = buildSessionPayload(makeSession({ startedAt: null, createdAt }), CLERK_USER_ID);
+    expect(payload.started_at).toBe(createdAt.toISOString());
+  });
+
   it('does not include an id field (DB generates UUID)', () => {
     const payload = buildSessionPayload(makeSession(), CLERK_USER_ID);
     expect('id' in payload).toBe(false);

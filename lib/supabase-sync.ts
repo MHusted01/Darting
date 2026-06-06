@@ -43,7 +43,7 @@ export function buildSessionPayload(
     created_by: clerkUserId,
     source_session_id: String(session.id),
     config: session.config ?? null,
-    started_at: session.startedAt?.toISOString() ?? new Date().toISOString(),
+    started_at: session.startedAt?.toISOString() ?? session.createdAt.toISOString(),
     completed_at: session.completedAt?.toISOString() ?? null,
   };
 }

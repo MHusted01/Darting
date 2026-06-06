@@ -7,6 +7,10 @@ update public.game_sessions
   set source_session_id = id::text
   where source_session_id is null;
 
+-- Enforce NOT NULL now that all rows are backfilled — prevents NULLs from bypassing the unique constraint
+alter table public.game_sessions
+  alter column source_session_id set not null;
+
 -- Unique constraint — upsert onConflict targets (created_by, source_session_id)
 alter table public.game_sessions
   add constraint game_sessions_created_by_source_unique
