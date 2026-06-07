@@ -11,8 +11,6 @@ type Step = 'email' | 'otp' | 'password';
 
 export default function ResetPassword() {
   const { signIn, fetchStatus } = useSignIn();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const si = signIn as any;
   const router = useRouter();
 
   const [step, setStep] = useState<Step>('email');
@@ -32,11 +30,13 @@ export default function ResetPassword() {
 
     setIsSubmitting(true);
     try {
-      const { error } = await si.create({
-        strategy: 'reset_password_email_code',
-        identifier: email.trim(),
-      });
+      const { error: createError } = await signIn.create({ identifier: email.trim() });
+      if (createError) {
+        Alert.alert('Error', getErrorMessage(createError));
+        return;
+      }
 
+      const { error } = await signIn.resetPasswordEmailCode.sendCode();
       if (error) {
         Alert.alert('Error', getErrorMessage(error));
         return;
@@ -54,14 +54,14 @@ export default function ResetPassword() {
     if (busy) return;
     setIsSubmitting(true);
     try {
-      const { error } = await si.resetPasswordEmailCode.verifyCode({ code });
+      const { error } = await signIn.resetPasswordEmailCode.verifyCode({ code });
 
       if (error) {
         Alert.alert('Error', getErrorMessage(error));
         return;
       }
 
-      if (si.status === 'needs_new_password') {
+      if (signIn.status === 'needs_new_password') {
         setStep('password');
       } else {
         Alert.alert('Error', 'Verification incomplete. Please try again.');
@@ -82,15 +82,15 @@ export default function ResetPassword() {
 
     setIsSubmitting(true);
     try {
-      const { error } = await si.resetPasswordEmailCode.submitPassword({ password: newPassword });
+      const { error } = await signIn.resetPasswordEmailCode.submitPassword({ password: newPassword });
 
       if (error) {
         Alert.alert('Error', getErrorMessage(error));
         return;
       }
 
-      if (si.status === 'complete') {
-        const { error: finalizeError } = await si.finalize({
+      if (signIn.status === 'complete') {
+        const { error: finalizeError } = await signIn.finalize({
           navigate: () => router.replace('/(protected)/(tabs)'),
         });
         if (finalizeError) {

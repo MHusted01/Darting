@@ -7,6 +7,7 @@ import ResetPassword from '@/app/(public)/reset-password';
 const mockReplace: jest.Mock<any> = jest.fn();
 const mockBack: jest.Mock<any> = jest.fn();
 const mockCreate: jest.Mock<any> = jest.fn();
+const mockSendCode: jest.Mock<any> = jest.fn();
 const mockVerifyCode: jest.Mock<any> = jest.fn();
 const mockSubmitPassword: jest.Mock<any> = jest.fn();
 const mockFinalize: jest.Mock<any> = jest.fn();
@@ -40,6 +41,7 @@ jest.mock('@clerk/expo', () => ({
       },
       create: mockCreate,
       resetPasswordEmailCode: {
+        sendCode: mockSendCode,
         verifyCode: mockVerifyCode,
         submitPassword: mockSubmitPassword,
       },
@@ -52,6 +54,7 @@ describe('Reset Password', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSignInStatus = 'needs_first_factor';
+    mockSendCode.mockResolvedValue({ error: null });
     mockFinalize.mockImplementation(
       async (options?: { navigate?: () => void }) => {
         options?.navigate?.();
@@ -74,7 +77,7 @@ describe('Reset Password', () => {
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
-  it('calls signIn.create with reset_password_email_code strategy', async () => {
+  it('calls signIn.create with identifier then sendCode', async () => {
     mockCreate.mockResolvedValue({ error: null });
 
     render(<ResetPassword />);
@@ -82,10 +85,8 @@ describe('Reset Password', () => {
     fireEvent.press(screen.getByTestId('reset-send-button'));
 
     await waitFor(() => {
-      expect(mockCreate).toHaveBeenCalledWith({
-        strategy: 'reset_password_email_code',
-        identifier: 'user@example.com',
-      });
+      expect(mockCreate).toHaveBeenCalledWith({ identifier: 'user@example.com' });
+      expect(mockSendCode).toHaveBeenCalled();
     });
   });
 
@@ -111,6 +112,7 @@ describe('Reset Password', () => {
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith('Error', expect.any(String));
     });
+    expect(mockSendCode).not.toHaveBeenCalled();
     expect(screen.queryByText('Submit OTP')).toBeNull();
   });
 
