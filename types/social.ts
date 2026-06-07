@@ -55,3 +55,9 @@ export interface ClubLeaderboardRow {
 }
 
 export type PresenceMap = Record<string, FriendStatus>;
+
+export interface ContactPlayer {
+  userId: string;
+  displayName: string;
+  username: string | null;
+}
