@@ -167,7 +167,7 @@ export default function SignIn() {
               accessibilityRole="button"
               accessibilityLabel="Forgot password"
               className="active:opacity-70"
-              onPress={() => Alert.alert('Coming Soon', 'Password reset will be available soon.')}
+              onPress={() => router.push('/(public)/reset-password')}
             >
               <Text className="text-sm font-barlow-semi text-ds-red">Forgot Password?</Text>
             </Pressable>

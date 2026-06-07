@@ -16,6 +16,9 @@
       "bundleIdentifier": "com.mhusted01.Darting",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "entitlements": {
+        "aps-environment": "production"
       }
     },
     "android": {
@@ -37,7 +40,10 @@
       "expo-sqlite",
       "expo-secure-store",
       "expo-web-browser",
-      "expo-font"
+      "expo-font",
+      "expo-splash-screen",
+      "@sentry/react-native",
+      ["expo-notifications", { "icon": "./assets/icon.png", "color": "#ba1a1a" }]
     ],
     "extra": {
       "router": {
