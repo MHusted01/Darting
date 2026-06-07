@@ -110,7 +110,7 @@ export function CreateClubModal({ visible, onClose }: Props) {
             accessibilityLabel="Create club"
             className={`rounded-xl py-4 items-center active:opacity-70 ${
               name.trim() ? 'bg-ds-red' : 'bg-ds-surface-container'
-            }`}
+            } ${createClub.isPending ? 'opacity-50' : ''}`}
             onPress={handleCreate}
             disabled={createClub.isPending || !name.trim()}
           >

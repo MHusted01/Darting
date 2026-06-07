@@ -124,7 +124,7 @@ export function FriendSearchModal({ visible, onClose }: Props) {
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={`Add ${displayName(user)} as friend`}
-                    className="bg-ds-red rounded-lg px-3 py-2 active:opacity-70"
+                    className={`bg-ds-red rounded-lg px-3 py-2 active:opacity-70 ${sendRequest.isPending ? 'opacity-50' : ''}`}
                     onPress={() => handleAdd(user)}
                     disabled={sendRequest.isPending}
                   >

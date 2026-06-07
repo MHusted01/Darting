@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
           first_name: data.first_name,
           last_name: data.last_name,
           avatar_url: data.image_url,
-          username: data.username ?? null,
+          ...(data.username !== undefined && { username: data.username }),
           updated_at: new Date().toISOString(),
         },
         { onConflict: "id" },

@@ -39,7 +39,7 @@ export function useUserSearch(query: string) {
   const { userId } = useAuth();
 
   return useQuery({
-    queryKey: ['user-search', query],
+    queryKey: ['user-search', userId, query],
     queryFn: () => searchUsers(supabase, query, userId!),
     enabled: query.length >= 2 && Boolean(userId),
     staleTime: 10_000,

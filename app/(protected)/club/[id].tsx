@@ -96,7 +96,7 @@ function InviteModal({ clubId, visible, onClose }: InviteModalProps) {
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={`Invite ${displayName(user)}`}
-                    className="bg-ds-red rounded-lg px-3 py-2 active:opacity-70"
+                    className={`bg-ds-red rounded-lg px-3 py-2 active:opacity-70 ${inviteMember.isPending ? 'opacity-50' : ''}`}
                     onPress={() => handleInvite(user)}
                     disabled={inviteMember.isPending}
                   >

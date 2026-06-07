@@ -54,7 +54,7 @@ export function FriendRequestsSection() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Decline friend request from ${displayName(req)}`}
-                className="border border-ds-outline-variant rounded-lg px-3 py-2 active:opacity-70"
+                className={`border border-ds-outline-variant rounded-lg px-3 py-2 active:opacity-70 ${declineMutation.isPending ? 'opacity-50' : ''}`}
                 onPress={() => declineMutation.mutate(req.id)}
                 disabled={declineMutation.isPending}
               >
@@ -63,7 +63,7 @@ export function FriendRequestsSection() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Accept friend request from ${displayName(req)}`}
-                className="bg-ds-red rounded-lg px-3 py-2 active:opacity-70"
+                className={`bg-ds-red rounded-lg px-3 py-2 active:opacity-70 ${acceptMutation.isPending ? 'opacity-50' : ''}`}
                 onPress={() => acceptMutation.mutate(req.id)}
                 disabled={acceptMutation.isPending}
               >

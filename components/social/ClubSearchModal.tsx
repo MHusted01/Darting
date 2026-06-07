@@ -117,7 +117,7 @@ export function ClubSearchModal({ visible, onClose }: Props) {
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={`Join ${club.name}`}
-                    className="bg-ds-red rounded-lg px-3 py-2 active:opacity-70"
+                    className={`bg-ds-red rounded-lg px-3 py-2 active:opacity-70 ${joinClub.isPending ? 'opacity-50' : ''}`}
                     onPress={() => handleJoin(club)}
                     disabled={joinClub.isPending}
                   >
