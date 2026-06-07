@@ -64,6 +64,7 @@ Deno.serve(async (req) => {
           first_name: data.first_name,
           last_name: data.last_name,
           avatar_url: data.image_url,
+          username: data.username ?? null,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "id" },
@@ -113,6 +114,7 @@ interface ClerkWebhookEvent {
     first_name: string | null;
     last_name: string | null;
     image_url: string | null;
+    username?: string | null;
     email_addresses?: EmailAddress[];
     primary_email_address_id?: string;
     deleted?: boolean;
