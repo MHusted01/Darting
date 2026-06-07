@@ -145,10 +145,10 @@ export default function GameSetup() {
         .values({ name: contact.displayName, userId: contact.userId, avatarColor: color })
         .onConflictDoUpdate({ target: playersTable.userId, set: { name: contact.displayName, avatarColor: color } })
         .returning();
-      setSelectedPlayers((prev) => [
-        ...prev,
-        { id: player.id, name: player.name, avatarColor: player.avatarColor, userId: contact.userId },
-      ]);
+      setSelectedPlayers((prev) => {
+        if (prev.some((p) => p.userId === contact.userId)) return prev;
+        return [...prev, { id: player.id, name: player.name, avatarColor: player.avatarColor, userId: contact.userId }];
+      });
     } catch {
       Alert.alert('Error', 'Failed to add player. Please try again.');
     }

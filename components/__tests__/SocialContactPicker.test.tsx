@@ -49,7 +49,7 @@ describe('SocialContactPicker', () => {
         onAdd={jest.fn() as (c: ContactPlayer) => void}
       />,
     );
-    expect(screen.queryByText('FROM YOUR NETWORK')).toBeNull();
+    expect(screen.queryByText(/from your network/i)).toBeNull();
   });
 
   it('renders section header when friends are present', () => {

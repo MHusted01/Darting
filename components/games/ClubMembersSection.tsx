@@ -27,7 +27,7 @@ export function ClubMembersSection({
 
   return (
     <View className="mb-3">
-      <Text className="text-xs font-barlow text-ds-outline mb-2">{clubName}</Text>
+      <Text className="text-xs font-barlow-semi text-ds-outline mb-2">{clubName}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
