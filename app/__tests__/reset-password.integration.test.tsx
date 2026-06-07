@@ -1,0 +1,203 @@
+import React from 'react';
+import { describe, expect, it, beforeEach, jest } from '@jest/globals';
+import { Alert } from 'react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import ResetPassword from '@/app/(public)/reset-password';
+
+const mockReplace: jest.Mock<any> = jest.fn();
+const mockBack: jest.Mock<any> = jest.fn();
+const mockCreate: jest.Mock<any> = jest.fn();
+const mockSendCode: jest.Mock<any> = jest.fn();
+const mockVerifyCode: jest.Mock<any> = jest.fn();
+const mockSubmitPassword: jest.Mock<any> = jest.fn();
+const mockFinalize: jest.Mock<any> = jest.fn();
+
+let mockSignInStatus: 'needs_first_factor' | 'needs_new_password' | 'complete' = 'needs_first_factor';
+
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ replace: mockReplace, back: mockBack }),
+}));
+
+jest.mock('@/components/OtpInput', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { Pressable, Text } = jest.requireActual('react-native') as typeof import('react-native');
+  return {
+    __esModule: true,
+    default: ({ onComplete }: { onComplete: (code: string) => void }) =>
+      React.createElement(
+        Pressable,
+        { accessibilityRole: 'button', onPress: () => onComplete('123456') },
+        React.createElement(Text, null, 'Submit OTP'),
+      ),
+  };
+});
+
+jest.mock('@clerk/expo', () => ({
+  useSignIn: () => ({
+    fetchStatus: 'idle',
+    signIn: {
+      get status() {
+        return mockSignInStatus;
+      },
+      create: mockCreate,
+      resetPasswordEmailCode: {
+        sendCode: mockSendCode,
+        verifyCode: mockVerifyCode,
+        submitPassword: mockSubmitPassword,
+      },
+      finalize: mockFinalize,
+    },
+  }),
+}));
+
+describe('Reset Password', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSignInStatus = 'needs_first_factor';
+    mockSendCode.mockResolvedValue({ error: null });
+    mockFinalize.mockImplementation(
+      async (options?: { navigate?: () => void }) => {
+        options?.navigate?.();
+        return { error: null };
+      },
+    );
+    jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
+  });
+
+  it('renders email step by default', () => {
+    render(<ResetPassword />);
+    expect(screen.getByPlaceholderText('player@example.com')).toBeTruthy();
+    expect(screen.queryByText('Submit OTP')).toBeNull();
+  });
+
+  it('validates empty email on submit', () => {
+    render(<ResetPassword />);
+    fireEvent.press(screen.getByTestId('reset-send-button'));
+    expect(Alert.alert).toHaveBeenCalledWith('Error', 'Please enter your email address.');
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('calls signIn.create with identifier then sendCode', async () => {
+    mockCreate.mockResolvedValue({ error: null });
+
+    render(<ResetPassword />);
+    fireEvent.changeText(screen.getByPlaceholderText('player@example.com'), 'user@example.com');
+    fireEvent.press(screen.getByTestId('reset-send-button'));
+
+    await waitFor(() => {
+      expect(mockCreate).toHaveBeenCalledWith({ identifier: 'user@example.com' });
+      expect(mockSendCode).toHaveBeenCalled();
+    });
+  });
+
+  it('shows OTP step after successful email submit', async () => {
+    mockCreate.mockResolvedValue({ error: null });
+
+    render(<ResetPassword />);
+    fireEvent.changeText(screen.getByPlaceholderText('player@example.com'), 'user@example.com');
+    fireEvent.press(screen.getByTestId('reset-send-button'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Submit OTP')).toBeTruthy();
+    });
+  });
+
+  it('shows error alert when signIn.create fails', async () => {
+    mockCreate.mockResolvedValue({ error: { message: 'Email not found' } });
+
+    render(<ResetPassword />);
+    fireEvent.changeText(screen.getByPlaceholderText('player@example.com'), 'bad@example.com');
+    fireEvent.press(screen.getByTestId('reset-send-button'));
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('Error', expect.any(String));
+    });
+    expect(mockSendCode).not.toHaveBeenCalled();
+    expect(screen.queryByText('Submit OTP')).toBeNull();
+  });
+
+  it('calls resetPasswordEmailCode.verifyCode with OTP code', async () => {
+    mockCreate.mockResolvedValue({ error: null });
+    mockVerifyCode.mockResolvedValue({ error: null });
+    mockSignInStatus = 'needs_new_password';
+
+    render(<ResetPassword />);
+    fireEvent.changeText(screen.getByPlaceholderText('player@example.com'), 'user@example.com');
+    fireEvent.press(screen.getByTestId('reset-send-button'));
+
+    await waitFor(() => screen.getByText('Submit OTP'));
+    fireEvent.press(screen.getByText('Submit OTP'));
+
+    await waitFor(() => {
+      expect(mockVerifyCode).toHaveBeenCalledWith({ code: '123456' });
+    });
+  });
+
+  it('shows new password step after valid OTP', async () => {
+    mockCreate.mockResolvedValue({ error: null });
+    mockVerifyCode.mockResolvedValue({ error: null });
+    mockSignInStatus = 'needs_new_password';
+
+    render(<ResetPassword />);
+    fireEvent.changeText(screen.getByPlaceholderText('player@example.com'), 'user@example.com');
+    fireEvent.press(screen.getByTestId('reset-send-button'));
+
+    await waitFor(() => screen.getByText('Submit OTP'));
+    fireEvent.press(screen.getByText('Submit OTP'));
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('New password')).toBeTruthy();
+    });
+  });
+
+  it('validates empty password on reset submit', async () => {
+    mockCreate.mockResolvedValue({ error: null });
+    mockVerifyCode.mockResolvedValue({ error: null });
+    mockSignInStatus = 'needs_new_password';
+
+    render(<ResetPassword />);
+    fireEvent.changeText(screen.getByPlaceholderText('player@example.com'), 'user@example.com');
+    fireEvent.press(screen.getByTestId('reset-send-button'));
+
+    await waitFor(() => screen.getByText('Submit OTP'));
+    fireEvent.press(screen.getByText('Submit OTP'));
+
+    await waitFor(() => screen.getByPlaceholderText('New password'));
+    fireEvent.press(screen.getByTestId('reset-submit-button'));
+
+    expect(Alert.alert).toHaveBeenCalledWith('Error', 'Please enter a new password.');
+    expect(mockSubmitPassword).not.toHaveBeenCalled();
+  });
+
+  it('calls resetPasswordEmailCode.submitPassword and finalizes on success', async () => {
+    mockCreate.mockResolvedValue({ error: null });
+    mockVerifyCode.mockResolvedValue({ error: null });
+    mockSubmitPassword.mockResolvedValue({ error: null });
+    mockSignInStatus = 'needs_new_password';
+
+    render(<ResetPassword />);
+    fireEvent.changeText(screen.getByPlaceholderText('player@example.com'), 'user@example.com');
+    fireEvent.press(screen.getByTestId('reset-send-button'));
+
+    await waitFor(() => screen.getByText('Submit OTP'));
+    fireEvent.press(screen.getByText('Submit OTP'));
+
+    await waitFor(() => screen.getByPlaceholderText('New password'));
+
+    mockSignInStatus = 'complete';
+    fireEvent.changeText(screen.getByPlaceholderText('New password'), 'newpassword123');
+    fireEvent.press(screen.getByTestId('reset-submit-button'));
+
+    await waitFor(() => {
+      expect(mockSubmitPassword).toHaveBeenCalledWith({ password: 'newpassword123' });
+      expect(mockFinalize).toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalledWith('/(protected)/(tabs)');
+    });
+  });
+
+  it('back button navigates back', () => {
+    render(<ResetPassword />);
+    fireEvent.press(screen.getByAccessibilityHint('Go back'));
+    expect(mockBack).toHaveBeenCalled();
+  });
+});

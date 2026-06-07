@@ -1,12 +1,15 @@
+import * as Sentry from '@sentry/react-native';
 import { ClerkProvider, ClerkLoaded } from '@clerk/expo';
 import { Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import * as SplashScreen from 'expo-splash-screen';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import migrations from '@/drizzle/migrations';
 import { db } from '@/db/client';
 import { SupabaseProvider } from '@/providers/SupabaseProvider';
 import { SyncRetryOnMount } from '@/components/SyncRetryOnMount';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { useEffect } from 'react';
 import { useFonts } from 'expo-font';
 import {
   BarlowCondensed_700Bold,
@@ -18,6 +21,13 @@ import {
   Barlow_700Bold,
 } from '@expo-google-fonts/barlow';
 import '../global.css';
+
+SplashScreen.preventAutoHideAsync();
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN,
+});
 
 const tokenCache = {
   async getToken(key: string) { return SecureStore.getItemAsync(key); },
@@ -34,7 +44,7 @@ const CLERK_PUBLISHABLE_KEY = (() => {
 
 const CLERK_TASK_URLS = {
   'choose-organization': '/(protected)/(tabs)',
-  'reset-password': '/(public)/sign-in',
+  'reset-password': '/(public)/reset-password',
   'setup-mfa': '/(public)/sign-in',
 } as const;
 
@@ -45,7 +55,7 @@ const CLERK_TASK_URLS = {
  *
  * @returns The root React element for the app layout described above.
  */
-export default function RootLayout() {
+function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
   const [fontsLoaded, fontsError] = useFonts({
     BarlowCondensed_700Bold,
@@ -55,6 +65,14 @@ export default function RootLayout() {
     Barlow_700Bold,
   });
 
+  const appReady = (success || !!error) && (fontsLoaded || !!fontsError);
+
+  useEffect(() => {
+    if (appReady) {
+      SplashScreen.hideAsync();
+    }
+  }, [appReady]);
+
   if (error) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -63,12 +81,8 @@ export default function RootLayout() {
     );
   }
 
-  if (!success || (!fontsLoaded && !fontsError)) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+  if (!appReady) {
+    return null;
   }
 
   return (
@@ -86,3 +100,5 @@ export default function RootLayout() {
     </ClerkProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);

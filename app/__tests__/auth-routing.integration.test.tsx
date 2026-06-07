@@ -6,6 +6,8 @@ import ProtectedLayout from '@/app/(protected)/_layout';
 
 const mockUseAuth = jest.fn();
 
+jest.mock('@/hooks/usePushToken', () => ({ usePushToken: jest.fn() }));
+
 jest.mock('@clerk/expo', () => ({
   useAuth: () => mockUseAuth(),
   RedirectToTasks: () => {
