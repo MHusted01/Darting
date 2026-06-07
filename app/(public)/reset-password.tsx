@@ -224,7 +224,7 @@ export default function ResetPassword() {
           Forgot Password?
         </Text>
         <Text className="text-base font-barlow text-ds-on-surface-variant mb-8">
-          Enter your email and we'll send you a reset code.
+          Enter your email and we&apos;ll send you a reset code.
         </Text>
 
         <View className="mb-6">
