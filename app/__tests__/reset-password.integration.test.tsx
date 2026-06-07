@@ -7,8 +7,8 @@ import ResetPassword from '@/app/(public)/reset-password';
 const mockReplace: jest.Mock<any> = jest.fn();
 const mockBack: jest.Mock<any> = jest.fn();
 const mockCreate: jest.Mock<any> = jest.fn();
-const mockAttemptFirstFactor: jest.Mock<any> = jest.fn();
-const mockResetPassword: jest.Mock<any> = jest.fn();
+const mockVerifyCode: jest.Mock<any> = jest.fn();
+const mockSubmitPassword: jest.Mock<any> = jest.fn();
 const mockFinalize: jest.Mock<any> = jest.fn();
 
 let mockSignInStatus: 'needs_first_factor' | 'needs_new_password' | 'complete' = 'needs_first_factor';
@@ -39,8 +39,10 @@ jest.mock('@clerk/expo', () => ({
         return mockSignInStatus;
       },
       create: mockCreate,
-      attemptFirstFactor: mockAttemptFirstFactor,
-      resetPassword: mockResetPassword,
+      resetPasswordEmailCode: {
+        verifyCode: mockVerifyCode,
+        submitPassword: mockSubmitPassword,
+      },
       finalize: mockFinalize,
     },
   }),
@@ -112,9 +114,9 @@ describe('Reset Password', () => {
     expect(screen.queryByText('Submit OTP')).toBeNull();
   });
 
-  it('calls attemptFirstFactor with OTP code', async () => {
+  it('calls resetPasswordEmailCode.verifyCode with OTP code', async () => {
     mockCreate.mockResolvedValue({ error: null });
-    mockAttemptFirstFactor.mockResolvedValue({ error: null });
+    mockVerifyCode.mockResolvedValue({ error: null });
     mockSignInStatus = 'needs_new_password';
 
     render(<ResetPassword />);
@@ -125,16 +127,13 @@ describe('Reset Password', () => {
     fireEvent.press(screen.getByText('Submit OTP'));
 
     await waitFor(() => {
-      expect(mockAttemptFirstFactor).toHaveBeenCalledWith({
-        strategy: 'reset_password_email_code',
-        code: '123456',
-      });
+      expect(mockVerifyCode).toHaveBeenCalledWith({ code: '123456' });
     });
   });
 
   it('shows new password step after valid OTP', async () => {
     mockCreate.mockResolvedValue({ error: null });
-    mockAttemptFirstFactor.mockResolvedValue({ error: null });
+    mockVerifyCode.mockResolvedValue({ error: null });
     mockSignInStatus = 'needs_new_password';
 
     render(<ResetPassword />);
@@ -151,7 +150,7 @@ describe('Reset Password', () => {
 
   it('validates empty password on reset submit', async () => {
     mockCreate.mockResolvedValue({ error: null });
-    mockAttemptFirstFactor.mockResolvedValue({ error: null });
+    mockVerifyCode.mockResolvedValue({ error: null });
     mockSignInStatus = 'needs_new_password';
 
     render(<ResetPassword />);
@@ -165,13 +164,13 @@ describe('Reset Password', () => {
     fireEvent.press(screen.getByTestId('reset-submit-button'));
 
     expect(Alert.alert).toHaveBeenCalledWith('Error', 'Please enter a new password.');
-    expect(mockResetPassword).not.toHaveBeenCalled();
+    expect(mockSubmitPassword).not.toHaveBeenCalled();
   });
 
-  it('calls resetPassword and finalizes on success', async () => {
+  it('calls resetPasswordEmailCode.submitPassword and finalizes on success', async () => {
     mockCreate.mockResolvedValue({ error: null });
-    mockAttemptFirstFactor.mockResolvedValue({ error: null });
-    mockResetPassword.mockResolvedValue({ error: null });
+    mockVerifyCode.mockResolvedValue({ error: null });
+    mockSubmitPassword.mockResolvedValue({ error: null });
     mockSignInStatus = 'needs_new_password';
 
     render(<ResetPassword />);
@@ -188,7 +187,7 @@ describe('Reset Password', () => {
     fireEvent.press(screen.getByTestId('reset-submit-button'));
 
     await waitFor(() => {
-      expect(mockResetPassword).toHaveBeenCalledWith({ password: 'newpassword123' });
+      expect(mockSubmitPassword).toHaveBeenCalledWith({ password: 'newpassword123' });
       expect(mockFinalize).toHaveBeenCalled();
       expect(mockReplace).toHaveBeenCalledWith('/(protected)/(tabs)');
     });

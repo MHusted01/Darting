@@ -54,10 +54,7 @@ export default function ResetPassword() {
     if (busy) return;
     setIsSubmitting(true);
     try {
-      const { error } = await si.attemptFirstFactor({
-        strategy: 'reset_password_email_code',
-        code,
-      });
+      const { error } = await si.resetPasswordEmailCode.verifyCode({ code });
 
       if (error) {
         Alert.alert('Error', getErrorMessage(error));
@@ -85,7 +82,7 @@ export default function ResetPassword() {
 
     setIsSubmitting(true);
     try {
-      const { error } = await si.resetPassword({ password: newPassword });
+      const { error } = await si.resetPasswordEmailCode.submitPassword({ password: newPassword });
 
       if (error) {
         Alert.alert('Error', getErrorMessage(error));
