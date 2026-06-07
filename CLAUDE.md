@@ -298,13 +298,13 @@ Schema and sync shipped:
 - [x] Local `cloudSyncStatus` + `cloudSessionId` tracking on every completed session
 - [x] `retryFailedSyncs` — retries all `failed` completed sessions on app launch via `SyncRetryOnMount`
 
-### Phase 4 — Social / Clubs / Friends
+### Phase 4 — Social / Clubs / Friends ✅
 
-- [ ] **Friends** — `friendships` table (userId, friendId, status: pending/accepted), friend request flow, mutual-follow model
-- [ ] **Clubs** — `clubs`, `club_memberships`, `club_invites` tables; create club, search + join flow, admin management
-- [ ] **Leaderboards** — club and global, driven by Supabase views + TanStack Query polling
-- [ ] **Presence** — online / in-match status via Supabase Realtime (types already defined in `social.tsx`)
-- [ ] Wire Social screen to real data, remove `PLACEHOLDER_CLUBS` and `PLACEHOLDER_FRIENDS`
+- [x] **Friends** — `friendships` table (userId, friendId, status: pending/accepted), friend request flow, mutual-follow model
+- [x] **Clubs** — `clubs`, `club_memberships`, `club_invites` tables; create club, search + join flow, admin management
+- [x] **Leaderboards** — club leaderboard driven by `club_leaderboard_stats` Supabase view + TanStack Query
+- [x] **Presence** — online / in-match status via Supabase Realtime (`usePresence` hook)
+- [x] Wire Social screen to real data, removed `PLACEHOLDER_CLUBS` and `PLACEHOLDER_FRIENDS`
 
 ### Phase 4.5 — Smart Game Setup (depends on Social)
 

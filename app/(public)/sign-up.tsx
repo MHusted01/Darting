@@ -8,6 +8,7 @@ import { Eye, EyeOff, ArrowLeft } from 'lucide-react-native';
 import OtpInput from '@/components/OtpInput';
 import SsoButtons from '@/components/SsoButtons';
 import { getErrorMessage } from '@/lib/errors';
+import { isValidUsername } from '@/lib/validation';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -17,6 +18,7 @@ export default function SignUp() {
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -38,6 +40,11 @@ export default function SignUp() {
       Alert.alert('Error', 'Please enter your first and last name.');
       return;
     }
+    const trimmedUsername = username.trim();
+    if (!isValidUsername(trimmedUsername)) {
+      Alert.alert('Error', 'Username must be 3–20 characters: letters, numbers, or underscores.');
+      return;
+    }
     if (!trimmedEmail || !/\S+@\S+\.\S+/.test(trimmedEmail)) {
       Alert.alert('Error', 'Please enter a valid email address.');
       return;
@@ -57,6 +64,7 @@ export default function SignUp() {
       const { error } = await signUp.password({
         firstName: trimmedFirst,
         lastName: trimmedLast,
+        username: trimmedUsername,
         emailAddress: trimmedEmail,
         password,
       });
@@ -203,6 +211,27 @@ export default function SignUp() {
                 />
               </View>
             </View>
+          </View>
+
+          <View className="mb-4">
+            <Text className="text-sm font-barlow-semi text-ds-on-surface mb-1.5">Username</Text>
+            <View className="bg-ds-surface border border-ds-outline-variant rounded-xl px-4">
+              <TextInput
+                className="py-4 text-base font-barlow text-ds-on-surface"
+                style={{ lineHeight: 22 }}
+                placeholder="dartking99"
+                placeholderTextColor="#747878"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+                accessibilityLabel="Username"
+                autoComplete="username"
+              />
+            </View>
+            <Text className="text-xs font-barlow text-ds-on-surface-variant mt-1.5">
+              3–20 characters: letters, numbers, or underscores.
+            </Text>
           </View>
 
           <View className="mb-4">

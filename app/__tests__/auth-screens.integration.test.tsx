@@ -152,6 +152,7 @@ describe('Auth Screen Integration', () => {
 
     fireEvent.changeText(screen.getByPlaceholderText('John'), 'Ada');
     fireEvent.changeText(screen.getByPlaceholderText('Doe'), 'Lovelace');
+    fireEvent.changeText(screen.getByPlaceholderText('dartking99'), 'ada_lovelace');
     fireEvent.changeText(screen.getByPlaceholderText('john.doe@example.com'), 'ada@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('••••••••'), 'passw0rd!');
     fireEvent.press(screen.getByTestId('sign-up-button'));
@@ -160,6 +161,7 @@ describe('Auth Screen Integration', () => {
       expect(mockSignUpPassword).toHaveBeenCalledWith({
         firstName: 'Ada',
         lastName: 'Lovelace',
+        username: 'ada_lovelace',
         emailAddress: 'ada@example.com',
         password: 'passw0rd!',
       });
@@ -179,6 +181,7 @@ describe('Auth Screen Integration', () => {
 
     fireEvent.changeText(screen.getByPlaceholderText('John'), 'Ada');
     fireEvent.changeText(screen.getByPlaceholderText('Doe'), 'Lovelace');
+    fireEvent.changeText(screen.getByPlaceholderText('dartking99'), 'ada_lovelace');
     fireEvent.changeText(screen.getByPlaceholderText('john.doe@example.com'), 'ada@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('••••••••'), 'passw0rd!');
     fireEvent.press(screen.getByTestId('sign-up-button'));
@@ -199,6 +202,7 @@ describe('Auth Screen Integration', () => {
 
     fireEvent.changeText(screen.getByPlaceholderText('John'), 'Ada');
     fireEvent.changeText(screen.getByPlaceholderText('Doe'), 'Lovelace');
+    fireEvent.changeText(screen.getByPlaceholderText('dartking99'), 'ada_lovelace');
     fireEvent.changeText(screen.getByPlaceholderText('john.doe@example.com'), 'ada@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('••••••••'), 'passw0rd!');
     fireEvent.press(screen.getByTestId('sign-up-button'));

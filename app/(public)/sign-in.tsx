@@ -5,6 +5,7 @@ import { Text, TextInput, Pressable, View, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
+import OtpInput from '@/components/OtpInput';
 import SsoButtons from '@/components/SsoButtons';
 import { getErrorMessage } from '@/lib/errors';
 
@@ -12,14 +13,30 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function SignIn() {
   const { signIn, fetchStatus } = useSignIn();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const si = signIn as any;
   const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const busy = isSubmitting || fetchStatus === 'fetching';
+  const verifyingBusy = isVerifying || fetchStatus === 'fetching';
+
+  const finalize = async () => {
+    const { error } = await signIn.finalize({
+      navigate: () => {
+        router.replace('/(protected)/(tabs)');
+      },
+    });
+    if (error) {
+      Alert.alert('Error', getErrorMessage(error));
+    }
+  };
 
   const onSignIn = async () => {
     if (busy) return;
@@ -41,15 +58,18 @@ export default function SignIn() {
       }
 
       if (signIn.status === 'complete') {
-        const { error: finalizeError } = await signIn.finalize({
-          navigate: () => {
-            router.replace('/(protected)/(tabs)');
-          },
-        });
-        if (finalizeError) {
-          Alert.alert('Error', getErrorMessage(finalizeError));
-          return;
+        await finalize();
+        return;
+      }
+
+      if (signIn.status === 'needs_client_trust') {
+        const emailFactor = signIn.supportedFirstFactors?.find(
+          (f) => f.strategy === 'email_code',
+        );
+        if (emailFactor && 'emailAddressId' in emailFactor) {
+          await si.sendEmailCode({ emailAddressId: emailFactor.emailAddressId });
         }
+        setPendingVerification(true);
         return;
       }
 
@@ -60,6 +80,54 @@ export default function SignIn() {
       setIsSubmitting(false);
     }
   };
+
+  const onVerify = async (code: string) => {
+    if (verifyingBusy) return;
+    setIsVerifying(true);
+    try {
+      const { error } = await si.verifyEmailCode({ code });
+
+      if (error) {
+        Alert.alert('Error', getErrorMessage(error));
+        return;
+      }
+
+      if (signIn.status === 'complete') {
+        await finalize();
+      } else {
+        Alert.alert('Error', 'Verification incomplete. Please try again.');
+      }
+    } catch (error: unknown) {
+      Alert.alert('Error', getErrorMessage(error));
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  if (pendingVerification) {
+    return (
+      <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-ds-bg">
+        <View className="flex-1 px-6 pt-8 pb-6 justify-center">
+          <Text className="text-3xl font-barlow-condensed-xbold text-ds-on-surface mb-2">Verify Device</Text>
+          <Text className="text-base font-barlow text-ds-on-surface-variant mb-8">
+            We sent a verification code to {email}
+          </Text>
+
+          <View className={verifyingBusy ? 'opacity-50' : ''} pointerEvents={verifyingBusy ? 'none' : 'auto'}>
+            <OtpInput onComplete={onVerify} />
+          </View>
+
+          {verifyingBusy ? (
+            <Text className="mt-6 text-center font-barlow text-ds-on-surface-variant">Verifying...</Text>
+          ) : (
+            <Pressable onPress={() => setPendingVerification(false)} className="active:opacity-70">
+              <Text className="mt-6 text-center font-barlow text-ds-on-surface-variant">Go back</Text>
+            </Pressable>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-ds-bg">
