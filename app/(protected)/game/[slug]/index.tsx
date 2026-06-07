@@ -1,8 +1,12 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, Switch, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUser } from '@clerk/expo';
 import { getOrCreateUserPlayer } from '@/lib/player';
+import { useFriends } from '@/hooks/useFriends';
+import { useMyClubs } from '@/hooks/useClubs';
+import { SocialContactPicker } from '@/components/games/SocialContactPicker';
+import type { ContactPlayer } from '@/types/social';
 import {
   GAMES,
   IMPLEMENTED_SLUGS,
@@ -79,6 +83,14 @@ export default function GameSetup() {
   const [startingScore, setStartingScore] = useState<501 | 301>(501);
   const [isStarting, setIsStarting] = useState(false);
 
+  const { data: friends = [] } = useFriends();
+  const { data: myClubs = [] } = useMyClubs();
+
+  const addedContactUserIds = useMemo<ReadonlySet<string>>(
+    () => new Set(selectedPlayers.filter((p) => p.userId).map((p) => p.userId!)),
+    [selectedPlayers],
+  );
+
   useEffect(() => {
     if (!isLoaded) return;
     if (!user) {
@@ -105,28 +117,42 @@ export default function GameSetup() {
     return () => { cancelled = true; };
   }, [isLoaded, user]);
 
-  const handleAddPlayer = useCallback(
-    async (name: string) => {
-      try {
-        const color = getNextAvatarColor(selectedPlayers.length);
-        const [inserted] = await db
-          .insert(playersTable)
-          .values({ name, avatarColor: color })
-          .returning();
-        setSelectedPlayers((prev) => [
-          ...prev,
-          { id: inserted.id, name: inserted.name, avatarColor: inserted.avatarColor },
-        ]);
-      } catch {
-        Alert.alert('Error', 'Failed to add player. Please try again.');
-      }
-    },
-    [selectedPlayers.length],
-  );
+  const handleAddPlayer = useCallback(async (name: string) => {
+    try {
+      const color = getNextAvatarColor(selectedPlayers.length);
+      const [inserted] = await db
+        .insert(playersTable)
+        .values({ name, avatarColor: color })
+        .returning();
+      setSelectedPlayers((prev) => [
+        ...prev,
+        { id: inserted.id, name: inserted.name, avatarColor: inserted.avatarColor },
+      ]);
+    } catch {
+      Alert.alert('Error', 'Failed to add player. Please try again.');
+    }
+  }, [selectedPlayers.length]);
 
   const handleRemovePlayer = useCallback((playerId: number) => {
     setSelectedPlayers((prev) => prev.filter((p) => p.id !== playerId));
   }, []);
+
+  const handleAddContact = useCallback(async (contact: ContactPlayer) => {
+    try {
+      const color = getNextAvatarColor(selectedPlayers.length);
+      const [player] = await db
+        .insert(playersTable)
+        .values({ name: contact.displayName, userId: contact.userId, avatarColor: color })
+        .onConflictDoUpdate({ target: playersTable.userId, set: { name: contact.displayName, avatarColor: color } })
+        .returning();
+      setSelectedPlayers((prev) => {
+        if (prev.some((p) => p.userId === contact.userId)) return prev;
+        return [...prev, { id: player.id, name: player.name, avatarColor: player.avatarColor, userId: contact.userId }];
+      });
+    } catch {
+      Alert.alert('Error', 'Failed to add player. Please try again.');
+    }
+  }, [selectedPlayers.length]);
 
   const minPlayers = isX01 ? 1 : isCricket ? 2 : isKiller ? 3 : 1;
 
@@ -202,6 +228,15 @@ export default function GameSetup() {
           {game.description}
         </Text>
       </View>
+
+      {!isLoadingUser && (
+        <SocialContactPicker
+          friends={friends.filter((f) => f.id !== user?.id)}
+          clubs={myClubs}
+          addedContactUserIds={addedContactUserIds}
+          onAdd={handleAddContact}
+        />
+      )}
 
       <PlayerManager
         players={selectedPlayers}

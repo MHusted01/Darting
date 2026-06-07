@@ -6,6 +6,7 @@ export interface Player {
   id: number;
   name: string;
   avatarColor: string;
+  userId?: string;
 }
 
 interface PlayerManagerProps {

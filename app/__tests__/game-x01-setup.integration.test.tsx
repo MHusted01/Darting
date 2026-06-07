@@ -20,6 +20,15 @@ const mockUseUser = jest.fn(() => ({
 
 jest.mock('@clerk/expo', () => ({
   useUser: () => mockUseUser(),
+  useAuth: () => ({ userId: 'clerk-test-user' }),
+}));
+
+jest.mock('@/hooks/useFriends', () => ({
+  useFriends: () => ({ data: [] }),
+}));
+
+jest.mock('@/hooks/useClubs', () => ({
+  useMyClubs: () => ({ data: [] }),
 }));
 
 jest.mock('@/lib/player', () => ({
