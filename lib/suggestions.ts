@@ -26,7 +26,7 @@ export function generateSuggestions(stats: AggregatedStats): Suggestion[] {
   const suggestions: Suggestion[] = [];
 
   if (stats.x01) {
-    const { bustRate, doublesHitRate } = stats.x01;
+    const { bustRate, checkoutRate, doublesHitRate, threeDartAvg } = stats.x01;
 
     if (bustRate > 0.15) {
       suggestions.push({
@@ -42,6 +42,20 @@ export function generateSuggestions(stats: AggregatedStats): Suggestion[] {
         reason: `Your doubles hit rate is only ${Math.round(doublesHitRate * 100)}% — checkouts are costing you games`,
         urgency: doublesHitRate < 0.1 ? 'high' : 'medium',
       });
+    } else if (checkoutRate < 0.2) {
+      suggestions.push({
+        drillSlug: 'practice-doubles',
+        reason: `You finish only ${Math.round(checkoutRate * 100)}% of your checkout attempts — sharpen your doubles`,
+        urgency: checkoutRate < 0.1 ? 'high' : 'medium',
+      });
+    }
+
+    if (threeDartAvg < 45) {
+      suggestions.push({
+        drillSlug: 'atc-accuracy',
+        reason: `Your 3-dart average is ${threeDartAvg.toFixed(1)} — building single-dart accuracy will raise your scoring`,
+        urgency: threeDartAvg < 30 ? 'high' : 'medium',
+      });
     }
   }
 
@@ -53,7 +67,7 @@ export function generateSuggestions(stats: AggregatedStats): Suggestion[] {
     });
   }
 
-  if (stats.atcAvgDartsPerNumber !== undefined && stats.atcAvgDartsPerNumber > 5) {
+  if (stats.atcAvgDartsPerNumber !== undefined && stats.atcAvgDartsPerNumber > 5 && !suggestions.some((s) => s.drillSlug === 'atc-accuracy')) {
     suggestions.push({
       drillSlug: 'atc-accuracy',
       reason: `You average ${stats.atcAvgDartsPerNumber.toFixed(1)} darts per number in Around the Clock — work on single-dart accuracy`,

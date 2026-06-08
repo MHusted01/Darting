@@ -63,6 +63,16 @@ describe('generateSuggestions', () => {
     expect(suggestions.length).toBeGreaterThanOrEqual(2);
   });
 
+  it('does not emit duplicate drillSlugs when both threeDartAvg and atcAvgDartsPerNumber trigger atc-accuracy', () => {
+    const stats = makeStats({
+      x01: { bustRate: 0.05, checkoutRate: 0.5, doublesHitRate: 0.4, threeDartAvg: 35 },
+      atcAvgDartsPerNumber: 7,
+    });
+    const suggestions = generateSuggestions(stats);
+    const slugs = suggestions.map((s) => s.drillSlug);
+    expect(slugs.filter((slug) => slug === 'atc-accuracy')).toHaveLength(1);
+  });
+
   it('each suggestion has drillSlug, reason, and urgency', () => {
     const stats = makeStats({ x01: { bustRate: 0.3, checkoutRate: 0.1, doublesHitRate: 0.1, threeDartAvg: 55 } });
     const suggestions = generateSuggestions(stats);

@@ -552,29 +552,46 @@ export default function StatsScreen() {
             )}
 
             {/* Suggestions */}
-            {gamesPlayed >= 5 && suggestions.length > 0 && (
-              <View className="mx-6 mb-4">
-                <Text className="text-xl font-barlow-condensed text-ds-on-surface mb-3">Coaching Tips</Text>
-                {suggestions.map((s) => (
-                  <Pressable
-                    key={s.drillSlug}
-                    onPress={() => router.push(`/drill/${s.drillSlug}`)}
-                    className="bg-ds-surface border border-ds-outline-variant rounded-xl p-4 mb-2 active:opacity-70"
-                    accessibilityRole="button"
-                    accessibilityLabel={s.reason}
-                  >
-                    <View className="flex-row items-center justify-between mb-1">
-                      <View className={`px-2 py-0.5 rounded-full ${s.urgency === 'high' ? 'bg-ds-red-container' : s.urgency === 'medium' ? 'bg-ds-surface-container' : 'bg-ds-surface-low'}`}>
-                        <Text className={`text-xs font-barlow-semi capitalize ${s.urgency === 'high' ? 'text-ds-red' : 'text-ds-on-surface-variant'}`}>
-                          {s.urgency}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text className="text-sm font-barlow text-ds-on-surface-variant">{s.reason}</Text>
-                  </Pressable>
-                ))}
+            <View className="mx-6 mb-4">
+              <View className="flex-row items-center justify-between mb-3">
+                <Text className="text-xl font-barlow-condensed text-ds-on-surface">Coaching Tips</Text>
+                <Pressable onPress={() => router.push('/drill')} className="active:opacity-70" accessibilityRole="button">
+                  <Text className="text-sm font-barlow-semi text-ds-red">Browse all →</Text>
+                </Pressable>
               </View>
-            )}
+              {gamesPlayed >= 5 && suggestions.map((s) => (
+                <Pressable
+                  key={s.drillSlug}
+                  onPress={() => router.push(`/drill/${s.drillSlug}`)}
+                  className="bg-ds-surface border border-ds-outline-variant rounded-xl p-4 mb-2 active:opacity-70"
+                  accessibilityRole="button"
+                  accessibilityLabel={s.reason}
+                >
+                  <View className="flex-row items-center justify-between mb-1">
+                    <View className={`px-2 py-0.5 rounded-full ${s.urgency === 'high' ? 'bg-ds-red-container' : s.urgency === 'medium' ? 'bg-ds-surface-container' : 'bg-ds-surface-low'}`}>
+                      <Text className={`text-xs font-barlow-semi capitalize ${s.urgency === 'high' ? 'text-ds-red' : 'text-ds-on-surface-variant'}`}>
+                        {s.urgency}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text className="text-sm font-barlow text-ds-on-surface-variant">{s.reason}</Text>
+                </Pressable>
+              ))}
+              {gamesPlayed >= 5 && suggestions.length === 0 && (
+                <View className="bg-ds-surface border border-ds-outline-variant rounded-xl px-4 py-3">
+                  <Text className="text-sm font-barlow text-ds-on-surface-variant">
+                    No suggestions right now — keep playing!
+                  </Text>
+                </View>
+              )}
+              {gamesPlayed < 5 && (
+                <View className="bg-ds-surface border border-ds-outline-variant rounded-xl px-4 py-3">
+                  <Text className="text-sm font-barlow text-ds-on-surface-variant">
+                    Play 5 games to unlock coaching suggestions.
+                  </Text>
+                </View>
+              )}
+            </View>
 
             {/* 3-Dart Avg trend chart (per-game when slug active) */}
             {trendPoints.length > 0 && (() => {
