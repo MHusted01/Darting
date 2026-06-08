@@ -1,7 +1,6 @@
 import React from 'react';
 import { describe, expect, it, beforeEach, jest } from '@jest/globals';
-import { render, screen, waitFor } from '@testing-library/react-native';
-import { fireEvent } from '@testing-library/react-native';
+import { render, screen, fireEvent } from '@testing-library/react-native';
 import FriendProfileScreen from '@/app/(protected)/friend/[userId]';
 
 const mockBack: jest.Mock<any> = jest.fn();

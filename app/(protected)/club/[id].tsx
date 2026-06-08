@@ -120,6 +120,7 @@ function MemberRow({ member, isLast }: { member: ClubMember; isLast: boolean }) 
     <Pressable
       onPress={() => router.push(`/(protected)/friend/${member.id}` as any)}
       accessibilityRole="button"
+      accessibilityLabel={`View profile: ${displayName(member)}`}
       className={`px-4 py-3 flex-row items-center gap-3 active:opacity-70 ${isLast ? '' : 'border-b border-ds-outline-variant'}`}
     >
       <View className="w-10 h-10 rounded-full bg-ds-surface-low items-center justify-center">
@@ -147,6 +148,7 @@ function LeaderboardRow({ row, rank, isLast }: { row: ClubLeaderboardRow; rank: 
     <Pressable
       onPress={() => router.push(`/(protected)/friend/${row.userId}` as any)}
       accessibilityRole="button"
+      accessibilityLabel={`View profile: ${name}`}
       className={`px-4 py-3 flex-row items-center gap-3 active:opacity-70 ${isLast ? '' : 'border-b border-ds-outline-variant'}`}
     >
       <Text className={`w-6 text-sm font-barlow-bold text-center ${rank <= 3 ? 'text-ds-red' : 'text-ds-outline'}`}>

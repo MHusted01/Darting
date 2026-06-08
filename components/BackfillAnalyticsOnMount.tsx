@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/expo';
+import * as Sentry from '@sentry/react-native';
 import { backfillAnalytics } from '@/lib/analytics-backfill';
 import { retryFailedSyncs } from '@/lib/sync-manager';
 
@@ -9,15 +10,15 @@ export function BackfillAnalyticsOnMount() {
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !userId || firedForUser.current === userId) return;
-    firedForUser.current = userId;
 
     backfillAnalytics()
-      .then(({ sessionsMarkedUnsynced }) => {
+      .then(async ({ sessionsMarkedUnsynced }) => {
         if (sessionsMarkedUnsynced > 0) {
-          return retryFailedSyncs(userId, getToken);
+          await retryFailedSyncs(userId, getToken);
         }
+        firedForUser.current = userId;
       })
-      .catch(console.error);
+      .catch(Sentry.captureException);
   }, [isLoaded, isSignedIn, userId, getToken]);
 
   return null;

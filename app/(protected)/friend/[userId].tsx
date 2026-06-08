@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -44,6 +45,10 @@ export default function FriendProfileScreen() {
     },
     enabled: !!userId,
   });
+
+  useEffect(() => {
+    if (isError) Alert.alert('Error', "Could not load this player's stats.");
+  }, [isError]);
 
   const displayName = data
     ? [data.first_name, data.last_name].filter(Boolean).join(' ') || data.username || 'Player'

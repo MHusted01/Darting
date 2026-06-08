@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -200,9 +200,10 @@ export default function StatsScreen() {
   const [contextFilter, setContextFilter] = useState<ContextFilter>('casual');
 
   const hasUnlimitedHistory = useFeatureGate('UNLIMITED_STATS_HISTORY');
-  const historySince = hasUnlimitedHistory
-    ? undefined
-    : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  const historySince = useMemo(
+    () => (hasUnlimitedHistory ? undefined : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)),
+    [hasUnlimitedHistory],
+  );
   const trendLimit = hasUnlimitedHistory ? 30 : 10;
 
   const historyQuery = useQuery({
@@ -555,7 +556,7 @@ export default function StatsScreen() {
             <View className="mx-6 mb-4">
               <View className="flex-row items-center justify-between mb-3">
                 <Text className="text-xl font-barlow-condensed text-ds-on-surface">Coaching Tips</Text>
-                <Pressable onPress={() => router.push('/drill')} className="active:opacity-70" accessibilityRole="button">
+                <Pressable onPress={() => router.push('/drill')} className="active:opacity-70" accessibilityRole="button" accessibilityLabel="Browse all drills">
                   <Text className="text-sm font-barlow-semi text-ds-red">Browse all →</Text>
                 </Pressable>
               </View>

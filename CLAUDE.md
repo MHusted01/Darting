@@ -387,6 +387,14 @@ Every `game_session` gets a `context` column: `'casual' | 'tournament' | 'practi
 - `ALTER TABLE game_players ADD COLUMN analytics jsonb, ADD COLUMN dart_counts jsonb, ADD COLUMN checkout_stats jsonb`
 - New RPC `get_player_public_stats(p_user_id text)` — `security definer`, returns aggregate KPIs only (mirrors `get_club_leaderboard` privacy model); checks friendship/club-mutual relationship before returning
 
+**Sync mapping** (`lib/supabase-sync.ts` `buildPlayerPayloads` / `buildSessionPayload`):
+- `gameSessions.context` → `game_sessions.context` (1-to-1)
+- `gamePlayers.analytics` (full blob) → `game_players.analytics` (same blob)
+- `gamePlayers.analytics.dartCounts` → `game_players.dart_counts` (promoted to top-level column for direct SQL queries)
+- `gamePlayers.analytics.checkoutStats` → `game_players.checkout_stats` (promoted to top-level column)
+- `gamePlayers.analytics.perGameKPIs` — stays inside the `analytics` blob only; no dedicated cloud column
+- `get_player_public_stats` and `get_club_leaderboard` aggregate from `game_players` / `game_sessions` directly; raw dart data (`dart_counts`, `checkout_stats`) is never returned by either RPC
+
 #### Phase 7a — Engine + capture (foundation)
 
 - `lib/games/analytics.ts` — pure functions: `computeSessionAnalytics(session, turns)` → `{ dartCounts, perGameKPIs, checkoutStats }`. Per-game KPI calculators reuse existing `lib/games/*` helpers.

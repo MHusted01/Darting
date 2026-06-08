@@ -66,6 +66,8 @@ export default function CheckoutAnalysis({ summary }: CheckoutAnalysisProps) {
           ))}
           <Pressable
             onPress={() => router.push('/drill/practice-doubles')}
+            accessibilityRole="button"
+            accessibilityLabel="Practice doubles drill"
             className="mt-2 flex-row items-center active:opacity-70"
           >
             <Text className="text-xs font-barlow-semi text-ds-red">Practice doubles</Text>

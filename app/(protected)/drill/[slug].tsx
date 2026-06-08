@@ -13,7 +13,7 @@ export default function DrillDetailScreen() {
     return (
       <SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
         <View className="flex-row items-center gap-3 px-6 pt-4 pb-3 border-b border-ds-outline-variant">
-          <Pressable onPress={() => router.back()} className="active:opacity-70">
+          <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back" className="active:opacity-70">
             <ArrowLeft size={22} color="#1c1b1b" />
           </Pressable>
           <Text className="text-xl font-barlow-condensed text-ds-on-surface">Drill</Text>
@@ -31,7 +31,7 @@ export default function DrillDetailScreen() {
   return (
     <SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
       <View className="flex-row items-center gap-3 px-6 pt-4 pb-3 border-b border-ds-outline-variant">
-        <Pressable onPress={() => router.back()} className="active:opacity-70">
+        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back" className="active:opacity-70">
           <ArrowLeft size={22} color="#1c1b1b" />
         </Pressable>
         <Text className="text-xl font-barlow-condensed text-ds-on-surface">Drill</Text>
