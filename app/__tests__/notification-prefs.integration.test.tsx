@@ -58,10 +58,10 @@ describe('Notification Preferences Screen', () => {
     fireEvent(screen.getByLabelText('Toggle friend requests notifications'), 'valueChange', false);
 
     await waitFor(() => {
-      expect(mockMutate).toHaveBeenCalledWith({
-        ...mockDefaultPrefs,
-        friend_requests: false,
-      });
+      expect(mockMutate).toHaveBeenCalledWith(
+        { ...mockDefaultPrefs, friend_requests: false },
+        expect.objectContaining({ onError: expect.any(Function) }),
+      );
     });
   });
 
@@ -71,10 +71,10 @@ describe('Notification Preferences Screen', () => {
     fireEvent(screen.getByLabelText('Toggle club invites notifications'), 'valueChange', false);
 
     await waitFor(() => {
-      expect(mockMutate).toHaveBeenCalledWith({
-        ...mockDefaultPrefs,
-        club_invites: false,
-      });
+      expect(mockMutate).toHaveBeenCalledWith(
+        { ...mockDefaultPrefs, club_invites: false },
+        expect.objectContaining({ onError: expect.any(Function) }),
+      );
     });
   });
 

@@ -182,27 +182,32 @@ export default function SocialScreen() {
 
           {friends.length > 0 && (
             <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden">
-              {friends.map((friend: Friend, index: number) => (
+              {friends.map((friend: Friend, index: number) => {
+                const confirmRemoveFriend = () => {
+                  const name = [friend.firstName, friend.lastName].filter(Boolean).join(' ') || 'this friend';
+                  Alert.alert(
+                    'Remove Friend',
+                    `Remove ${name} from friends?`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Remove',
+                        style: 'destructive',
+                        onPress: () => removeFriendMutation.mutate(friend.friendshipId, {
+                          onError: (err) => Alert.alert('Remove failed', err instanceof Error ? err.message : 'Could not remove friend'),
+                        }),
+                      },
+                    ],
+                  );
+                };
+                return (
                 <Pressable
                   key={friend.friendshipId}
                   accessibilityRole="button"
                   accessibilityLabel={`${[friend.firstName, friend.lastName].filter(Boolean).join(' ')} friend row`}
-                  accessibilityHint="Long press to remove this friend"
-                  onLongPress={() => {
-                    const name = [friend.firstName, friend.lastName].filter(Boolean).join(' ') || 'this friend';
-                    Alert.alert(
-                      'Remove Friend',
-                      `Remove ${name} from friends?`,
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Remove',
-                          style: 'destructive',
-                          onPress: () => removeFriendMutation.mutate(friend.friendshipId),
-                        },
-                      ],
-                    );
-                  }}
+                  accessibilityHint="Press or long press to remove this friend"
+                  onPress={confirmRemoveFriend}
+                  onLongPress={confirmRemoveFriend}
                   className={`px-4 py-3 flex-row items-center gap-3 active:opacity-70 ${
                     index < friends.length - 1 ? 'border-b border-ds-outline-variant' : ''
                   }`}
@@ -236,7 +241,8 @@ export default function SocialScreen() {
                     </Text>
                   </View>
                 </Pressable>
-              ))}
+                );
+              })}
             </View>
           )}
         </View>

@@ -17,11 +17,11 @@ export default function DeleteAccountScreen() {
   const isConfirmed = input === CONFIRM_PHRASE;
 
   const handleDelete = async () => {
-    if (!isConfirmed || isDeleting) return;
+    if (!isConfirmed || isDeleting || !user) return;
 
     setIsDeleting(true);
     try {
-      await user?.delete();
+      await user.delete();
       router.replace('/(public)/sign-in');
     } catch (err: unknown) {
       Alert.alert('Error', getErrorMessage(err));
@@ -61,6 +61,7 @@ export default function DeleteAccountScreen() {
               onChangeText={setInput}
               placeholder="DELETE"
               placeholderTextColor="#747878"
+              accessibilityLabel="Type DELETE to confirm account deletion"
               className="py-4 text-base font-barlow text-ds-on-surface"
               autoCapitalize="characters"
               autoCorrect={false}
@@ -74,7 +75,7 @@ export default function DeleteAccountScreen() {
           accessibilityState={{ disabled: !isConfirmed || isDeleting }}
           onPress={handleDelete}
           disabled={!isConfirmed || isDeleting}
-          className={`bg-ds-red rounded-xl py-4 items-center active:opacity-70 ${!isConfirmed || isDeleting ? 'opacity-40' : ''}`}
+          className={`bg-ds-red rounded-xl py-4 items-center active:opacity-70 ${!isConfirmed || isDeleting ? 'opacity-50' : ''}`}
         >
           <Text className="text-white font-barlow-semi text-sm uppercase tracking-widest">
             {isDeleting ? 'Deleting...' : 'Delete My Account'}

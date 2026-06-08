@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { useNotificationPrefs, useUpdateNotificationPrefs } from '@/hooks/useNotificationPrefs';
@@ -33,7 +33,12 @@ export default function NotificationPrefsScreen() {
   const current = prefs ?? DEFAULT_PREFS;
 
   const handleToggle = (key: keyof NotificationPrefs, value: boolean) => {
-    updatePrefs({ ...current, [key]: value });
+    updatePrefs({ ...current, [key]: value }, {
+      onError: (err) => Alert.alert(
+        'Unable to save',
+        err instanceof Error ? err.message : 'Could not update notification preferences',
+      ),
+    });
   };
 
   return (

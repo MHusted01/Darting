@@ -28,7 +28,10 @@ export default function SettingsScreen() {
     setIsSigningOut(true);
     try {
       if (userId) {
-        await supabase.from('users').update({ push_token: null }).eq('id', userId);
+        const { error: tokenError } = await supabase.from('users').update({ push_token: null }).eq('id', userId);
+        if (tokenError) {
+          console.error('Failed to clear push token on sign-out:', tokenError.message);
+        }
       }
       await signOut();
       router.replace('/(public)/sign-in');
@@ -162,7 +165,11 @@ export default function SettingsScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Privacy Policy"
-              onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+              onPress={() => {
+                Linking.openURL(PRIVACY_POLICY_URL).catch(() => {
+                  Alert.alert('Could not open link', 'Please try again later.');
+                });
+              }}
               className="px-4 py-4 flex-row items-center justify-between active:opacity-70"
             >
               <Text className="text-base font-barlow text-ds-on-surface">Privacy Policy</Text>

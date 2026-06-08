@@ -39,6 +39,22 @@ describe('getNotificationPrefs', () => {
     expect(result).toEqual(DEFAULT_PREFS);
   });
 
+  it('normalizes partial JSON by falling back to DEFAULT_PREFS for missing keys', async () => {
+    mockSingle.mockResolvedValue({
+      data: { notification_prefs: { friend_requests: false } },
+      error: null,
+    });
+
+    const result = await getNotificationPrefs(mockSupabase, 'user-1');
+
+    expect(result).toEqual({
+      friend_requests: false,
+      club_invites: DEFAULT_PREFS.club_invites,
+      tournament_updates: DEFAULT_PREFS.tournament_updates,
+      match_challenges: DEFAULT_PREFS.match_challenges,
+    });
+  });
+
   it('throws when Supabase returns an error', async () => {
     mockSingle.mockResolvedValue({ data: null, error: { message: 'Not found' } });
 

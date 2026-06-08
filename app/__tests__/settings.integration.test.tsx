@@ -81,6 +81,9 @@ describe('Settings Screen Integration', () => {
       expect(mockUpdate).toHaveBeenCalledWith({ push_token: null });
       expect(mockEq).toHaveBeenCalledWith('id', 'user-123');
       expect(mockSignOut).toHaveBeenCalled();
+      expect(mockUpdate.mock.invocationCallOrder[0]).toBeLessThan(
+        mockSignOut.mock.invocationCallOrder[0],
+      );
     });
   });
 

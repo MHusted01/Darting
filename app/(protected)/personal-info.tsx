@@ -1,7 +1,7 @@
 import { useAuth, useUser } from '@clerk/expo';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { useAppStore } from '@/stores/appStore';
@@ -36,13 +36,17 @@ export default function PersonalInfoScreen() {
     setIsSaving(true);
     try {
       if (username.toLowerCase() !== (user?.username ?? '').toLowerCase()) {
-        const { data } = await supabase
+        const { data, error: lookupError } = await supabase
           .from('users')
           .select('id')
           .ilike('username', username)
           .neq('id', userId)
           .maybeSingle();
 
+        if (lookupError) {
+          Alert.alert('Error', lookupError.message);
+          return;
+        }
         if (data) {
           Alert.alert('Error', 'Username already taken');
           return;
@@ -72,6 +76,10 @@ export default function PersonalInfoScreen() {
         <Text className="text-xl font-barlow-condensed text-ds-on-surface">Personal Info</Text>
       </View>
 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="px-6 pt-6 items-center">
           <View
@@ -113,6 +121,7 @@ export default function PersonalInfoScreen() {
                 onChangeText={setFirstName}
                 placeholder="First name"
                 placeholderTextColor="#747878"
+                accessibilityLabel="First name"
                 className="py-4 text-base font-barlow text-ds-on-surface"
                 autoCapitalize="words"
               />
@@ -129,6 +138,7 @@ export default function PersonalInfoScreen() {
                 onChangeText={setLastName}
                 placeholder="Last name"
                 placeholderTextColor="#747878"
+                accessibilityLabel="Last name"
                 className="py-4 text-base font-barlow text-ds-on-surface"
                 autoCapitalize="words"
               />
@@ -145,6 +155,7 @@ export default function PersonalInfoScreen() {
                 onChangeText={setUsername}
                 placeholder="@username"
                 placeholderTextColor="#747878"
+                accessibilityLabel="Username"
                 className="py-4 text-base font-barlow text-ds-on-surface"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -166,6 +177,7 @@ export default function PersonalInfoScreen() {
           </Pressable>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

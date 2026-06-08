@@ -21,7 +21,10 @@ export function useUpdateNotificationPrefs() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (prefs: NotificationPrefs) => updateNotificationPrefs(supabase, userId!, prefs),
+    mutationFn: (prefs: NotificationPrefs) => {
+      if (!userId) return Promise.reject(new Error('Not authenticated'));
+      return updateNotificationPrefs(supabase, userId, prefs);
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['notification-prefs', userId] });
     },

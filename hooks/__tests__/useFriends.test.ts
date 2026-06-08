@@ -1,4 +1,8 @@
+import React from 'react';
 import { describe, expect, it, beforeEach, jest } from '@jest/globals';
+import { renderHook, act, waitFor } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useRemoveFriend } from '@/hooks/useFriends';
 import { removeFriend } from '@/lib/friends';
 
 jest.mock('@/lib/friends', () => ({
@@ -13,27 +17,62 @@ jest.mock('@/lib/friends', () => ({
   mergePresence: jest.fn(),
 }));
 
+jest.mock('@clerk/expo', () => ({
+  useAuth: () => ({ userId: 'user-123' }),
+}));
+
+jest.mock('@/providers/SupabaseProvider', () => ({
+  useSupabase: () => ({}),
+}));
+
 const mockRemoveFriend = removeFriend as jest.Mock<any>;
 
-describe('removeFriend lib contract (via hook layer)', () => {
+function makeWrapper() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+  const Wrapper = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
+  return { Wrapper, invalidateSpy };
+}
+
+describe('useRemoveFriend', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('removeFriend is exported', () => {
-    expect(typeof removeFriend).toBe('function');
-  });
-
-  it('removeFriend resolves when called with supabase, friendshipId, and userId', async () => {
+  it('calls removeFriend with the correct friendshipId and userId', async () => {
     mockRemoveFriend.mockResolvedValue(undefined);
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(() => useRemoveFriend(), { wrapper: Wrapper });
 
-    await expect(removeFriend({} as any, 'friendship-abc', 'user-1')).resolves.toBeUndefined();
-    expect(mockRemoveFriend).toHaveBeenCalledWith({}, 'friendship-abc', 'user-1');
+    await act(async () => {
+      result.current.mutate('friendship-abc');
+    });
+
+    await waitFor(() => expect(mockRemoveFriend).toHaveBeenCalledWith({}, 'friendship-abc', 'user-123'));
   });
 
-  it('removeFriend rejects when the lib throws', async () => {
-    mockRemoveFriend.mockRejectedValue(new Error('RLS violation'));
+  it('invalidates the friends query on success', async () => {
+    mockRemoveFriend.mockResolvedValue(undefined);
+    const { Wrapper, invalidateSpy } = makeWrapper();
+    const { result } = renderHook(() => useRemoveFriend(), { wrapper: Wrapper });
 
-    await expect(removeFriend({} as any, 'friendship-abc', 'user-1')).rejects.toThrow('RLS violation');
+    await act(async () => {
+      result.current.mutate('friendship-abc');
+    });
+
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['friends'] }));
+  });
+
+  it('surfaces errors via the mutation error state', async () => {
+    mockRemoveFriend.mockRejectedValue(new Error('RLS violation'));
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(() => useRemoveFriend(), { wrapper: Wrapper });
+
+    await act(async () => {
+      result.current.mutate('friendship-abc');
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
   });
 });

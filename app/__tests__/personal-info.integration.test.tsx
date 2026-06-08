@@ -93,6 +93,30 @@ describe('Personal Info Screen', () => {
     });
   });
 
+  it('shows error when username format is invalid', async () => {
+    render(<PersonalInfoScreen />);
+    fireEvent.changeText(screen.getByDisplayValue('ada_lovelace'), 'bad username!');
+    fireEvent.press(screen.getByLabelText('Save'));
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('Error', expect.stringMatching(/3.20 characters/i));
+      expect(mockUserUpdate).not.toHaveBeenCalled();
+    });
+  });
+
+  it('shows error when Supabase uniqueness lookup fails', async () => {
+    mockMaybeSingle.mockResolvedValue({ data: null, error: { message: 'Connection error' } });
+
+    render(<PersonalInfoScreen />);
+    fireEvent.changeText(screen.getByDisplayValue('ada_lovelace'), 'new_handle');
+    fireEvent.press(screen.getByLabelText('Save'));
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('Error', 'Connection error');
+      expect(mockUserUpdate).not.toHaveBeenCalled();
+    });
+  });
+
   it('saves when changed username is available', async () => {
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
 

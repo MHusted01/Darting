@@ -1,7 +1,7 @@
 import { useSession, useUser } from '@clerk/expo';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { getErrorMessage } from '@/lib/errors';
@@ -66,6 +66,10 @@ export default function SecurityScreen() {
         <Text className="text-xl font-barlow-condensed text-ds-on-surface">Security</Text>
       </View>
 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="px-6 pt-6">
           <View className="bg-ds-surface border border-ds-outline-variant rounded-xl px-4 py-4 mb-6">
@@ -86,6 +90,7 @@ export default function SecurityScreen() {
                 onChangeText={setCurrentPassword}
                 placeholder="Current password"
                 placeholderTextColor="#747878"
+                accessibilityLabel="Current password"
                 secureTextEntry
                 className="py-4 text-base font-barlow text-ds-on-surface"
                 autoCapitalize="none"
@@ -99,6 +104,7 @@ export default function SecurityScreen() {
                 onChangeText={setNewPassword}
                 placeholder="New password"
                 placeholderTextColor="#747878"
+                accessibilityLabel="New password"
                 secureTextEntry
                 className="py-4 text-base font-barlow text-ds-on-surface"
                 autoCapitalize="none"
@@ -112,6 +118,7 @@ export default function SecurityScreen() {
                 onChangeText={setConfirmPassword}
                 placeholder="Confirm new password"
                 placeholderTextColor="#747878"
+                accessibilityLabel="Confirm new password"
                 secureTextEntry
                 className="py-4 text-base font-barlow text-ds-on-surface"
                 autoCapitalize="none"
@@ -134,6 +141,7 @@ export default function SecurityScreen() {
           </View>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

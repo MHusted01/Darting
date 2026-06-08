@@ -64,6 +64,7 @@ export default function HelpCenterScreen() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={item.question}
+                  accessibilityState={{ expanded: openIndex === index }}
                   onPress={() => toggle(index)}
                   className="px-4 py-4 flex-row items-center justify-between active:opacity-70"
                 >

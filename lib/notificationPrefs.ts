@@ -25,7 +25,14 @@ export async function getNotificationPrefs(
     .single();
 
   if (error) throw new Error(error.message);
-  return (data?.notification_prefs as NotificationPrefs | null) ?? DEFAULT_PREFS;
+  const raw = data?.notification_prefs as Partial<NotificationPrefs> | null;
+  if (!raw) return DEFAULT_PREFS;
+  return {
+    friend_requests:    typeof raw.friend_requests    === 'boolean' ? raw.friend_requests    : DEFAULT_PREFS.friend_requests,
+    club_invites:       typeof raw.club_invites       === 'boolean' ? raw.club_invites       : DEFAULT_PREFS.club_invites,
+    tournament_updates: typeof raw.tournament_updates === 'boolean' ? raw.tournament_updates : DEFAULT_PREFS.tournament_updates,
+    match_challenges:   typeof raw.match_challenges   === 'boolean' ? raw.match_challenges   : DEFAULT_PREFS.match_challenges,
+  };
 }
 
 export async function updateNotificationPrefs(
