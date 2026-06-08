@@ -12,6 +12,7 @@ import { FriendRequestsSection } from '@/components/social/FriendRequestsSection
 import { FriendSearchModal } from '@/components/social/FriendSearchModal';
 import { CreateClubModal } from '@/components/social/CreateClubModal';
 import { ClubSearchModal } from '@/components/social/ClubSearchModal';
+import { FriendActivitySection } from '@/components/social/FriendActivitySection';
 import type { Club, Friend, FriendStatus } from '@/types/social';
 
 const STATUS_DOT: Record<FriendStatus, string> = {
@@ -83,6 +84,9 @@ export default function SocialScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+
+        {/* ── Friend Activity ── */}
+        <FriendActivitySection />
 
         {/* ── My Clubs ── */}
         <View className="px-6 pt-4">

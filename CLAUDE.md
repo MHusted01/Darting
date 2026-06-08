@@ -468,7 +468,7 @@ Target-based games (ATC, Shanghai, Baseball, Bob's 27, Bermuda, Halve-It) have a
 - New tables: `club_posts` (clubId, authorId, body, createdAt), `club_post_comments` (postId, authorId, body), `club_post_reactions` (postId, userId, type)
 - Feed tab within each club screen; infinite scroll via TanStack Query + cursor pagination
 - Post creation: text + optional auto-attach of a recent game result
-- Comments: threaded (one level deep)
+- Comments: one level deep — direct replies to a post only, no nested replies (no `parent_id` field)
 - @mentions: parse `@username` in body, notify mentioned user via push
 - Reactions: 👍 🎯 🔥 (stored as type enum, aggregated count shown)
 - Moderation: club admins can delete any post/comment

@@ -13,12 +13,13 @@ Deno.serve(async (req) => {
     const payload = await req.json();
 
     const record = payload.record as {
+      id: string;
       requester_id: string;
       addressee_id: string;
       status: string;
     } | undefined;
 
-    if (!record || record.status !== 'pending') {
+    if (!record || record.status !== 'accepted') {
       return new Response('Ignored', { status: 200 });
     }
 
@@ -27,37 +28,46 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    const { data: sender } = await supabase
+    const { data: accepter, error: accepterError } = await supabase
       .from('users')
       .select('first_name, username')
-      .eq('id', record.requester_id)
-      .single();
-
-    const { data: recipient } = await supabase
-      .from('users')
-      .select('push_token, notification_prefs')
       .eq('id', record.addressee_id)
       .single();
 
-    if (!recipient?.push_token) {
+    if (accepterError) {
+      console.error('notify-friend-accepted: failed to fetch accepter', { id: record.addressee_id, error: accepterError.message });
+    }
+
+    const { data: requester, error: requesterError } = await supabase
+      .from('users')
+      .select('push_token, notification_prefs')
+      .eq('id', record.requester_id)
+      .single();
+
+    if (requesterError) {
+      console.error('notify-friend-accepted: failed to fetch requester', { id: record.requester_id, error: requesterError.message });
+      return new Response('User lookup failed', { status: 200 });
+    }
+
+    if (!requester?.push_token) {
       return new Response('No push token', { status: 200 });
     }
 
-    const prefs = recipient.notification_prefs as { friend_requests?: boolean } | null;
+    const prefs = requester.notification_prefs as { friend_requests?: boolean } | null;
     if (prefs?.friend_requests !== undefined && prefs.friend_requests !== true) {
       return new Response('Notifications disabled', { status: 200 });
     }
 
-    const senderName = sender?.first_name ?? sender?.username ?? 'Someone';
+    const accepterName = accepter?.first_name ?? accepter?.username ?? 'Someone';
 
     const response = await fetch(EXPO_PUSH_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        to: recipient.push_token,
-        title: 'New Friend Request',
-        body: `${senderName} sent you a friend request`,
-        data: { type: 'friend_request', userId: record.requester_id },
+        to: requester.push_token,
+        title: 'Friend Request Accepted',
+        body: `${accepterName} accepted your friend request`,
+        data: { type: 'friend_accepted', userId: record.addressee_id },
       }),
       signal: AbortSignal.timeout(5000),
     });
@@ -68,7 +78,7 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('notify-friend-request error:', error);
+    console.error('notify-friend-accepted error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500 });
   }
 });
