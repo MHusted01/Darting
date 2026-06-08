@@ -205,8 +205,8 @@ export default function SocialScreen() {
                   key={friend.friendshipId}
                   accessibilityRole="button"
                   accessibilityLabel={`${[friend.firstName, friend.lastName].filter(Boolean).join(' ')} friend row`}
-                  accessibilityHint="Press or long press to remove this friend"
-                  onPress={confirmRemoveFriend}
+                  accessibilityHint="Press to view profile, long press to remove friend"
+                  onPress={() => router.push(`/(protected)/friend/${friend.id}` as any)}
                   onLongPress={confirmRemoveFriend}
                   className={`px-4 py-3 flex-row items-center gap-3 active:opacity-70 ${
                     index < friends.length - 1 ? 'border-b border-ds-outline-variant' : ''

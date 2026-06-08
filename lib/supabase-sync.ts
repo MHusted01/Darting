@@ -40,6 +40,7 @@ export function buildSessionPayload(
   return {
     game_slug: session.gameSlug,
     status: 'completed',
+    context: session.context ?? 'casual',
     created_by: clerkUserId,
     source_session_id: String(session.id),
     config: session.config ?? null,
@@ -52,16 +53,22 @@ export function buildPlayerPayloads(
   session: SyncableSession,
   cloudSessionId: string,
 ): Record<string, unknown>[] {
-  return session.gamePlayers.map((gp) => ({
-    game_session_id: cloudSessionId,
-    user_id: gp.player.userId ?? null,
-    player_name: gp.player.name,
-    player_order: gp.playerOrder,
-    final_score: gp.currentScore,
-    is_winner: gp.isWinner,
-    game_state: gp.gameState ?? null,
-    three_dart_avg: gp.threeDartAvg ?? null,
-  }));
+  return session.gamePlayers.map((gp) => {
+    const analytics = gp.analytics as { dartCounts?: unknown; checkoutStats?: unknown } | null;
+    return {
+      game_session_id: cloudSessionId,
+      user_id: gp.player.userId ?? null,
+      player_name: gp.player.name,
+      player_order: gp.playerOrder,
+      final_score: gp.currentScore,
+      is_winner: gp.isWinner,
+      game_state: gp.gameState ?? null,
+      three_dart_avg: gp.threeDartAvg ?? null,
+      analytics: analytics ?? null,
+      dart_counts: analytics?.dartCounts ?? null,
+      checkout_stats: analytics?.checkoutStats ?? null,
+    };
+  });
 }
 
 export function buildTurnPayloads(

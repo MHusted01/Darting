@@ -362,29 +362,90 @@ Make every settings item functional; nothing shows "Coming Soon".
 
 ### Phase 7 — Advanced Stats & Game Intelligence
 
-Transform stats from a history viewer into an actual coaching tool.
+Transform stats from a history viewer into a genuine coaching tool. Stats answer: "What do I need to practice to actually get better?"
 
-**Per-dart segment analysis**
-- New Supabase columns: `game_sessions.dart_counts` (JSONB) — hit counts per segment (1–20, bull, double-bull) accumulated from `gameTurns.darts`
-- Computed on session complete in sync worker
-- Stats screen: segment accuracy chart (hit rate per number 1–20)
+#### Stat collection rules
 
-**Checkout analysis (X01 only)**
-- Track checkout attempts vs successes per double (stored in `game_sessions.checkout_stats` JSONB)
-- "Best closer" — top 3 doubles by success rate
-- "Worst closer" — bottom 3 doubles by success rate
-- Suggested doubles to practice (lowest success rate with enough attempts to be statistically meaningful)
+- **Skill KPIs** (3-dart avg, checkout %, win rate, marks/round, personal bests): completed games only (`status = 'completed'`).
+- **Segment accuracy / dart-count heatmap**: all sessions with turn data (completed + abandoned) — each dart is individually valid regardless of game outcome.
+- **Engagement stats** (games started, abandon rate): all sessions.
+
+#### Context tagging
+
+Every `game_session` gets a `context` column: `'casual' | 'tournament' | 'practice' | 'realtime'`, defaulting to `'casual'`. Tournament games (Phase 9) set `'tournament'`; drill sessions set `'practice'`; real-time challenges (Phase 10) set `'realtime'`.
+
+**Stats are unified — not forked.** Headline numbers (lifetime avg, personal bests) aggregate `casual + tournament`. A context filter pill on the stats screen lets you slice by context. Practice throws count toward the segment heatmap but are excluded from competitive KPIs by default. This prevents players from avoiding tournaments to "protect" their stats while still enabling "how do I perform under pressure?" analysis.
+
+#### Schema changes
+
+**Local SQLite** (`db/schema.ts` + new Drizzle migration):
+- `gameSessions.context` — `text` enum `['casual','tournament','practice','realtime']` default `'casual'`
+- `gamePlayers.analytics` — `text({mode:'json'})` nullable: `{ dartCounts, perGameKPIs, checkoutStats }` stored per-player (not per-session) so multi-player games get individual blobs
+
+**Cloud** (new Supabase migration):
+- `ALTER TABLE game_sessions ADD COLUMN context text NOT NULL DEFAULT 'casual'`
+- `ALTER TABLE game_players ADD COLUMN analytics jsonb, ADD COLUMN dart_counts jsonb, ADD COLUMN checkout_stats jsonb`
+- New RPC `get_player_public_stats(p_user_id text)` — `security definer`, returns aggregate KPIs only (mirrors `get_club_leaderboard` privacy model); checks friendship/club-mutual relationship before returning
+
+#### Phase 7a — Engine + capture (foundation)
+
+- `lib/games/analytics.ts` — pure functions: `computeSessionAnalytics(session, turns)` → `{ dartCounts, perGameKPIs, checkoutStats }`. Per-game KPI calculators reuse existing `lib/games/*` helpers.
+- Hook computation into session-complete in the results screen; store blob on `gamePlayers.analytics`.
+- One-time backfill for existing completed sessions (idempotent, keyed on null `analytics`).
+- Extend `supabase-sync.ts` `buildPlayerPayloads` to send new columns + `buildSessionPayload` to send `context`.
+
+#### Phase 7b — Self stats UI
+
+**Segment accuracy heatmap**
+- Hit rate per number 1–20 + bull, with single/double/triple/miss breakdown
+- Filterable by game type and context pill
+- Includes abandoned sessions (raw dart data is valid regardless of completion)
+
+**Per-game-type KPI dashboards** — each game gets its meaningful coaching metrics:
+
+| Game | Key stats |
+|---|---|
+| **X01 (501/301)** | 3-dart avg, first-9-dart avg, checkout % per double, highest checkout, 180s / 140s / 100+ count, bust rate |
+| **Cricket** | Marks per round (MPR), hit rate on 15–20 + bull, segments closed efficiency, points conceded |
+| **Around the Clock** | Darts per number (which numbers need work), total darts to complete, stuck-number count |
+| **Shanghai** | Hit rate per round-target (1–7), triples hit, Shanghais achieved |
+| **Baseball** | Runs per inning, hit rate on inning segment |
+| **Halve-It** | Halve count, hit rate per target including doubles/triples rounds |
+| **High Score** | Avg score per round, best single round |
+| **Bob's 27** | Doubles hit rate by number, rounds survived, elimination rate |
+| **Killer** | Hits on own number, opponent eliminations, survival rate |
+| **Bermuda Triangle** | Hit rate per fixed target in the 12-round sequence |
+
+Target-based games (ATC, Shanghai, Baseball, Bob's 27, Bermuda, Halve-It) have a deterministic target per round number — since `roundNumber` is stored, intended-target accuracy is computable without any extra capture.
+
+**Universal coaching metrics** (every game type):
+- Consistency (std-dev of per-turn scores)
+- Improvement velocity (KPI slope over last N sessions)
+- Session fatigue (KPI by round-number bucket — "your avg drops after round 12")
+- Head-to-head stats vs a specific opponent (filter sessions containing their `playerId`)
+
+**Checkout analysis (X01)**
+- Attempt detection: double thrown while `remaining ≤ 50` = attempt (labeled "estimated")
+- Best closer / worst closer — top and bottom doubles by success rate
+- Suggested doubles to practice (lowest success rate with ≥ meaningful attempt count)
 
 **Extended trends**
-- Extend trend chart from last 10 to last 30 sessions
-- Breakdown by game type
-- Full history access gated behind `UNLIMITED_STATS_HISTORY` (free tier: last 3 months, ~90 sessions)
+- Trend chart extended from last 10 → last 30 sessions, per-KPI, per-game-type breakdown
+- Full history gated behind `UNLIMITED_STATS_HISTORY` (free tier: last 3 months / ~90 sessions)
+
+#### Phase 7c — Intelligence + social profile
 
 **Rule-based improvement suggestions**
 - `lib/suggestions.ts` — deterministic rules engine
-- Rules: low doubles %, low average for game type, inconsistent finishing, etc.
-- Each suggestion maps to a named drill in a `constants/drills.ts` catalogue
-- Drills screen per suggestion: what to practice, how to score it, benchmark targets
+- Rules: low doubles %, low average for game type, inconsistent finishing, high bust rate, etc.
+- Each suggestion maps to a named drill in `constants/drills.ts` catalogue
+- Drill detail screen: what to practice, how to score it, benchmark targets
+
+**Friend / club member stat profile** (`app/(protected)/friend/[userId].tsx`)
+- Tapping a friend or club member row navigates to their profile (aggregate-only)
+- Stats shown: 3-dart avg, games played, win rate, per-game KPIs via `get_player_public_stats` RPC
+- Raw dart data stays self-only (RLS on `game_turns` is unchanged)
+- Phase 8 enriches this same file with recent games, streak, mutual clubs, challenge CTA — do not duplicate or re-create the file in Phase 8
 
 **Claude-powered coaching (gated)**
 - Gate: `AI_COACHING` (off by default until Phase 11)
@@ -405,8 +466,8 @@ Transform stats from a history viewer into an actual coaching tool.
 - Moderation: club admins can delete any post/comment
 
 **Friends evolution**
-- Friend profile screen (`app/(protected)/friend/[userId].tsx`)
-  - Their stats summary, recent games, current streak
+- Friend profile screen (`app/(protected)/friend/[userId].tsx`) — **file created in Phase 7 with aggregate KPI cards**; Phase 8 extends it with:
+  - Recent games list, current streak
   - Mutual clubs shown
   - "Challenge to a game" CTA (Phase 10)
 - Friend activity feed on Social tab (friends' recent completed games)
@@ -440,6 +501,7 @@ Transform stats from a history viewer into an actual coaching tool.
 
 **Integration with game engine**
 - "Play tournament match" CTA on match card → launches normal game setup pre-filled with both players and match settings → on complete, result is recorded against the match
+- Sets `game_sessions.context = 'tournament'` and links `tournament_match_id` so tournament performance is filterable in stats but contributes to lifetime KPIs
 
 ---
 
