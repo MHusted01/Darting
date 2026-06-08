@@ -13,9 +13,11 @@ interface AppState {
   theme: 'light' | 'dark';
   notifications: boolean;
   soundEffects: boolean;
+  avatarColor: string;
   toggleTheme: () => void;
   setNotifications: (v: boolean) => void;
   setSoundEffects: (v: boolean) => void;
+  setAvatarColor: (v: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -24,12 +26,14 @@ export const useAppStore = create<AppState>()(
       theme: 'light',
       notifications: true,
       soundEffects: false,
+      avatarColor: '#b8f0bc',
       toggleTheme: () =>
         set((state) => ({
           theme: state.theme === 'light' ? 'dark' : 'light',
         })),
       setNotifications: (v) => set({ notifications: v }),
       setSoundEffects: (v) => set({ soundEffects: v }),
+      setAvatarColor: (v) => set({ avatarColor: v }),
     }),
     {
       name: 'app-store',            // key in MMKV

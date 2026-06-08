@@ -35,12 +35,17 @@ Deno.serve(async (req) => {
 
     const { data: recipient } = await supabase
       .from('users')
-      .select('push_token')
+      .select('push_token, notification_prefs')
       .eq('id', record.addressee_id)
       .single();
 
     if (!recipient?.push_token) {
       return new Response('No push token', { status: 200 });
+    }
+
+    const prefs = recipient.notification_prefs as { friend_requests?: boolean } | null;
+    if (prefs?.friend_requests !== undefined && prefs.friend_requests !== true) {
+      return new Response('Notifications disabled', { status: 200 });
     }
 
     const senderName = sender?.first_name ?? sender?.username ?? 'Someone';

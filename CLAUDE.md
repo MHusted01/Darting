@@ -318,14 +318,201 @@ Order of delivery:
 1. Auto-add signed-in user (quick win, no Social needed)
 2. Pick from friends / club members (after Phase 4 ships social graph)
 
-### Phase 5 — Production Hardening
+### Phase 5 — Production Hardening ✅
 
-- [ ] Password reset flow (currently "Coming Soon" in sign-in)
-- [ ] Push notifications — Expo Notifications + Supabase Edge Function trigger
-- [ ] Error tracking — Sentry for React Native
-- [ ] `expo-splash-screen` — hold splash open during font + migration load
-- [ ] EAS Build configuration for App Store and Google Play submission
-- [ ] App Store / Play Store metadata, icons, screenshots
+- [x] Password reset flow — Clerk `resetPasswordEmailCode` typed API, 3-step screen
+- [x] Push notifications — `expo-notifications`, `usePushToken` hook, `notify-friend-request` edge function
+- [x] Error tracking — Sentry initialised in root layout, `Sentry.wrap`, push token errors captured
+- [x] `expo-splash-screen` — holds splash until fonts + SQLite migrations ready
+- [ ] EAS Build — `eas.json` profiles configured; App Store / Play Store credentials + metadata still pending
+
+---
+
+### Phase 6 — Settings & Account Polish
+
+Make every settings item functional; nothing shows "Coming Soon".
+
+**Personal Info screen** (`app/(protected)/personal-info.tsx`)
+- Edit first name, last name (Clerk `updateUser`)
+- Change username — validated uniqueness via Supabase `users_username_lower_key` index
+- Avatar: initials-based colour picker (no image upload yet)
+
+**Security screen** (`app/(protected)/security.tsx`)
+- Change password — reuse the `resetPasswordEmailCode` flow but from within the app (user is already signed in, confirm current password first via `signIn.password`, then `resetPasswordEmailCode` flow)
+- Shows last sign-in time from Clerk session
+
+**Notification preferences** (`app/(protected)/notification-prefs.tsx`)
+- Per-event toggles stored in Supabase `users.notification_prefs` (JSONB column): friend requests, club invites, tournament updates, match challenges
+- Toggles respected by `notify-friend-request` edge function and future notification edge functions
+
+**Friends: unfriend**
+- Add remove / unfriend action on existing friend list rows (soft delete from `friendships` table)
+- Confirmation alert before removing
+
+**Help Center** — static screen with FAQ content
+**Privacy Policy** — opens system browser to a hosted URL (no in-app screen needed)
+**Delete account** — Clerk `user.delete()` + cascade via Supabase RLS
+
+**Feature gate architecture** (used from Phase 6 onward)
+- `lib/subscription.ts` — `useFeatureGate(feature: FeatureName): boolean`
+- All gates return `true` for now; designed to plug into RevenueCat entitlements later without refactoring call sites
+- Gate checked at render time; gates: `UNLIMITED_STATS_HISTORY`, `CREATE_TOURNAMENT`, `AI_COACHING`, `REALTIME_GAMES`, `CREATE_CLUBS_UNLIMITED`, `JOIN_CLUBS_UNLIMITED`
+
+---
+
+### Phase 7 — Advanced Stats & Game Intelligence
+
+Transform stats from a history viewer into an actual coaching tool.
+
+**Per-dart segment analysis**
+- New Supabase columns: `game_sessions.dart_counts` (JSONB) — hit counts per segment (1–20, bull, double-bull) accumulated from `gameTurns.darts`
+- Computed on session complete in sync worker
+- Stats screen: segment accuracy chart (hit rate per number 1–20)
+
+**Checkout analysis (X01 only)**
+- Track checkout attempts vs successes per double (stored in `game_sessions.checkout_stats` JSONB)
+- "Best closer" — top 3 doubles by success rate
+- "Worst closer" — bottom 3 doubles by success rate
+- Suggested doubles to practice (lowest success rate with enough attempts to be statistically meaningful)
+
+**Extended trends**
+- Extend trend chart from last 10 to last 30 sessions
+- Breakdown by game type
+- Full history access gated behind `UNLIMITED_STATS_HISTORY` (free tier: last 3 months, ~90 sessions)
+
+**Rule-based improvement suggestions**
+- `lib/suggestions.ts` — deterministic rules engine
+- Rules: low doubles %, low average for game type, inconsistent finishing, etc.
+- Each suggestion maps to a named drill in a `constants/drills.ts` catalogue
+- Drills screen per suggestion: what to practice, how to score it, benchmark targets
+
+**Claude-powered coaching (gated)**
+- Gate: `AI_COACHING` (off by default until Phase 11)
+- When gate open: call Claude API with aggregated stats JSON → return 3 personalised coaching observations
+- Prompt lives in `supabase/functions/ai-coaching/index.ts` (edge function to keep API key server-side)
+
+---
+
+### Phase 8 — Social Evolution
+
+**Club social feed**
+- New tables: `club_posts` (clubId, authorId, body, createdAt), `club_post_comments` (postId, authorId, body), `club_post_reactions` (postId, userId, type)
+- Feed tab within each club screen; infinite scroll via TanStack Query + cursor pagination
+- Post creation: text + optional auto-attach of a recent game result
+- Comments: threaded (one level deep)
+- @mentions: parse `@username` in body, notify mentioned user via push
+- Reactions: 👍 🎯 🔥 (stored as type enum, aggregated count shown)
+- Moderation: club admins can delete any post/comment
+
+**Friends evolution**
+- Friend profile screen (`app/(protected)/friend/[userId].tsx`)
+  - Their stats summary, recent games, current streak
+  - Mutual clubs shown
+  - "Challenge to a game" CTA (Phase 10)
+- Friend activity feed on Social tab (friends' recent completed games)
+- Push notification for friend request accepted (new edge function `notify-friend-accepted`)
+
+---
+
+### Phase 9 — Tournaments
+
+**Schema**
+- `tournaments` — id, clubId (nullable for multi-club), createdBy, name, format (`league`|`cup`|`weekly`|`round_robin`), gameSlug, status, startDate, endDate, settings (JSONB: legs per match, double-out, etc.)
+- `tournament_participants` — tournamentId, userId, clubId (for multi-club), seeding
+- `tournament_rounds` — tournamentId, roundNumber, status
+- `tournament_matches` — roundId, participant1Id, participant2Id, winnerId, gameSessionId (linked to a real scored game)
+- `divisions` — id, name, adminUserId (for multi-club league organisation)
+- `division_clubs` — divisionId, clubId
+
+**Formats**
+- **League / Season** — points table (W=3, D=1, L=0), configurable season length; standings view
+- **Knockout / Cup** — auto-generated bracket, best-of-X legs per tie; bracket visualisation
+- **Weekly Challenge** — auto-recurring (pg_cron edge function resets every Monday); open to all club members; ranks by score in chosen game type
+- **Round Robin** — everyone plays everyone once; winner by most wins then leg difference
+
+**Multi-club tournaments**
+- Division admin creates a tournament, invites clubs (invite by club name/code)
+- Club admins accept the division invite
+- Players in invited clubs can participate
+- Standings show per-club and per-player rankings
+
+**Tournament creation flow** — gated behind `CREATE_TOURNAMENT` (free for now)
+
+**Integration with game engine**
+- "Play tournament match" CTA on match card → launches normal game setup pre-filled with both players and match settings → on complete, result is recorded against the match
+
+---
+
+### Phase 10 — Real-Time Multiplayer
+
+Play against a friend or club member in real time from different locations.
+
+**Architecture**
+- `game_challenges` Supabase table — challengerId, challengeeId, gameSlug, settings (JSONB), status (`pending`|`accepted`|`declined`|`in_progress`|`complete`)
+- Lobby: Supabase Realtime channel per challenge (`challenge:<id>`)
+- Shared game state: each player's turn result is broadcast via Realtime; opponent sees live score update between throws
+- Turn enforcement: server-side validation via edge function `validate-turn` — prevents cheating by verifying turn belongs to the active player
+
+**Flow**
+1. Player A taps "Challenge" on a friend/club member profile
+2. Supabase INSERT to `game_challenges` → push notification to Player B (`notify-game-challenge` edge function)
+3. Player B accepts → both enter lobby screen, see each other's online status
+4. Game starts: turn-based, each player scores their own darts; opponent sees real-time update
+5. On game complete: result synced to `game_sessions` as normal; recorded in both players' stats
+
+**Spectator mode**
+- Club members can join a read-only Realtime subscription on an active challenge to watch live
+
+**Gate**: `REALTIME_GAMES` (off by default; free for now)
+
+---
+
+### Phase 11 — UI / UX Optimisation
+
+A dedicated polish pass across all screens before App Store submission.
+
+- Empty states: every list screen has an illustrated empty state with a clear CTA
+- Skeleton loaders: replace `ActivityIndicator` with skeleton screens on all data-fetching screens
+- Haptic feedback: `expo-haptics` on button presses, game score submission, achievements
+- Reanimated micro-interactions: card press scale, list item slide-in, tab switch transitions
+- Accessibility: ensure all interactive elements have `accessibilityLabel`, support Dynamic Type, VoiceOver/TalkBack passes
+- Keyboard avoidance: `KeyboardAvoidingView` on all form screens
+- Pull-to-refresh on all feed / list screens
+- Error boundary wrapping key screens (Sentry-aware)
+- Review every "Coming Soon" remnant — replace or remove
+
+---
+
+### Phase 12 — Subscription & Monetisation
+
+When income is needed. Requires Apple Developer account in good standing and Google Play Console setup.
+
+**Platform**: RevenueCat (`react-native-purchases`)
+
+**Free tier** (permanent, not a trial):
+- All game types, unlimited local play
+- Stats history: last 3 months
+- Join up to 2 clubs
+- Up to 15 friends
+- Participate in tournaments (join, not create)
+- Basic improvement suggestions
+
+**Pro tier** (subscription):
+- Unlimited stats history
+- Create clubs (members always free to join)
+- Create & manage tournaments at club and division level
+- Advanced stats: segment heatmap, checkout analysis, full historical breakdown
+- AI coaching (Claude-powered, ~3 analyses/month)
+- Real-time games against friends
+- Unlimited friends + clubs
+
+**Implementation**
+- RevenueCat SDK initialised in root layout
+- `lib/subscription.ts` `useFeatureGate` updated to query RevenueCat entitlements instead of returning `true`
+- Paywall screen triggered on gate fail
+- Supabase webhook from RevenueCat to sync subscription status to `users.subscription_tier`
+
+---
 
 ## ECC Workflow
 
