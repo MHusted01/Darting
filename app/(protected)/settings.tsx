@@ -1,10 +1,12 @@
 import { useAuth, useUser } from '@clerk/expo';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useAppStore } from '@/stores/appStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronRight, ExternalLink, ArrowLeft } from 'lucide-react-native';
+import { PRIVACY_POLICY_URL } from '@/constants/links';
+import { useSupabase } from '@/providers/SupabaseProvider';
 
 const DS = {
   green: '#b8f0bc',
@@ -13,9 +15,10 @@ const DS = {
 } as const;
 
 export default function SettingsScreen() {
-  const { signOut } = useAuth();
+  const { signOut, userId } = useAuth();
   const { user } = useUser();
   const router = useRouter();
+  const supabase = useSupabase();
 
   const { notifications, soundEffects, setNotifications, setSoundEffects } = useAppStore();
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -24,6 +27,12 @@ export default function SettingsScreen() {
     if (isSigningOut) return;
     setIsSigningOut(true);
     try {
+      if (userId) {
+        const { error: tokenError } = await supabase.from('users').update({ push_token: null }).eq('id', userId);
+        if (tokenError) {
+          console.error('Failed to clear push token on sign-out:', tokenError.message);
+        }
+      }
       await signOut();
       router.replace('/(public)/sign-in');
     } catch (err: unknown) {
@@ -74,24 +83,33 @@ export default function SettingsScreen() {
             Account
           </Text>
           <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden">
-            {[
-              { label: 'Personal Info' },
-              { label: 'Security' },
-              { label: 'Subscription' },
-            ].map((item, index, arr) => (
-              <Pressable
-                key={item.label}
-                accessibilityRole="button"
-                accessibilityLabel={item.label}
-                onPress={() => Alert.alert('Coming Soon', `${item.label} settings will be available soon.`)}
-                className={`px-4 py-4 flex-row items-center justify-between active:opacity-70 ${
-                  index < arr.length - 1 ? 'border-b border-ds-outline-variant' : ''
-                }`}
-              >
-                <Text className="text-base font-barlow text-ds-on-surface">{item.label}</Text>
-                <ChevronRight size={18} color="#747878" />
-              </Pressable>
-            ))}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Personal Info"
+              onPress={() => router.push('/(protected)/personal-info')}
+              className="px-4 py-4 flex-row items-center justify-between border-b border-ds-outline-variant active:opacity-70"
+            >
+              <Text className="text-base font-barlow text-ds-on-surface">Personal Info</Text>
+              <ChevronRight size={18} color="#747878" />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Security"
+              onPress={() => router.push('/(protected)/security')}
+              className="px-4 py-4 flex-row items-center justify-between border-b border-ds-outline-variant active:opacity-70"
+            >
+              <Text className="text-base font-barlow text-ds-on-surface">Security</Text>
+              <ChevronRight size={18} color="#747878" />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Subscription"
+              onPress={() => Alert.alert('Coming Soon', 'Subscription settings will be available soon.')}
+              className="px-4 py-4 flex-row items-center justify-between active:opacity-70"
+            >
+              <Text className="text-base font-barlow text-ds-on-surface">Subscription</Text>
+              <ChevronRight size={18} color="#747878" />
+            </Pressable>
           </View>
         </View>
 
@@ -109,7 +127,7 @@ export default function SettingsScreen() {
                 thumbColor={DS.surface}
               />
             </View>
-            <View className="px-4 py-3 flex-row items-center justify-between">
+            <View className="px-4 py-3 flex-row items-center justify-between border-b border-ds-outline-variant">
               <Text className="text-base font-barlow text-ds-on-surface">Sound Effects</Text>
               <Switch
                 value={soundEffects}
@@ -118,6 +136,15 @@ export default function SettingsScreen() {
                 thumbColor={DS.surface}
               />
             </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Notification Preferences"
+              onPress={() => router.push('/(protected)/notification-prefs')}
+              className="px-4 py-4 flex-row items-center justify-between active:opacity-70"
+            >
+              <Text className="text-base font-barlow text-ds-on-surface">Notification Preferences</Text>
+              <ChevronRight size={18} color="#747878" />
+            </Pressable>
           </View>
         </View>
 
@@ -129,7 +156,7 @@ export default function SettingsScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Help Center"
-              onPress={() => Alert.alert('Coming Soon', 'Help Center will be available soon.')}
+              onPress={() => router.push('/(protected)/help-center')}
               className="px-4 py-4 flex-row items-center justify-between border-b border-ds-outline-variant active:opacity-70"
             >
               <Text className="text-base font-barlow text-ds-on-surface">Help Center</Text>
@@ -138,7 +165,11 @@ export default function SettingsScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Privacy Policy"
-              onPress={() => Alert.alert('Coming Soon', 'Privacy Policy will be available soon.')}
+              onPress={() => {
+                Linking.openURL(PRIVACY_POLICY_URL).catch(() => {
+                  Alert.alert('Could not open link', 'Please try again later.');
+                });
+              }}
               className="px-4 py-4 flex-row items-center justify-between active:opacity-70"
             >
               <Text className="text-base font-barlow text-ds-on-surface">Privacy Policy</Text>
@@ -159,6 +190,17 @@ export default function SettingsScreen() {
             <Text className="text-white font-barlow-semi text-sm uppercase tracking-widest">
               {isSigningOut ? 'Signing Out...' : 'Log Out'}
             </Text>
+          </Pressable>
+        </View>
+
+        <View className="px-6 pt-4">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Delete Account"
+            onPress={() => router.push('/(protected)/delete-account')}
+            className="py-4 items-center active:opacity-70"
+          >
+            <Text className="text-ds-red font-barlow-semi text-sm">Delete Account</Text>
           </Pressable>
         </View>
       </ScrollView>

@@ -1,11 +1,11 @@
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Settings } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useMyClubs } from '@/hooks/useClubs';
-import { useFriends } from '@/hooks/useFriends';
+import { useFriends, useRemoveFriend } from '@/hooks/useFriends';
 import { usePresence } from '@/hooks/usePresence';
 import { mergePresence } from '@/lib/friends';
 import { FriendRequestsSection } from '@/components/social/FriendRequestsSection';
@@ -47,6 +47,7 @@ export default function SocialScreen() {
   const clubsQuery    = useMyClubs();
   const friendsQuery  = useFriends();
   const { presenceMap } = usePresence();
+  const removeFriendMutation = useRemoveFriend();
 
   const friends = mergePresence(friendsQuery.data ?? [], presenceMap);
 
@@ -181,10 +182,33 @@ export default function SocialScreen() {
 
           {friends.length > 0 && (
             <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden">
-              {friends.map((friend: Friend, index: number) => (
-                <View
+              {friends.map((friend: Friend, index: number) => {
+                const confirmRemoveFriend = () => {
+                  const name = [friend.firstName, friend.lastName].filter(Boolean).join(' ') || 'this friend';
+                  Alert.alert(
+                    'Remove Friend',
+                    `Remove ${name} from friends?`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Remove',
+                        style: 'destructive',
+                        onPress: () => removeFriendMutation.mutate(friend.friendshipId, {
+                          onError: (err) => Alert.alert('Remove failed', err instanceof Error ? err.message : 'Could not remove friend'),
+                        }),
+                      },
+                    ],
+                  );
+                };
+                return (
+                <Pressable
                   key={friend.friendshipId}
-                  className={`px-4 py-3 flex-row items-center gap-3 ${
+                  accessibilityRole="button"
+                  accessibilityLabel={`${[friend.firstName, friend.lastName].filter(Boolean).join(' ')} friend row`}
+                  accessibilityHint="Press or long press to remove this friend"
+                  onPress={confirmRemoveFriend}
+                  onLongPress={confirmRemoveFriend}
+                  className={`px-4 py-3 flex-row items-center gap-3 active:opacity-70 ${
                     index < friends.length - 1 ? 'border-b border-ds-outline-variant' : ''
                   }`}
                 >
@@ -216,8 +240,9 @@ export default function SocialScreen() {
                       {friend.threeDartAvg != null ? friend.threeDartAvg.toFixed(1) : '—'}
                     </Text>
                   </View>
-                </View>
-              ))}
+                </Pressable>
+                );
+              })}
             </View>
           )}
         </View>

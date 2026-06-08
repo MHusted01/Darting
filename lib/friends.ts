@@ -176,3 +176,17 @@ export async function declineFriendRequest(
 
   if (error) throw new Error(error.message);
 }
+
+export async function removeFriend(
+  supabase: SupabaseClient,
+  friendshipId: string,
+  userId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('friendships')
+    .delete()
+    .eq('id', friendshipId)
+    .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
+
+  if (error) throw new Error(error.message);
+}

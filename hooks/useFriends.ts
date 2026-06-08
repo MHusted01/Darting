@@ -5,6 +5,7 @@ import {
   declineFriendRequest,
   getFriends,
   getPendingRequests,
+  removeFriend,
   searchUsers,
   sendFriendRequest,
 } from '@/lib/friends';
@@ -83,6 +84,19 @@ export function useDeclineFriendRequest() {
     mutationFn: (friendshipId: string) => declineFriendRequest(supabase, friendshipId, userId!),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
+    },
+  });
+}
+
+export function useRemoveFriend() {
+  const supabase = useSupabase();
+  const { userId } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (friendshipId: string) => removeFriend(supabase, friendshipId, userId!),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['friends'] });
     },
   });
 }
