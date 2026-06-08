@@ -8,6 +8,7 @@ import migrations from '@/drizzle/migrations';
 import { db } from '@/db/client';
 import { SupabaseProvider } from '@/providers/SupabaseProvider';
 import { SyncRetryOnMount } from '@/components/SyncRetryOnMount';
+import { BackfillAnalyticsOnMount } from '@/components/BackfillAnalyticsOnMount';
 import { Text, View } from 'react-native';
 import { useEffect } from 'react';
 import { useFonts } from 'expo-font';
@@ -94,6 +95,7 @@ function RootLayout() {
       <ClerkLoaded>
         <SupabaseProvider>
           <SyncRetryOnMount />
+          <BackfillAnalyticsOnMount />
           <Stack screenOptions={{ headerShown: false }} />
         </SupabaseProvider>
       </ClerkLoaded>

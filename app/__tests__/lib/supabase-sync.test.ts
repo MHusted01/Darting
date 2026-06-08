@@ -24,6 +24,7 @@ const makePlayer = (overrides = {}) => ({
   gameState: { remaining: 401 },
   isWinner: false,
   threeDartAvg: 45.0 as number | null,
+  analytics: null as unknown,
   player: {
     id: 10,
     name: 'Alice',
@@ -39,6 +40,7 @@ const makeSession = (overrides = {}) => ({
   id: 42,
   gameSlug: 'x01',
   status: 'completed' as const,
+  context: 'casual' as const,
   config: { startingScore: 501 },
   startedAt: new Date('2026-06-01T10:00:00Z'),
   completedAt: new Date('2026-06-01T10:30:00Z'),

@@ -33,6 +33,11 @@ export const gameSessions = sqliteTable('game_sessions', {
   })
     .notNull()
     .default('setup'),
+  context: text('context', {
+    enum: ['casual', 'tournament', 'practice', 'realtime'],
+  })
+    .notNull()
+    .default('casual'),
   currentRound: integer('current_round').notNull().default(0),
   currentPlayerIndex: integer('current_player_index').notNull().default(0),
   config: text('config', { mode: 'json' }),
@@ -64,6 +69,7 @@ export const gamePlayers = sqliteTable(
     gameState: text('game_state', { mode: 'json' }),
     isWinner: integer('is_winner', { mode: 'boolean' }).notNull().default(false),
     threeDartAvg: real('three_dart_avg'),
+    analytics: text('analytics', { mode: 'json' }),
   },
   (table) => [
     uniqueIndex('game_players_session_player_unique').on(

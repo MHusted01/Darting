@@ -115,8 +115,14 @@ function InviteModal({ clubId, visible, onClose }: InviteModalProps) {
 // ─── Member row ───────────────────────────────────────────────────────────────
 
 function MemberRow({ member, isLast }: { member: ClubMember; isLast: boolean }) {
+  const router = useRouter();
   return (
-    <View className={`px-4 py-3 flex-row items-center gap-3 ${isLast ? '' : 'border-b border-ds-outline-variant'}`}>
+    <Pressable
+      onPress={() => router.push(`/(protected)/friend/${member.id}` as any)}
+      accessibilityRole="button"
+      accessibilityLabel={`View profile: ${displayName(member)}`}
+      className={`px-4 py-3 flex-row items-center gap-3 active:opacity-70 ${isLast ? '' : 'border-b border-ds-outline-variant'}`}
+    >
       <View className="w-10 h-10 rounded-full bg-ds-surface-low items-center justify-center">
         <Text className="text-sm font-barlow-semi text-ds-on-surface-variant">{initials(member)}</Text>
       </View>
@@ -127,18 +133,24 @@ function MemberRow({ member, isLast }: { member: ClubMember; isLast: boolean }) 
           <Text className="text-xs font-barlow-semi text-ds-red">Admin</Text>
         </View>
       )}
-    </View>
+    </Pressable>
   );
 }
 
 // ─── Leaderboard row ──────────────────────────────────────────────────────────
 
 function LeaderboardRow({ row, rank, isLast }: { row: ClubLeaderboardRow; rank: number; isLast: boolean }) {
+  const router = useRouter();
   const name = [row.firstName, row.lastName].filter(Boolean).join(' ') || 'Unknown';
   const ini  = ((row.firstName?.[0] ?? '') + (row.lastName?.[0] ?? '')).toUpperCase() || '?';
 
   return (
-    <View className={`px-4 py-3 flex-row items-center gap-3 ${isLast ? '' : 'border-b border-ds-outline-variant'}`}>
+    <Pressable
+      onPress={() => router.push(`/(protected)/friend/${row.userId}` as any)}
+      accessibilityRole="button"
+      accessibilityLabel={`View profile: ${name}`}
+      className={`px-4 py-3 flex-row items-center gap-3 active:opacity-70 ${isLast ? '' : 'border-b border-ds-outline-variant'}`}
+    >
       <Text className={`w-6 text-sm font-barlow-bold text-center ${rank <= 3 ? 'text-ds-red' : 'text-ds-outline'}`}>
         {rank}
       </Text>
@@ -152,7 +164,7 @@ function LeaderboardRow({ row, rank, isLast }: { row: ClubLeaderboardRow; rank: 
           {row.avgThreeDartAvg != null ? row.avgThreeDartAvg.toFixed(1) : '—'}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

@@ -66,6 +66,7 @@ import {
 import type { DartThrow } from '@/types/game';
 import { computeThreeDartAvg } from '@/lib/stats';
 import { syncCompletedSession } from '@/lib/supabase-sync';
+import { computeSessionAnalytics } from '@/lib/games/analytics';
 
 export interface LoadedPlayer {
   id: number; // gamePlayers.id
@@ -259,25 +260,40 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
             const allTurns = await tx
               .select({
                 playerId: gameTurns.playerId,
+                roundNumber: gameTurns.roundNumber,
                 darts: gameTurns.darts,
                 scoreDelta: gameTurns.scoreDelta,
               })
               .from(gameTurns)
-              .where(eq(gameTurns.gameSessionId, gameState.sessionId));
+              .where(eq(gameTurns.gameSessionId, gameState.sessionId))
+              .orderBy(asc(gameTurns.roundNumber), asc(gameTurns.id));
 
             const turnsByPlayer = new Map<number, Array<{ darts: number; scoreDelta: number }>>();
+            const fullTurnsByPlayer = new Map<number, Array<{ roundNumber: number; darts: DartThrow[]; scoreDelta: number }>>();
+
             for (const turn of allTurns) {
-              const dartCount = (turn.darts as DartThrow[]).length;
+              const darts = turn.darts as DartThrow[];
               const entry = turnsByPlayer.get(turn.playerId) ?? [];
-              entry.push({ darts: dartCount, scoreDelta: turn.scoreDelta });
+              entry.push({ darts: darts.length, scoreDelta: turn.scoreDelta });
               turnsByPlayer.set(turn.playerId, entry);
+
+              const fullEntry = fullTurnsByPlayer.get(turn.playerId) ?? [];
+              fullEntry.push({ roundNumber: turn.roundNumber, darts, scoreDelta: turn.scoreDelta });
+              fullTurnsByPlayer.set(turn.playerId, fullEntry);
             }
 
             for (const [pid, turns] of turnsByPlayer) {
               const playerAvg = computeThreeDartAvg(turns);
+              const playerFullTurns = fullTurnsByPlayer.get(pid) ?? [];
+              const analytics = computeSessionAnalytics(
+                gameState.gameSlug,
+                playerFullTurns,
+                gameState.config,
+              );
+
               await tx
                 .update(gamePlayers)
-                .set({ threeDartAvg: playerAvg })
+                .set({ threeDartAvg: playerAvg, analytics })
                 .where(
                   and(
                     eq(gamePlayers.gameSessionId, gameState.sessionId),
