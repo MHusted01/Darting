@@ -1,4 +1,16 @@
 const MENTION_RE = /(?:^|[^\w@])@([a-zA-Z0-9_]{2,})/g;
+const ACTIVE_MENTION_RE = /@([a-zA-Z0-9_]*)$/;
+
+export function getActiveMentionQuery(text: string): string | null {
+  const match = ACTIVE_MENTION_RE.exec(text);
+  return match ? match[1] : null;
+}
+
+export function insertMention(text: string, username: string): string {
+  const match = ACTIVE_MENTION_RE.exec(text);
+  if (!match) return text;
+  return `${text.slice(0, match.index)}@${username} `;
+}
 
 export function parseMentions(body: string): string[] {
   const seen = new Set<string>();

@@ -16,17 +16,13 @@ import { useAuth } from '@clerk/expo';
 import { useClubMembers } from '@/hooks/useClubs';
 import { useCreatePost } from '@/hooks/useClubFeed';
 import { usePlayerRecentGames } from '@/hooks/useFriendSocial';
+import { getActiveMentionQuery, insertMention } from '@/lib/mentions';
 import type { ClubMember, RecentGame } from '@/types/social';
 
 interface Props {
   visible: boolean;
   clubId: string;
   onClose: () => void;
-}
-
-function getActiveMentionQuery(text: string): string | null {
-  const match = /@([a-zA-Z0-9_]*)$/.exec(text);
-  return match ? match[1] : null;
 }
 
 function memberDisplayName(m: ClubMember): string {
@@ -59,11 +55,7 @@ export function PostComposer({ visible, clubId, onClose }: Props) {
 
   function handleMentionSelect(member: ClubMember) {
     if (!member.username) return;
-    setBody((prev) => {
-      const match = /@([a-zA-Z0-9_]*)$/.exec(prev);
-      if (!match) return prev;
-      return `${prev.slice(0, match.index)}@${member.username} `;
-    });
+    setBody((prev) => insertMention(prev, member.username!));
   }
 
   function handleClose() {

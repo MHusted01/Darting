@@ -49,7 +49,15 @@ export function encodeCursor(c: CursorPayload): string {
 }
 
 export function decodeCursor(s: string): CursorPayload {
-  return JSON.parse(atob(s)) as CursorPayload;
+  try {
+    const parsed = JSON.parse(atob(s));
+    if (!parsed || typeof parsed.createdAt !== 'string' || typeof parsed.id !== 'string') {
+      throw new Error('Invalid cursor format');
+    }
+    return parsed as CursorPayload;
+  } catch {
+    throw new Error('Invalid cursor format');
+  }
 }
 
 export function mapPostRow(row: RawPostRow): ClubPost {

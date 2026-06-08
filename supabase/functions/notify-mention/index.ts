@@ -59,17 +59,25 @@ Deno.serve(async (req) => {
       return new Response('Club not found', { status: 200 });
     }
 
-    const { data: author } = await supabase
+    const { data: author, error: authorError } = await supabase
       .from('users')
       .select('first_name, username')
       .eq('id', record.author_id)
       .single();
 
-    const { data: clubRow } = await supabase
+    if (authorError) {
+      console.error('notify-mention: failed to fetch author', { id: record.author_id, error: authorError.message });
+    }
+
+    const { data: clubRow, error: clubError } = await supabase
       .from('clubs')
       .select('name')
       .eq('id', clubId)
       .single();
+
+    if (clubError) {
+      console.error('notify-mention: failed to fetch club', { clubId, error: clubError.message });
+    }
 
     const authorName = author?.first_name ?? author?.username ?? 'Someone';
     const clubName = clubRow?.name ?? 'a club';

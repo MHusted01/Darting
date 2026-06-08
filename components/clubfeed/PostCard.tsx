@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-nativ
 import { useRouter } from 'expo-router';
 import { useAddComment, useLatestComments, useSetCommentReaction } from '@/hooks/useClubFeed';
 import { useClubMembers } from '@/hooks/useClubs';
-import { parseMentions } from '@/lib/mentions';
+import { getActiveMentionQuery, insertMention, parseMentions } from '@/lib/mentions';
 import { timeAgo } from '@/lib/time';
 import type { ClubMember, ClubPost, ClubPostComment, ReactionType } from '@/types/social';
 import { CommentsModal } from './CommentsModal';
@@ -24,11 +24,6 @@ interface PostCardProps {
   isAdmin: boolean;
   onReact: (postId: string, type: ReactionType, isActive: boolean) => void;
   onDelete: (postId: string) => void;
-}
-
-function getActiveMentionQuery(text: string): string | null {
-  const match = /@([a-zA-Z0-9_]*)$/.exec(text);
-  return match ? match[1] : null;
 }
 
 function renderBodyWithMentions(body: string, size: 'base' | 'sm' = 'base') {
@@ -165,11 +160,7 @@ function QuickCommentInput({ postId, clubId, currentUserId, onOpenFull }: {
 
   function handleMentionSelect(member: ClubMember) {
     if (!member.username) return;
-    setCommentText((prev) => {
-      const match = /@([a-zA-Z0-9_]*)$/.exec(prev);
-      if (!match) return prev;
-      return `${prev.slice(0, match.index)}@${member.username} `;
-    });
+    setCommentText((prev) => insertMention(prev, member.username!));
   }
 
   function handleSubmit() {
@@ -232,7 +223,6 @@ function QuickCommentInput({ postId, clubId, currentUserId, onOpenFull }: {
             placeholderTextColor="#747878"
             value={commentText}
             onChangeText={setCommentText}
-            onFocus={commentText.length === 0 ? onOpenFull : undefined}
             onSubmitEditing={handleSubmit}
             returnKeyType="send"
             maxLength={500}

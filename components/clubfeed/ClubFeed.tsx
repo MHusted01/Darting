@@ -73,7 +73,7 @@ export function ClubFeed({ clubId, isAdmin }: Props) {
         accessibilityRole="button"
         accessibilityLabel="Create new post"
         onPress={() => setComposerVisible(true)}
-        className="absolute bottom-6 right-6 bg-ds-red rounded-full w-14 h-14 items-center justify-center shadow-sm active:opacity-80"
+        className="absolute bottom-6 right-6 bg-ds-red rounded-full w-14 h-14 items-center justify-center shadow-sm active:opacity-70"
         style={{ elevation: 4 }}
       >
         <Text className="text-white text-2xl font-barlow-semi leading-none">+</Text>

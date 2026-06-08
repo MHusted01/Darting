@@ -13,5 +13,7 @@ export function timeAgo(isoDate: string, nowIso?: string): string {
   const diffWeek = Math.floor(diffDay / 7);
   if (diffDay < 30) return `${diffWeek}w ago`;
   const diffMonth = Math.floor(diffDay / 30);
-  return `${diffMonth}mo ago`;
+  if (diffMonth < 12) return `${diffMonth}mo ago`;
+  const diffYear = Math.floor(diffDay / 365);
+  return `${diffYear}y ago`;
 }

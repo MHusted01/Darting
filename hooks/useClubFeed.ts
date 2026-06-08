@@ -40,8 +40,10 @@ export function useCreatePost(clubId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (params: { body: string; gameSessionId: string | null }) =>
-      createPost(supabase, { clubId, authorId: userId!, body: params.body, gameSessionId: params.gameSessionId }),
+    mutationFn: (params: { body: string; gameSessionId: string | null }) => {
+      if (!userId) return Promise.reject(new Error('Not authenticated'));
+      return createPost(supabase, { clubId, authorId: userId, body: params.body, gameSessionId: params.gameSessionId });
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['club-feed', clubId] });
     },
@@ -90,8 +92,10 @@ export function useAddComment(postId: string, clubId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ body, parentCommentId }: { body: string; parentCommentId?: string | null }) =>
-      addComment(supabase, { postId, authorId: userId!, body, parentCommentId }),
+    mutationFn: ({ body, parentCommentId }: { body: string; parentCommentId?: string | null }) => {
+      if (!userId) return Promise.reject(new Error('Not authenticated'));
+      return addComment(supabase, { postId, authorId: userId, body, parentCommentId });
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['post-comments', postId] });
       void queryClient.invalidateQueries({ queryKey: ['post-comments-preview', postId] });

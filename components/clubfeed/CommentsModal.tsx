@@ -17,7 +17,7 @@ import { X } from 'lucide-react-native';
 import { useAddComment, useDeleteComment, usePostComments, useSetCommentReaction } from '@/hooks/useClubFeed';
 import { ReactionsModal } from './ReactionsModal';
 import { useClubMembers } from '@/hooks/useClubs';
-import { parseMentions } from '@/lib/mentions';
+import { getActiveMentionQuery, insertMention, parseMentions } from '@/lib/mentions';
 import { timeAgo } from '@/lib/time';
 import type { ClubMember, ClubPostComment, ReactionType } from '@/types/social';
 
@@ -68,11 +68,6 @@ function renderBodyWithMentions(body: string) {
   return (
     <Text className="text-sm font-barlow text-ds-on-surface flex-row flex-wrap">{parts}</Text>
   );
-}
-
-function getActiveMentionQuery(text: string): string | null {
-  const match = /@([a-zA-Z0-9_]*)$/.exec(text);
-  return match ? match[1] : null;
 }
 
 function CommentReactions({ comment, postId, clubId, onLongPress }: {
@@ -231,11 +226,7 @@ export function CommentsModal({ visible, postId, clubId, currentUserId, isAdmin,
 
   function handleMentionSelect(member: ClubMember) {
     if (!member.username) return;
-    setBody((prev) => {
-      const match = /@([a-zA-Z0-9_]*)$/.exec(prev);
-      if (!match) return prev;
-      return `${prev.slice(0, match.index)}@${member.username} `;
-    });
+    setBody((prev) => insertMention(prev, member.username!));
   }
 
   function handleReply(target: ReplyingTo) {

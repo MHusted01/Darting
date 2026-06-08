@@ -28,17 +28,26 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    const { data: accepter } = await supabase
+    const { data: accepter, error: accepterError } = await supabase
       .from('users')
       .select('first_name, username')
       .eq('id', record.addressee_id)
       .single();
 
-    const { data: requester } = await supabase
+    if (accepterError) {
+      console.error('notify-friend-accepted: failed to fetch accepter', { id: record.addressee_id, error: accepterError.message });
+    }
+
+    const { data: requester, error: requesterError } = await supabase
       .from('users')
       .select('push_token, notification_prefs')
       .eq('id', record.requester_id)
       .single();
+
+    if (requesterError) {
+      console.error('notify-friend-accepted: failed to fetch requester', { id: record.requester_id, error: requesterError.message });
+      return new Response('User lookup failed', { status: 200 });
+    }
 
     if (!requester?.push_token) {
       return new Response('No push token', { status: 200 });

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { mapMutualClub, mapRecentGameRow } from '@/lib/social-stats';
+import { mapMutualClub, mapRecentGameRow, type RawRecentGameRow } from '@/lib/social-stats';
 import type { ActivityPage, FriendActivityItem, MutualClub, RecentGame } from '@/types/social';
 
 export async function getPlayerRecentGames(
@@ -12,7 +12,7 @@ export async function getPlayerRecentGames(
     p_limit: limit,
   });
   if (error) throw new Error(error.message);
-  return ((data ?? []) as Parameters<typeof mapRecentGameRow>[0][]).map(mapRecentGameRow);
+  return ((data ?? []) as RawRecentGameRow[]).map(mapRecentGameRow);
 }
 
 export async function getMutualClubs(
@@ -65,7 +65,20 @@ function encodeActivityCursor(c: ActivityCursorPayload): string {
 }
 
 function decodeActivityCursor(s: string): ActivityCursorPayload {
-  return JSON.parse(atob(s)) as ActivityCursorPayload;
+  try {
+    const parsed = JSON.parse(atob(s));
+    if (
+      !parsed ||
+      typeof parsed.completedAt !== 'string' ||
+      typeof parsed.sessionId !== 'string' ||
+      typeof parsed.authorId !== 'string'
+    ) {
+      throw new Error('Invalid activity cursor format');
+    }
+    return parsed as ActivityCursorPayload;
+  } catch {
+    throw new Error('Invalid activity cursor format');
+  }
 }
 
 export async function getFriendsActivityPage(

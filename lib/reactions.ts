@@ -23,6 +23,7 @@ export function toggleReactionState(
       myReactions: current.myReactions.filter((r) => r !== type),
     };
   }
+  if (current.myReactions.includes(type)) return current;
   return {
     ...current,
     [type]: current[type] + 1,

@@ -36,7 +36,7 @@ export function computeCurrentStreak(
   return streak;
 }
 
-type RawRecentGameRow = {
+export type RawRecentGameRow = {
   id: string;
   game_slug: string;
   completed_at: string;

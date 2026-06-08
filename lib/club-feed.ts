@@ -32,20 +32,17 @@ export async function getClubFeedPage(
 export async function createPost(
   supabase: SupabaseClient,
   params: { clubId: string; authorId: string; body: string; gameSessionId: string | null },
-): Promise<ClubPost> {
-  const { data, error } = await supabase
+): Promise<void> {
+  const { error } = await supabase
     .from('club_posts')
     .insert({
       club_id: params.clubId,
       author_id: params.authorId,
       body: params.body,
       game_session_id: params.gameSessionId,
-    })
-    .select('id, club_id, author_id, body, game_session_id, created_at, author_first_name:author_id(first_name), author_last_name:author_id(last_name), author_username:author_id(username), author_avatar_url:author_id(avatar_url)')
-    .single();
+    });
 
   if (error) throw new Error(error.message);
-  return mapPostRow(data as unknown as RawPostRow);
 }
 
 export async function deletePost(supabase: SupabaseClient, postId: string): Promise<void> {
@@ -96,20 +93,17 @@ export async function getLatestPostComments(
 export async function addComment(
   supabase: SupabaseClient,
   params: { postId: string; authorId: string; body: string; parentCommentId?: string | null },
-): Promise<ClubPostComment> {
-  const { data, error } = await supabase
+): Promise<void> {
+  const { error } = await supabase
     .from('club_post_comments')
     .insert({
       post_id: params.postId,
       author_id: params.authorId,
       body: params.body,
       parent_comment_id: params.parentCommentId ?? null,
-    })
-    .select()
-    .single();
+    });
 
   if (error) throw new Error(error.message);
-  return mapCommentRow(data as unknown as RawCommentRow);
 }
 
 export async function deleteComment(supabase: SupabaseClient, commentId: string): Promise<void> {
