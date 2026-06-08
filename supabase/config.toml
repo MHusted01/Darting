@@ -383,13 +383,39 @@ s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
 
+[functions.notify-friend-request]
+enabled = true
+verify_jwt = false
+import_map = "./functions/notify-friend-request/deno.json"
+entrypoint = "./functions/notify-friend-request/index.ts"
+
 [functions.clerk-webhook]
 enabled = true
 verify_jwt = false
 import_map = "./functions/clerk-webhook/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
 entrypoint = "./functions/clerk-webhook/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/clerk-webhook/*.html" ]
+
+[functions.notify-friend-accepted]
+enabled = true
+verify_jwt = false
+import_map = "./functions/notify-friend-accepted/deno.json"
+entrypoint = "./functions/notify-friend-accepted/index.ts"
+
+[functions.notify-mention]
+enabled = true
+verify_jwt = false
+import_map = "./functions/notify-mention/deno.json"
+entrypoint = "./functions/notify-mention/index.ts"
+
+# ─── Required Supabase Dashboard DB Webhooks ──────────────────────────────────
+# Configure these under Database → Webhooks (type: Supabase Edge Functions).
+# All four webhooks use the same HTTP header:
+#   Key:   x-webhook-secret
+#   Value: <WEBHOOK_SECRET env var value>
+#
+# Name                    | Table                | Event  | Function
+# ----------------------- | -------------------- | ------ | ----------------------
+# notify-friend-request   | public.friendships   | INSERT | notify-friend-request
+# on-friendship-accepted  | public.friendships   | UPDATE | notify-friend-accepted
+# on-club-post-insert     | public.club_posts    | INSERT | notify-mention
+# on-club-comment-insert  | public.club_post_comments | INSERT | notify-mention

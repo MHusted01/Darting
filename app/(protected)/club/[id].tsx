@@ -14,9 +14,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Crown, LogOut, UserPlus } from 'lucide-react-native';
 import { useClubLeaderboard, useClubMembers, useInviteMember, useLeaveClub, useMyClubs } from '@/hooks/useClubs';
 import { useUserSearch } from '@/hooks/useFriends';
+import { ClubFeed } from '@/components/clubfeed/ClubFeed';
 import type { ClubLeaderboardRow, ClubMember, UserProfile } from '@/types/social';
 
-type Tab = 'members' | 'leaderboard';
+type Tab = 'members' | 'leaderboard' | 'feed';
 
 // ─── Invite modal ─────────────────────────────────────────────────────────────
 
@@ -241,10 +242,13 @@ export default function ClubDetailScreen() {
 
       {/* Tab strip */}
       <View className="flex-row border-b border-ds-outline-variant">
-        {(['members', 'leaderboard'] as Tab[]).map((tab) => (
+        {(['members', 'leaderboard', 'feed'] as Tab[]).map((tab) => (
           <Pressable
             key={tab}
             onPress={() => setActiveTab(tab)}
+            accessibilityRole="tab"
+            accessibilityLabel={tab}
+            accessibilityState={{ selected: activeTab === tab }}
             className={`flex-1 py-3 items-center active:opacity-70 ${
               activeTab === tab ? 'border-b-2 border-ds-red' : ''
             }`}
@@ -258,41 +262,45 @@ export default function ClubDetailScreen() {
         ))}
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
-        {activeTab === 'members' && (
-          <View className="px-6 pt-4">
-            {membersLoading ? (
-              <ActivityIndicator size="small" color="#ba1a1a" />
-            ) : !members || members.length === 0 ? (
-              <Text className="text-sm font-barlow text-ds-outline text-center py-8">No members yet.</Text>
-            ) : (
-              <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden">
-                {members.map((member, index) => (
-                  <MemberRow key={member.membershipId} member={member} isLast={index === members.length - 1} />
-                ))}
-              </View>
-            )}
-          </View>
-        )}
+      {activeTab === 'feed' ? (
+        <ClubFeed clubId={id} isAdmin={isAdmin} />
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+          {activeTab === 'members' && (
+            <View className="px-6 pt-4">
+              {membersLoading ? (
+                <ActivityIndicator size="small" color="#ba1a1a" />
+              ) : !members || members.length === 0 ? (
+                <Text className="text-sm font-barlow text-ds-outline text-center py-8">No members yet.</Text>
+              ) : (
+                <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden">
+                  {members.map((member, index) => (
+                    <MemberRow key={member.membershipId} member={member} isLast={index === members.length - 1} />
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
 
-        {activeTab === 'leaderboard' && (
-          <View className="px-6 pt-4">
-            {leaderboardLoading ? (
-              <ActivityIndicator size="small" color="#ba1a1a" />
-            ) : !leaderboard || leaderboard.length === 0 ? (
-              <Text className="text-sm font-barlow text-ds-outline text-center py-8">
-                No stats yet. Complete some games to appear here.
-              </Text>
-            ) : (
-              <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden">
-                {leaderboard.map((row, index) => (
-                  <LeaderboardRow key={row.userId} row={row} rank={index + 1} isLast={index === leaderboard.length - 1} />
-                ))}
-              </View>
-            )}
-          </View>
-        )}
-      </ScrollView>
+          {activeTab === 'leaderboard' && (
+            <View className="px-6 pt-4">
+              {leaderboardLoading ? (
+                <ActivityIndicator size="small" color="#ba1a1a" />
+              ) : !leaderboard || leaderboard.length === 0 ? (
+                <Text className="text-sm font-barlow text-ds-outline text-center py-8">
+                  No stats yet. Complete some games to appear here.
+                </Text>
+              ) : (
+                <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden">
+                  {leaderboard.map((row, index) => (
+                    <LeaderboardRow key={row.userId} row={row} rank={index + 1} isLast={index === leaderboard.length - 1} />
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+        </ScrollView>
+      )}
 
       <InviteModal clubId={id} visible={inviteVisible} onClose={() => setInviteVisible(false)} />
     </SafeAreaView>

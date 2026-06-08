@@ -2,9 +2,11 @@ import { useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Swords } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useSupabase } from '@/providers/SupabaseProvider';
+import { useMutualClubs, usePlayerRecentGames, usePlayerStreak } from '@/hooks/useFriendSocial';
+import { timeAgo } from '@/lib/time';
 
 interface PublicPlayerStats {
   user_id: string;
@@ -141,7 +143,7 @@ export default function FriendProfileScreen() {
                 <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-3">
                   By Game
                 </Text>
-                <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden">
+                <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden mb-6">
                   {Object.entries(data.per_game_kpis).map(([slug, avg], index, arr) => (
                     <View
                       key={slug}
@@ -160,9 +162,105 @@ export default function FriendProfileScreen() {
                 </View>
               </>
             )}
+
+            <Phase8Sections userId={userId} />
           </View>
         </ScrollView>
       )}
     </SafeAreaView>
+  );
+}
+
+function Phase8Sections({ userId }: { userId: string }) {
+  const { streak, isLoading: streakLoading } = usePlayerStreak(userId);
+  const { data: recentGames, isLoading: gamesLoading } = usePlayerRecentGames(userId);
+  const { data: mutualClubs, isLoading: clubsLoading } = useMutualClubs(userId);
+
+  return (
+    <>
+      {/* Streak */}
+      {!streakLoading && streak > 0 && (
+        <View className="bg-ds-surface border border-ds-outline-variant rounded-xl px-4 py-3 mb-6 flex-row items-center justify-between">
+          <Text className="text-sm font-barlow-semi text-ds-on-surface">Current Streak</Text>
+          <Text className="text-base font-barlow-bold text-ds-red">
+            {streak} day{streak === 1 ? '' : 's'} 🔥
+          </Text>
+        </View>
+      )}
+
+      {/* Recent games */}
+      <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-3">
+        Recent Games
+      </Text>
+      {gamesLoading ? (
+        <ActivityIndicator size="small" color="#ba1a1a" className="mb-6" />
+      ) : !Array.isArray(recentGames) || recentGames.length === 0 ? (
+        <Text className="text-sm font-barlow text-ds-outline mb-6">No recent games.</Text>
+      ) : (
+        <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden mb-6">
+          {recentGames.map((game, index) => (
+            <View
+              key={game.id}
+              className={`px-4 py-3 flex-row items-center justify-between ${
+                index < recentGames.length - 1 ? 'border-b border-ds-outline-variant' : ''
+              }`}
+            >
+              <View>
+                <Text className="text-sm font-barlow-semi text-ds-on-surface capitalize">
+                  {game.gameSlug.replace(/-/g, ' ')}
+                </Text>
+                <Text className="text-xs font-barlow text-ds-outline">
+                  {timeAgo(game.completedAt)}
+                </Text>
+              </View>
+              <View className="items-end">
+                {game.isWinner && (
+                  <Text className="text-xs font-barlow-semi text-ds-green-dark">Won</Text>
+                )}
+                {game.threeDartAvg != null && (
+                  <Text className="text-xs font-barlow text-ds-on-surface-variant">
+                    {game.threeDartAvg.toFixed(1)} avg
+                  </Text>
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Mutual clubs */}
+      {!clubsLoading && Array.isArray(mutualClubs) && mutualClubs.length > 0 && (
+        <>
+          <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-3">
+            Mutual Clubs
+          </Text>
+          <View className="flex-row flex-wrap gap-2 mb-6">
+            {mutualClubs.map((club) => (
+              <View
+                key={club.id}
+                className="bg-ds-surface-low border border-ds-outline-variant rounded-full px-3 py-1"
+              >
+                <Text className="text-xs font-barlow-semi text-ds-on-surface-variant">{club.name}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+
+      {/* Challenge stub */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Challenge to a game (coming soon)"
+        accessibilityState={{ disabled: true }}
+        disabled
+        className="bg-ds-surface border border-ds-outline-variant rounded-xl py-4 items-center opacity-50 mb-6"
+      >
+        <View className="flex-row items-center gap-2">
+          <Swords size={18} color="#444748" />
+          <Text className="text-base font-barlow-semi text-ds-on-surface-variant">Challenge to a game</Text>
+        </View>
+        <Text className="text-xs font-barlow text-ds-outline mt-1">Coming soon</Text>
+      </Pressable>
+    </>
   );
 }
