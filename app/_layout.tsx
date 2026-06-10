@@ -3,6 +3,7 @@ import { ClerkProvider, ClerkLoaded } from '@clerk/expo';
 import { Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Notifications from 'expo-notifications';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import migrations from '@/drizzle/migrations';
 import { db } from '@/db/client';
@@ -24,6 +25,15 @@ import {
 import '../global.css';
 
 SplashScreen.preventAutoHideAsync();
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,

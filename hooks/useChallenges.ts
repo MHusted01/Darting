@@ -20,6 +20,7 @@ export function useIncomingChallenges() {
     queryFn: () => listIncomingChallenges(supabase, userId!),
     enabled: Boolean(userId),
     staleTime: 15_000,
+    refetchInterval: 15_000,
   });
 }
 
@@ -75,13 +76,17 @@ export function useCreateChallenge() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (variables: CreateChallengeVariables) =>
-      createChallenge(supabase, {
-        challengerId: userId!,
+    mutationFn: (variables: CreateChallengeVariables) => {
+      if (!userId) {
+        return Promise.reject(new Error('You must be signed in to send a challenge.'));
+      }
+      return createChallenge(supabase, {
+        challengerId: userId,
         challengeeId: variables.challengeeId,
         gameSlug: variables.gameSlug,
         settings: variables.settings,
-      }),
+      });
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['challenges'] });
     },

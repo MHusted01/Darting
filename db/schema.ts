@@ -25,39 +25,43 @@ export const players = sqliteTable(
   (table) => [uniqueIndex('players_user_id_unique').on(table.userId)],
 );
 
-export const gameSessions = sqliteTable('game_sessions', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  gameSlug: text('game_slug').notNull(),
-  status: text('status', {
-    enum: ['setup', 'in_progress', 'completed', 'abandoned'],
-  })
-    .notNull()
-    .default('setup'),
-  context: text('context', {
-    enum: ['casual', 'tournament', 'practice', 'realtime'],
-  })
-    .notNull()
-    .default('casual'),
-  currentRound: integer('current_round').notNull().default(0),
-  currentPlayerIndex: integer('current_player_index').notNull().default(0),
-  config: text('config', { mode: 'json' }),
-  startedAt: integer('started_at', { mode: 'timestamp' }),
-  completedAt: integer('completed_at', { mode: 'timestamp' }),
-  createdAt: integer('created_at', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  cloudSyncStatus: text('cloud_sync_status', {
-    enum: ['unsynced', 'synced', 'failed'],
-  })
-    .notNull()
-    .default('unsynced'),
-  cloudSessionId: text('cloud_session_id'),
-  tournamentMatchId: text('tournament_match_id'),
-  tournamentParticipant1Id: text('tournament_participant1_id'),
-  tournamentParticipant2Id: text('tournament_participant2_id'),
-  challengeId: text('challenge_id'),
-  challengeOpponentUserId: text('challenge_opponent_user_id'),
-});
+export const gameSessions = sqliteTable(
+  'game_sessions',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    gameSlug: text('game_slug').notNull(),
+    status: text('status', {
+      enum: ['setup', 'in_progress', 'completed', 'abandoned'],
+    })
+      .notNull()
+      .default('setup'),
+    context: text('context', {
+      enum: ['casual', 'tournament', 'practice', 'realtime'],
+    })
+      .notNull()
+      .default('casual'),
+    currentRound: integer('current_round').notNull().default(0),
+    currentPlayerIndex: integer('current_player_index').notNull().default(0),
+    config: text('config', { mode: 'json' }),
+    startedAt: integer('started_at', { mode: 'timestamp' }),
+    completedAt: integer('completed_at', { mode: 'timestamp' }),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    cloudSyncStatus: text('cloud_sync_status', {
+      enum: ['unsynced', 'synced', 'failed'],
+    })
+      .notNull()
+      .default('unsynced'),
+    cloudSessionId: text('cloud_session_id'),
+    tournamentMatchId: text('tournament_match_id'),
+    tournamentParticipant1Id: text('tournament_participant1_id'),
+    tournamentParticipant2Id: text('tournament_participant2_id'),
+    challengeId: text('challenge_id'),
+    challengeOpponentUserId: text('challenge_opponent_user_id'),
+  },
+  (table) => [index('game_sessions_challenge_id_idx').on(table.challengeId)],
+);
 
 export const gamePlayers = sqliteTable(
   'game_players',

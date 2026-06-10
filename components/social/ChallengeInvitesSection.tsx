@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Swords } from 'lucide-react-native';
 import { useDeclineChallenge, useIncomingChallenges } from '@/hooks/useChallenges';
@@ -49,7 +49,11 @@ export function ChallengeInvitesSection() {
                 accessibilityRole="button"
                 accessibilityLabel={`Decline challenge from ${challenge.challengerName}`}
                 className={`border border-ds-outline-variant rounded-lg px-3 py-2 active:opacity-70 ${declineMutation.isPending ? 'opacity-50' : ''}`}
-                onPress={() => declineMutation.mutate(challenge.id)}
+                onPress={() =>
+                  declineMutation.mutate(challenge.id, {
+                    onError: () => Alert.alert('Error', 'Failed to decline challenge.'),
+                  })
+                }
                 disabled={declineMutation.isPending}
               >
                 <Text className="text-xs font-barlow-semi text-ds-on-surface-variant">Decline</Text>

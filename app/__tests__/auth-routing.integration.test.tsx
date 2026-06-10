@@ -8,6 +8,11 @@ const mockUseAuth = jest.fn();
 
 jest.mock('@/hooks/usePushToken', () => ({ usePushToken: jest.fn() }));
 
+jest.mock('@/providers/PresenceProvider', () => ({
+  PresenceProvider: ({ children }: { children: React.ReactNode }) => children,
+  usePresenceContext: () => ({ presenceMap: {}, setStatus: jest.fn() }),
+}));
+
 jest.mock('@clerk/expo', () => ({
   useAuth: () => mockUseAuth(),
   RedirectToTasks: () => {
