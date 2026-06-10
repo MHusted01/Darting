@@ -10,7 +10,7 @@ Verdicts: **PASS** (correct as-is) · **FIXED** (corrected in this branch, with 
 
 | Item | Verdict | Detail |
 |---|---|---|
-| Finding 1 — `get_player_public_stats.avg_three_dart_avg` mixed all game types | **FIXED** | Top-level avg now `FILTER (WHERE … gs.game_slug = 'x01')` in migration `20260629000000`. `games_played`, `win_rate`, `per_game_kpis` intentionally stay all-games. |
+| Finding 1 — `get_player_public_stats.avg_three_dart_avg` mixed all game types | **FIXED** | Top-level avg and the per-slug `per_game_kpis` averages now `FILTER (WHERE … game_slug = 'x01')` in migration `20260629000000_x01_only_three_dart_avgs.sql` (historical non-x01 `three_dart_avg` values can no longer surface). `games_played` and `win_rate` intentionally stay all-games. |
 | Finding 2 — `getTrendData` All-Games trend mixed 3DA across slugs | **FIXED** | `resolveTrendSlug` defaults the trend to `x01` when no slug filter is active (`lib/stats.ts`); explicit slug filters unchanged. Trend chart label updated to "501/301 Sessions" in All-Games view. Tests: `lib/__tests__/stats-three-dart.test.ts`. |
 | Finding 3 — friends-list `threeDartAvg` always null | **FIXED** | New `get_friends_three_dart_avgs` RPC (x01-only, completed, non-practice, realtime-deduped); `getFriends` fetches in parallel and merges via `mapFriendRow`. RPC failure is non-fatal (falls back to null/"—"). Tests: `lib/__tests__/friends.test.ts`. |
 | Finding 4 — `get_club_leaderboard` mixed all game types | **FIXED** | Avg now x01-only. Also aligned with `get_player_public_stats` semantics: participation-based (counts sessions the member played, not just created), excludes `context='practice'`, realtime-deduped (creator copy only). Client contract (RPC name/args, null mapping) already guarded in `app/__tests__/lib/clubs.test.ts`. |
@@ -42,7 +42,7 @@ Verdicts: **PASS** (correct as-is) · **FIXED** (corrected in this branch, with 
 | Presence merge | **PASS** | `mergePresence` defaults to offline, immutable map. |
 | Friend activity dedupe | **PASS** | `get_friends_activity` realtime dedup (creator copy only) shipped in `20260628`; keyset pagination fixed in `20260620000006/9`. |
 | Mentions / reactions / moderation | **PASS** | Parse + notify, reaction enum + aggregation, admin delete policies all covered by existing suites (club-feed, reactions, mentions). |
-| Friend profile "By Game" averages (`per_game_kpis`) | **DEFERRED** | Per-slug averages of `three_dart_avg`; after Finding 5, non-x01 entries stop accruing and the section trends x01-only. Replacing it with real per-game KPIs (MPR for cricket, etc.) belongs to the 12b+ stats work. |
+| Friend profile "By Game" averages (`per_game_kpis`) | **FIXED** (partial) | Per-slug averages now x01-filtered in the RPC, so historical non-x01 `three_dart_avg` values no longer render as fake averages (UI handles the empty/x01-only object). Replacing the section with real per-game KPIs (MPR for cricket, etc.) is still deferred to the 12b+ stats work. |
 
 ## 4. DB / sync / RPCs / edge functions
 

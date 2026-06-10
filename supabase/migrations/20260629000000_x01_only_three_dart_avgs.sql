@@ -51,7 +51,9 @@ AS $$
     FROM (
       SELECT
         gs2.game_slug,
-        AVG(gp2.three_dart_avg) FILTER (WHERE gp2.three_dart_avg IS NOT NULL) AS slug_avg
+        AVG(gp2.three_dart_avg) FILTER (
+          WHERE gp2.three_dart_avg IS NOT NULL AND gs2.game_slug = 'x01'
+        ) AS slug_avg
       FROM public.game_players gp2
       JOIN public.game_sessions gs2
         ON gs2.id = gp2.game_session_id
