@@ -111,7 +111,7 @@ export function ChallengeSheet({
                   >
                     <Text
                       className={`text-base font-barlow-semi ${
-                        startingScore === score ? 'text-white' : 'text-ds-on-surface'
+                        startingScore === score ? 'text-ds-on-red' : 'text-ds-on-surface'
                       }`}
                     >
                       {score}
@@ -140,7 +140,7 @@ export function ChallengeSheet({
             accessibilityLabel="Send challenge"
             className={`bg-ds-red rounded-xl py-4 items-center active:opacity-70 ${isLoading ? 'opacity-50' : ''}`}
           >
-            <Text className="text-white text-base font-barlow-semi">
+            <Text className="text-ds-on-red text-base font-barlow-semi">
               {isLoading ? 'Sending…' : 'Send Challenge'}
             </Text>
           </Pressable>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 import Skeleton from '@/components/ui/Skeleton';
 import EmptyState from '@/components/ui/EmptyState';
@@ -70,7 +71,7 @@ export function ClubFeed({ clubId, isAdmin }: Props) {
           )
         }
         ListFooterComponent={
-          isFetchingNextPage ? <ActivityIndicator color="#ba1a1a" style={{ paddingVertical: 16 }} /> : null
+          isFetchingNextPage ? <ActivityIndicator color={DS_COLORS.red} style={{ paddingVertical: 16 }} /> : null
         }
       />
 
@@ -81,7 +82,7 @@ export function ClubFeed({ clubId, isAdmin }: Props) {
         className="absolute bottom-6 right-6 bg-ds-red rounded-full w-14 h-14 items-center justify-center shadow-sm active:opacity-70"
         style={{ elevation: 4 }}
       >
-        <Text className="text-white text-2xl font-barlow-semi leading-none">+</Text>
+        <Text className="text-ds-on-red text-2xl font-barlow-semi leading-none">+</Text>
       </Pressable>
 
       <PostComposer

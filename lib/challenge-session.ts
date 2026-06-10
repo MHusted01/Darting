@@ -1,11 +1,13 @@
+import {
+  CHALLENGER_AVATAR_COLOR as CHALLENGER_COLOR,
+  CHALLENGEE_AVATAR_COLOR as CHALLENGEE_COLOR,
+} from '@/constants/avatarColors';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { gamePlayers, gameSessions, players } from '@/db/schema';
 import { configFromChallengeSettings, initialStateForSlug } from '@/lib/realtime-game';
 import type { GameChallenge } from '@/types/realtime';
 
-const CHALLENGER_COLOR = '#6366f1';
-const CHALLENGEE_COLOR = '#f59e0b';
 
 async function ensurePlayer(
   tx: Parameters<Parameters<typeof db.transaction>[0]>[0],

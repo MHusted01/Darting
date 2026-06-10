@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { FlatList, Text, View, Pressable } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -45,7 +46,7 @@ export default function GameCategoryScreen() {
           onPress={() => router.back()}
           className="active:opacity-70"
         >
-          <ArrowLeft size={22} color="#1c1b1b" />
+          <ArrowLeft size={22} color={DS_COLORS.onSurface} />
         </Pressable>
         <Text className="text-xl font-barlow-condensed text-ds-on-surface">{label}</Text>
       </View>

@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { DS_COLORS } from '@/constants/colors';
 import AnimatedPressable from '@/components/ui/AnimatedPressable';
 import { ChevronRight } from 'lucide-react-native';
 
@@ -32,7 +33,7 @@ export default function DrillCatalogueItem({
         </Text>
         <Text className="text-xs font-barlow-semi text-ds-red mt-0.5">{benchmarkTarget}</Text>
       </View>
-      <ChevronRight size={18} color="#747878" />
+      <ChevronRight size={18} color={DS_COLORS.outline} />
     </AnimatedPressable>
   );
 }

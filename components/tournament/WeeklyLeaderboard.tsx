@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { DS_COLORS } from '@/constants/colors';
 import { Trophy } from 'lucide-react-native';
 import type { TournamentParticipant, TournamentMatch } from '@/types/tournament';
 
@@ -55,7 +56,7 @@ export function WeeklyLeaderboard({ participants, matches }: WeeklyLeaderboardPr
         >
           <View className="w-7 items-center">
             {idx === 0 ? (
-              <Trophy size={14} color="#ba1a1a" />
+              <Trophy size={14} color={DS_COLORS.red} />
             ) : (
               <Text className="text-sm font-barlow-semi text-ds-on-surface-variant">{idx + 1}</Text>
             )}

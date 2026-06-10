@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { DS_COLORS } from '@/constants/colors';
 import { Alert, Pressable, Switch, Text, View } from 'react-native';
 import Skeleton from '@/components/ui/Skeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,12 +7,6 @@ import { ArrowLeft } from 'lucide-react-native';
 import { useNotificationPrefs, useUpdateNotificationPrefs } from '@/hooks/useNotificationPrefs';
 import type { NotificationPrefs } from '@/lib/notificationPrefs';
 import { DEFAULT_PREFS } from '@/lib/notificationPrefs';
-
-const DS = {
-  green: '#b8f0bc',
-  outlineVariant: '#c4c7c7',
-  surface: '#ffffff',
-} as const;
 
 interface PrefRow {
   key: keyof NotificationPrefs;
@@ -51,7 +46,7 @@ export default function NotificationPrefsScreen() {
           onPress={() => router.back()}
           className="active:opacity-70"
         >
-          <ArrowLeft size={22} color="#1c1b1b" />
+          <ArrowLeft size={22} color={DS_COLORS.onSurface} />
         </Pressable>
         <Text className="text-xl font-barlow-condensed text-ds-on-surface">Notification Preferences</Text>
       </View>
@@ -82,8 +77,8 @@ export default function NotificationPrefsScreen() {
                   accessibilityLabel={row.accessibilityLabel}
                   value={current[row.key]}
                   onValueChange={(v) => handleToggle(row.key, v)}
-                  trackColor={{ true: DS.green, false: DS.outlineVariant }}
-                  thumbColor={DS.surface}
+                  trackColor={{ true: DS_COLORS.green, false: DS_COLORS.outlineVariant }}
+                  thumbColor={DS_COLORS.surface}
                 />
               </View>
             ))}

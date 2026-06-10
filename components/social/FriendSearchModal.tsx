@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import {
   ActivityIndicator,
   Alert,
@@ -77,7 +78,7 @@ export function FriendSearchModal({ visible, onClose }: Props) {
             className="active:opacity-70"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <X size={22} color="#444748" />
+            <X size={22} color={DS_COLORS.onSurfaceVariant} />
           </Pressable>
         </View>
 
@@ -86,13 +87,13 @@ export function FriendSearchModal({ visible, onClose }: Props) {
             <TextInput
               className="flex-1 py-4 text-base font-barlow text-ds-on-surface"
               placeholder="Search by name or @username"
-              placeholderTextColor="#747878"
+              placeholderTextColor={DS_COLORS.outline}
               value={query}
               onChangeText={setQuery}
               autoCapitalize="none"
               autoCorrect={false}
             />
-            {isFetching && <ActivityIndicator size="small" color="#747878" />}
+            {isFetching && <ActivityIndicator size="small" color={DS_COLORS.outline} />}
           </View>
         </View>
 
@@ -128,7 +129,7 @@ export function FriendSearchModal({ visible, onClose }: Props) {
                     onPress={() => handleAdd(user)}
                     disabled={sendRequest.isPending}
                   >
-                    <Text className="text-xs font-barlow-semi text-white">Add</Text>
+                    <Text className="text-xs font-barlow-semi text-ds-on-red">Add</Text>
                   </Pressable>
                 </View>
               ))}

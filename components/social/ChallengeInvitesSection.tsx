@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Swords } from 'lucide-react-native';
@@ -16,7 +17,7 @@ export function ChallengeInvitesSection() {
   const realtimeGamesEnabled = useFeatureGate('REALTIME_GAMES');
   const { data: challenges } = useIncomingChallenges();
   const declineMutation = useDeclineChallenge();
-  const [decliningId, setDecliningId] = useState<string | null>(null);
+  const [decliningIds, setDecliningIds] = useState<Set<string>>(new Set());
 
   if (!realtimeGamesEnabled || !challenges || challenges.length === 0) return null;
 
@@ -34,7 +35,7 @@ export function ChallengeInvitesSection() {
             }`}
           >
             <View className="w-10 h-10 rounded-full bg-ds-red-container items-center justify-center">
-              <Swords size={18} color="#ba1a1a" />
+              <Swords size={18} color={DS_COLORS.red} />
             </View>
 
             <View className="flex-1">
@@ -50,21 +51,26 @@ export function ChallengeInvitesSection() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Decline challenge from ${challenge.challengerName}`}
-                className={`border border-ds-outline-variant rounded-lg px-3 py-2 active:opacity-70 ${decliningId === challenge.id ? 'opacity-50' : ''}`}
+                className={`border border-ds-outline-variant rounded-lg px-3 py-2 active:opacity-70 ${decliningIds.has(challenge.id) ? 'opacity-50' : ''}`}
                 onPress={() => {
-                  setDecliningId(challenge.id);
+                  setDecliningIds((prev) => new Set(prev).add(challenge.id));
                   declineMutation.mutate(challenge.id, {
                     onError: () => Alert.alert('Error', 'Failed to decline challenge.'),
-                    onSettled: () => setDecliningId(null),
+                    onSettled: () =>
+                      setDecliningIds((prev) => {
+                        const next = new Set(prev);
+                        next.delete(challenge.id);
+                        return next;
+                      }),
                   });
                 }}
-                disabled={decliningId !== null}
+                disabled={decliningIds.has(challenge.id)}
               >
-                {decliningId === challenge.id ? (
+                {decliningIds.has(challenge.id) ? (
                   <ActivityIndicator
                     testID={`decline-pending-${challenge.id}`}
                     size="small"
-                    color="#444748"
+                    color={DS_COLORS.onSurfaceVariant}
                   />
                 ) : (
                   <Text className="text-xs font-barlow-semi text-ds-on-surface-variant">Decline</Text>
@@ -76,7 +82,7 @@ export function ChallengeInvitesSection() {
                 className="bg-ds-red rounded-lg px-3 py-2 active:opacity-70"
                 onPress={() => router.push(`/challenge/${challenge.id}`)}
               >
-                <Text className="text-xs font-barlow-semi text-white">View</Text>
+                <Text className="text-xs font-barlow-semi text-ds-on-red">View</Text>
               </Pressable>
             </View>
           </View>

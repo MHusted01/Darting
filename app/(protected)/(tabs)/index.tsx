@@ -1,4 +1,5 @@
 import { ScrollView, Text, View, Pressable } from 'react-native';
+import { DS_COLORS } from '@/constants/colors';
 import AnimatedPressable from '@/components/ui/AnimatedPressable';
 import { withErrorBoundary } from '@/components/ErrorBoundary';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -25,11 +26,11 @@ const MODE_CARDS: ModeCard[] = [
     label: 'Real Game',
     subtitle: 'Ranked 501 & Cricket tracking',
     bg: 'bg-ds-red',
-    textColor: 'text-white',
-    subtitleColor: 'text-white/80',
+    textColor: 'text-ds-on-red',
+    subtitleColor: 'text-ds-on-red/80',
     Icon: Play,
     iconBg: 'bg-white/20',
-    iconColor: 'white',
+    iconColor: DS_COLORS.onRed,
   },
   {
     category: 'Practice',
@@ -40,7 +41,7 @@ const MODE_CARDS: ModeCard[] = [
     subtitleColor: 'text-ds-on-surface-variant',
     Icon: Target,
     iconBg: 'bg-ds-surface-low',
-    iconColor: '#444748',
+    iconColor: DS_COLORS.onSurfaceVariant,
   },
   {
     category: 'Party',
@@ -51,7 +52,7 @@ const MODE_CARDS: ModeCard[] = [
     subtitleColor: 'text-ds-green-dark/80',
     Icon: PartyPopper,
     iconBg: 'bg-white/40',
-    iconColor: '#1e502a',
+    iconColor: DS_COLORS.greenDark,
   },
 ];
 
@@ -78,7 +79,7 @@ function HomeScreen() {
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             className="active:opacity-70"
           >
-            <Settings size={22} color="#444748" />
+            <Settings size={22} color={DS_COLORS.onSurfaceVariant} />
           </Pressable>
         </View>
       </View>

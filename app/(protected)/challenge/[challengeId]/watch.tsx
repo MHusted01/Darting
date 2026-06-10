@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { withErrorBoundary } from '@/components/ErrorBoundary';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import Skeleton from '@/components/ui/Skeleton';
@@ -85,11 +86,11 @@ function ChallengeSpectatorScreen() {
           accessibilityLabel="Go back"
           className="active:opacity-70"
         >
-          <ArrowLeft size={22} color="#1c1b1b" />
+          <ArrowLeft size={22} color={DS_COLORS.onSurface} />
         </Pressable>
         <Text className="text-xl font-barlow-condensed text-ds-on-surface">Watching Live</Text>
         <View className="ml-auto flex-row items-center gap-1">
-          <Eye size={18} color="#747878" />
+          <Eye size={18} color={DS_COLORS.outline} />
         </View>
       </View>
 

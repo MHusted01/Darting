@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import Skeleton from '@/components/ui/Skeleton';
 import EmptyState from '@/components/ui/EmptyState';
 import {
@@ -300,7 +301,7 @@ export function CommentsModal({ visible, postId, clubId, currentUserId, isAdmin,
             className="active:opacity-70"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <X size={22} color="#444748" />
+            <X size={22} color={DS_COLORS.onSurfaceVariant} />
           </Pressable>
         </View>
 
@@ -375,7 +376,7 @@ export function CommentsModal({ visible, postId, clubId, currentUserId, isAdmin,
           }
           ListFooterComponent={
             isFetchingNextPage
-              ? <ActivityIndicator color="#ba1a1a" style={{ paddingVertical: 16 }} />
+              ? <ActivityIndicator color={DS_COLORS.red} style={{ paddingVertical: 16 }} />
               : null
           }
         />
@@ -393,7 +394,7 @@ export function CommentsModal({ visible, postId, clubId, currentUserId, isAdmin,
                 className="active:opacity-70"
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <X size={14} color="#747878" />
+                <X size={14} color={DS_COLORS.outline} />
               </Pressable>
             </View>
           )}
@@ -440,7 +441,7 @@ export function CommentsModal({ visible, postId, clubId, currentUserId, isAdmin,
                 accessibilityLabel={replyingTo ? `Reply to ${replyingTo.authorName}` : 'Write a comment'}
                 className="text-sm font-barlow text-ds-on-surface"
                 placeholder={replyingTo ? `Reply to ${replyingTo.authorName}…` : 'Add a comment… type @ to mention'}
-                placeholderTextColor="#747878"
+                placeholderTextColor={DS_COLORS.outline}
                 value={body}
                 onChangeText={setBody}
                 multiline
@@ -454,7 +455,7 @@ export function CommentsModal({ visible, postId, clubId, currentUserId, isAdmin,
               disabled={!body.trim() || addComment.isPending}
               className={`rounded-xl px-4 py-3 items-center active:opacity-70 ${body.trim() ? 'bg-ds-red' : 'bg-ds-surface-container'} ${addComment.isPending ? 'opacity-50' : ''}`}
             >
-              <Text className={`text-sm font-barlow-semi ${body.trim() ? 'text-white' : 'text-ds-outline'}`}>
+              <Text className={`text-sm font-barlow-semi ${body.trim() ? 'text-ds-on-red' : 'text-ds-outline'}`}>
                 Send
               </Text>
             </Pressable>

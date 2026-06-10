@@ -68,7 +68,7 @@ export function FriendRequestsSection() {
                 onPress={() => acceptMutation.mutate(req.id)}
                 disabled={acceptMutation.isPending}
               >
-                <Text className="text-xs font-barlow-semi text-white">Accept</Text>
+                <Text className="text-xs font-barlow-semi text-ds-on-red">Accept</Text>
               </Pressable>
             </View>
           </View>

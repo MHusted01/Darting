@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { withErrorBoundary } from '@/components/ErrorBoundary';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
@@ -108,7 +109,7 @@ function SocialScreen() {
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           className="active:opacity-70"
         >
-          <Settings size={22} color="#444748" />
+          <Settings size={22} color={DS_COLORS.onSurfaceVariant} />
         </Pressable>
       </View>
 
@@ -117,7 +118,7 @@ function SocialScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 32 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor="#ba1a1a" />
+          <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={DS_COLORS.red} />
         }
       >
 
@@ -138,7 +139,7 @@ function SocialScreen() {
                   accessibilityLabel={t.name}
                 >
                   <View className="w-9 h-9 rounded-full bg-ds-red-container items-center justify-center">
-                    <Trophy size={16} color="#ba1a1a" />
+                    <Trophy size={16} color={DS_COLORS.red} />
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm font-barlow-semi text-ds-on-surface" numberOfLines={1}>{t.name}</Text>
@@ -172,7 +173,7 @@ function SocialScreen() {
                 accessibilityLabel="Create Club"
                 onPress={() => setCreateClubVisible(true)}
               >
-                <Text className="text-white font-barlow-semi text-sm">+ Create</Text>
+                <Text className="text-ds-on-red font-barlow-semi text-sm">+ Create</Text>
               </Pressable>
             </View>
           </View>
@@ -205,7 +206,7 @@ function SocialScreen() {
                   accessibilityLabel={`View ${club.name}`}
                   onPress={() => router.push(`/(protected)/club/${club.id}`)}
                   className="bg-ds-surface border border-ds-outline-variant rounded-xl p-4 active:opacity-80"
-                  style={club.role === 'admin' ? { borderLeftWidth: 4, borderLeftColor: '#1c1b1b' } : undefined}
+                  style={club.role === 'admin' ? { borderLeftWidth: 4, borderLeftColor: DS_COLORS.onSurface } : undefined}
                 >
                   <View className="flex-row items-start justify-between mb-2">
                     <View className="flex-1">
@@ -218,7 +219,7 @@ function SocialScreen() {
                     </View>
                     {club.role === 'admin' && (
                       <View className="bg-ds-on-surface rounded-full px-3 py-1 ml-2">
-                        <Text className="text-white text-xs font-barlow-semi">ADMIN</Text>
+                        <Text className="text-ds-on-red text-xs font-barlow-semi">ADMIN</Text>
                       </View>
                     )}
                   </View>

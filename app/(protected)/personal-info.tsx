@@ -1,4 +1,6 @@
 import { useAuth, useUser } from '@clerk/expo';
+import { DS_COLORS } from '@/constants/colors';
+import { PROFILE_AVATAR_COLORS as AVATAR_COLORS } from '@/constants/avatarColors';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -9,7 +11,6 @@ import { useSupabase } from '@/providers/SupabaseProvider';
 import { isValidUsername } from '@/lib/validation';
 import { getErrorMessage } from '@/lib/errors';
 
-const AVATAR_COLORS = ['#b8f0bc', '#ffdad6', '#f1edec', '#c4c7c7', '#444748', '#ba1a1a'];
 
 export default function PersonalInfoScreen() {
   const router = useRouter();
@@ -71,7 +72,7 @@ export default function PersonalInfoScreen() {
           onPress={() => router.back()}
           className="active:opacity-70"
         >
-          <ArrowLeft size={22} color="#1c1b1b" />
+          <ArrowLeft size={22} color={DS_COLORS.onSurface} />
         </Pressable>
         <Text className="text-xl font-barlow-condensed text-ds-on-surface">Personal Info</Text>
       </View>
@@ -103,7 +104,7 @@ export default function PersonalInfoScreen() {
                   borderRadius: 16,
                   backgroundColor: color,
                   borderWidth: avatarColor === color ? 3 : 1,
-                  borderColor: avatarColor === color ? '#1c1b1b' : '#c4c7c7',
+                  borderColor: avatarColor === color ? DS_COLORS.onSurface : DS_COLORS.outlineVariant,
                 }}
               />
             ))}
@@ -120,7 +121,7 @@ export default function PersonalInfoScreen() {
                 value={firstName}
                 onChangeText={setFirstName}
                 placeholder="First name"
-                placeholderTextColor="#747878"
+                placeholderTextColor={DS_COLORS.outline}
                 accessibilityLabel="First name"
                 className="py-4 text-base font-barlow text-ds-on-surface"
                 autoCapitalize="words"
@@ -137,7 +138,7 @@ export default function PersonalInfoScreen() {
                 value={lastName}
                 onChangeText={setLastName}
                 placeholder="Last name"
-                placeholderTextColor="#747878"
+                placeholderTextColor={DS_COLORS.outline}
                 accessibilityLabel="Last name"
                 className="py-4 text-base font-barlow text-ds-on-surface"
                 autoCapitalize="words"
@@ -154,7 +155,7 @@ export default function PersonalInfoScreen() {
                 value={username}
                 onChangeText={setUsername}
                 placeholder="@username"
-                placeholderTextColor="#747878"
+                placeholderTextColor={DS_COLORS.outline}
                 accessibilityLabel="Username"
                 className="py-4 text-base font-barlow text-ds-on-surface"
                 autoCapitalize="none"
@@ -171,7 +172,7 @@ export default function PersonalInfoScreen() {
             disabled={isSaving}
             className={`bg-ds-red rounded-xl py-4 items-center active:opacity-70 mt-2 ${isSaving ? 'opacity-50' : ''}`}
           >
-            <Text className="text-white font-barlow-semi text-sm uppercase tracking-widest">
+            <Text className="text-ds-on-red font-barlow-semi text-sm uppercase tracking-widest">
               {isSaving ? 'Saving...' : 'Save'}
             </Text>
           </Pressable>

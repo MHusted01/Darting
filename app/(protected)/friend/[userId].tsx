@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { withErrorBoundary } from '@/components/ErrorBoundary';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
@@ -76,7 +77,7 @@ function FriendProfileScreen() {
           accessibilityLabel="Go back"
           className="active:opacity-70"
         >
-          <ArrowLeft size={22} color="#1c1b1b" />
+          <ArrowLeft size={22} color={DS_COLORS.onSurface} />
         </Pressable>
         <Text className="text-xl font-barlow-condensed text-ds-on-surface">Profile</Text>
       </View>
@@ -111,7 +112,7 @@ function FriendProfileScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 32 }}
           refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} tintColor="#ba1a1a" />
+            <RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} tintColor={DS_COLORS.red} />
           }
         >
           <View className="px-6">
@@ -297,8 +298,8 @@ function Phase8Sections({ userId, displayName }: { userId: string; displayName: 
             className="bg-ds-red rounded-xl py-4 items-center active:opacity-70 mb-6"
           >
             <View className="flex-row items-center gap-2">
-              <Swords size={18} color="white" />
-              <Text className="text-base font-barlow-semi text-white">Challenge to a game</Text>
+              <Swords size={18} color={DS_COLORS.onRed} />
+              <Text className="text-base font-barlow-semi text-ds-on-red">Challenge to a game</Text>
             </View>
           </Pressable>
           <ChallengeSheet

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import {
   Alert,
   Modal,
@@ -81,7 +82,7 @@ export function CreateTournamentModal({
             <TextInput
               className="py-4 text-base font-barlow text-ds-on-surface"
               placeholder="e.g. Spring Cup 2026"
-              placeholderTextColor="#747878"
+              placeholderTextColor={DS_COLORS.outline}
               value={name}
               onChangeText={setName}
               accessibilityLabel="Tournament name"
@@ -137,7 +138,7 @@ export function CreateTournamentModal({
                 accessibilityRole="radio"
                 accessibilityState={{ checked: legsPerMatch === legs }}
               >
-                <Text className={`text-sm font-barlow-semi ${legsPerMatch === legs ? 'text-white' : 'text-ds-on-surface'}`}>
+                <Text className={`text-sm font-barlow-semi ${legsPerMatch === legs ? 'text-ds-on-red' : 'text-ds-on-surface'}`}>
                   Best of {legs}
                 </Text>
               </Pressable>
@@ -150,8 +151,8 @@ export function CreateTournamentModal({
               <Switch
                 value={doubleOut}
                 onValueChange={setDoubleOut}
-                trackColor={{ false: '#c4c7c7', true: '#ba1a1a' }}
-                thumbColor="white"
+                trackColor={{ false: DS_COLORS.outlineVariant, true: DS_COLORS.red }}
+                thumbColor={DS_COLORS.surface}
                 accessibilityLabel="Double out rule"
               />
             </View>
@@ -164,7 +165,7 @@ export function CreateTournamentModal({
             accessibilityRole="button"
             accessibilityLabel="Create tournament"
           >
-            <Text className={`text-lg font-barlow-semi ${isLoading ? 'text-ds-outline' : 'text-white'}`}>
+            <Text className={`text-lg font-barlow-semi ${isLoading ? 'text-ds-outline' : 'text-ds-on-red'}`}>
               {isLoading ? 'Creating...' : 'Create Tournament'}
             </Text>
           </Pressable>

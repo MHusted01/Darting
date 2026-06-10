@@ -2,6 +2,7 @@ import React, { Component, ComponentType, ReactNode } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { TriangleAlert } from 'lucide-react-native';
 import * as Sentry from '@sentry/react-native';
+import { DS_COLORS } from '@/constants/colors';
 
 interface ErrorBoundaryProps {
   screenName: string;
@@ -33,7 +34,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
       return (
         <View className="flex-1 items-center justify-center bg-ds-bg px-6">
           <View className="w-16 h-16 rounded-full bg-ds-red-container items-center justify-center mb-4">
-            <TriangleAlert size={28} color="#ba1a1a" />
+            <TriangleAlert size={24} color={DS_COLORS.red} />
           </View>
           <Text className="text-lg font-barlow-condensed text-ds-on-surface text-center">
             Something went wrong
@@ -47,7 +48,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
             accessibilityLabel="Try again"
             className="bg-ds-red rounded-xl px-6 py-3 mt-5 active:opacity-70"
           >
-            <Text className="text-white text-sm font-barlow-semi">Try again</Text>
+            <Text className="text-ds-on-red text-sm font-barlow-semi">Try again</Text>
           </Pressable>
         </View>
       );

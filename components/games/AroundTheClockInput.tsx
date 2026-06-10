@@ -1,4 +1,5 @@
 import { View, Text, Pressable } from 'react-native';
+import { DS_COLORS } from '@/constants/colors';
 import { Check, X } from 'lucide-react-native';
 import { getTargetLabel, getTargetSegment } from '@/lib/games/around-the-clock';
 import type { DartThrow } from '@/types/game';
@@ -64,14 +65,14 @@ export function AroundTheClockInput({
             >
               {isThrown ? (
                 wasHit ? (
-                  <Check size={18} color="white" />
+                  <Check size={18} color={DS_COLORS.onRed} />
                 ) : (
-                  <X size={18} color="white" />
+                  <X size={18} color={DS_COLORS.onRed} />
                 )
               ) : (
                 <Text
                   className={`text-sm font-barlow-bold ${
-                    isCurrent ? 'text-white' : 'text-ds-on-surface-variant'
+                    isCurrent ? 'text-ds-on-red' : 'text-ds-on-surface-variant'
                   }`}
                 >
                   {i + 1}
@@ -91,7 +92,7 @@ export function AroundTheClockInput({
             accessibilityRole="button"
             accessibilityLabel={`Hit ${targetLabel}`}
           >
-            <Text className="text-white text-lg font-barlow-semi">
+            <Text className="text-ds-on-red text-lg font-barlow-semi">
               Hit {targetLabel}
             </Text>
           </Pressable>

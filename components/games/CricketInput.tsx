@@ -109,13 +109,13 @@ export function CricketInput({
               }`}
             >
               {isThrown ? (
-                <Text className="text-white text-xs font-barlow-bold">
+                <Text className="text-ds-on-red text-xs font-barlow-bold">
                   {getDartLabel(thrownDarts[i])}
                 </Text>
               ) : (
                 <Text
                   className={`text-sm font-barlow-bold ${
-                    isCurrent ? 'text-white' : 'text-ds-on-surface-variant'
+                    isCurrent ? 'text-ds-on-red' : 'text-ds-on-surface-variant'
                   }`}
                 >
                   {i + 1}
@@ -142,7 +142,7 @@ export function CricketInput({
                     accessibilityRole="button"
                     accessibilityLabel={`Select ${getSegmentLabel(segment)}`}
                   >
-                    <Text className="text-white text-lg font-barlow-semi">
+                    <Text className="text-ds-on-red text-lg font-barlow-semi">
                       {getSegmentLabel(segment)}
                     </Text>
                   </Pressable>
@@ -156,7 +156,7 @@ export function CricketInput({
                 accessibilityRole="button"
                 accessibilityLabel="Select Bull"
               >
-                <Text className="text-white text-lg font-barlow-semi">Bull</Text>
+                <Text className="text-ds-on-red text-lg font-barlow-semi">Bull</Text>
               </Pressable>
 
               {/* Miss button */}
@@ -184,7 +184,7 @@ export function CricketInput({
                   accessibilityRole="button"
                   accessibilityLabel={opt.label}
                 >
-                  <Text className="text-white text-lg font-barlow-semi">{opt.label}</Text>
+                  <Text className="text-ds-on-red text-lg font-barlow-semi">{opt.label}</Text>
                 </Pressable>
               ))}
 

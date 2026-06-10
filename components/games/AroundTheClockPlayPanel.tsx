@@ -38,7 +38,7 @@ export function AroundTheClockPlayPanel({
           {localTarget > maxTarget ? '\u2713' : getTargetLabel(localTarget)}
         </Text>
         {localTarget <= maxTarget && (
-          <Text className="text-sm text-ds-outline mt-1">
+          <Text className="text-sm font-barlow text-ds-outline mt-1">
             {localTarget} of {maxTarget}
           </Text>
         )}
@@ -85,7 +85,7 @@ export function AroundTheClockPlayPanel({
               </Text>
               <Text
                 className={`text-sm ${
-                  isFinished ? 'text-ds-green-dark font-barlow-bold' : 'text-ds-on-surface-variant'
+                  isFinished ? 'text-ds-green-dark font-barlow-bold' : 'font-barlow text-ds-on-surface-variant'
                 }`}
               >
                 {isFinished ? 'Done!' : `${playerTarget - 1}/${maxTarget}`}

@@ -22,7 +22,7 @@ export function ATCResultsRows({ players }: ATCResultsRowsProps) {
             className="w-8 h-8 rounded-full items-center justify-center mr-3"
             style={{ backgroundColor: result.avatarColor }}
           >
-            <Text className="text-white text-sm font-barlow-bold">
+            <Text className="text-ds-on-red text-sm font-barlow-bold">
               {result.name.charAt(0).toUpperCase()}
             </Text>
           </View>

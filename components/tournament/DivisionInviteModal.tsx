@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import {
   ActivityIndicator,
   Alert,
@@ -65,12 +66,12 @@ export function DivisionInviteModal({ divisionId: _divisionId, visible, onClose,
             <TextInput
               className="flex-1 py-4 text-base font-barlow text-ds-on-surface"
               placeholder="Search clubs by name"
-              placeholderTextColor="#747878"
+              placeholderTextColor={DS_COLORS.outline}
               value={query}
               onChangeText={setQuery}
               accessibilityLabel="Search clubs"
             />
-            {isFetching && <ActivityIndicator size="small" color="#747878" />}
+            {isFetching && <ActivityIndicator size="small" color={DS_COLORS.outline} />}
           </View>
         </View>
 

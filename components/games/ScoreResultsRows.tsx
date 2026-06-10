@@ -1,4 +1,5 @@
 import { View, Text } from 'react-native';
+import { DS_COLORS } from '@/constants/colors';
 import { Trophy } from 'lucide-react-native';
 import type { ScorePlayerResult } from '@/lib/games/results';
 
@@ -25,7 +26,7 @@ export function ScoreResultsRows({
             className="w-9 h-9 rounded-full items-center justify-center"
             style={{ backgroundColor: player.avatarColor }}
           >
-            <Text className="text-xs font-barlow-semi text-white">
+            <Text className="text-xs font-barlow-semi text-ds-on-red">
               {player.name.charAt(0).toUpperCase()}
             </Text>
           </View>
@@ -40,7 +41,7 @@ export function ScoreResultsRows({
               {player.score} {scoreLabel}
             </Text>
             {player.isWinner && (
-              <Trophy size={18} color="#1c1b1b" style={{ marginTop: 2 }} />
+              <Trophy size={18} color={DS_COLORS.onSurface} style={{ marginTop: 2 }} />
             )}
           </View>
         </View>

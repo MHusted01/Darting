@@ -1,4 +1,5 @@
 import { View, Text } from 'react-native';
+import { DS_COLORS } from '@/constants/colors';
 import AnimatedPressable from '@/components/ui/AnimatedPressable';
 import type { DartGame } from '@/constants/games';
 
@@ -16,13 +17,13 @@ export function GameCard({ game, onPress }: { game: DartGame; onPress: () => voi
     <AnimatedPressable
       onPress={onPress}
       haptic="light"
-      className="border border-ds-outline-variant rounded-xl p-4 bg-ds-surface active:opacity-70"
+      className="border border-ds-outline-variant rounded-xl p-4 bg-ds-surface active:opacity-80"
       accessibilityRole="button"
       accessibilityLabel={`${game.name} - ${game.description}`}
     >
       <View className="flex-row items-start gap-3">
         <View className="w-10 h-10 rounded-lg bg-ds-surface-low items-center justify-center">
-          <Icon size={20} color="#1c1b1b" />
+          <Icon size={20} color={DS_COLORS.onSurface} />
         </View>
         <View className="flex-1 flex-shrink">
           <Text className="text-lg font-barlow-semi text-ds-on-surface">{game.name}</Text>

@@ -134,7 +134,7 @@ export function CricketScoreboard({
                       className="w-6 h-6 rounded-full items-center justify-center mb-1"
                       style={{ backgroundColor: player.avatarColor }}
                     >
-                      <Text className="text-white text-xs font-barlow-bold">
+                      <Text className="text-ds-on-red text-xs font-barlow-bold">
                         {player.name.charAt(0).toUpperCase()}
                       </Text>
                     </View>

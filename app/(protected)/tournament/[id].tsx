@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { withErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Alert,
@@ -161,7 +162,7 @@ function TournamentScreen() {
           Could not load tournament.
         </Text>
         <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} className="bg-ds-red rounded-xl px-5 py-3 active:opacity-70">
-          <Text className="text-white font-barlow-semi">Back</Text>
+          <Text className="text-ds-on-red font-barlow-semi">Back</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -177,7 +178,7 @@ function TournamentScreen() {
     <SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
       <View className="flex-row items-center gap-3 px-6 pt-4 pb-3 border-b border-ds-outline-variant">
         <Pressable onPress={() => router.back()} className="active:opacity-70" accessibilityRole="button" accessibilityLabel="Back">
-          <ArrowLeft size={22} color="#1c1b1b" />
+          <ArrowLeft size={22} color={DS_COLORS.onSurface} />
         </Pressable>
         <View className="flex-1">
           <Text className="text-xl font-barlow-condensed text-ds-on-surface" numberOfLines={1}>
@@ -194,7 +195,7 @@ function TournamentScreen() {
             accessibilityRole="button"
             accessibilityLabel="Start tournament"
           >
-            <Text className="text-sm font-barlow-semi text-white">Start</Text>
+            <Text className="text-sm font-barlow-semi text-ds-on-red">Start</Text>
           </Pressable>
         )}
       </View>
@@ -223,7 +224,7 @@ function TournamentScreen() {
           contentContainerStyle={{ paddingTop: 16, paddingBottom: 32 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} tintColor="#ba1a1a" />
+            <RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} tintColor={DS_COLORS.red} />
           }
         >
           {tournament.format === 'cup' ? (
@@ -297,8 +298,8 @@ function TournamentScreen() {
                     accessibilityRole="button"
                     accessibilityLabel="Join tournament"
                   >
-                    <UserPlus size={16} color="white" />
-                    <Text className="text-sm font-barlow-semi text-white">Join Tournament</Text>
+                    <UserPlus size={16} color={DS_COLORS.onRed} />
+                    <Text className="text-sm font-barlow-semi text-ds-on-red">Join Tournament</Text>
                   </Pressable>
                 ) : (
                   <Pressable

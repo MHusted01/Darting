@@ -24,9 +24,9 @@ Darting is the go-to dart companion app — covering the most widely played dart
 - **Training games**: Structured practice drills to improve accuracy and consistency
 - **Free play**: Classic dartboard mode for just throwing and scoring without game rules
 
-### Monetization
+### Monetisation
 
-Free for all users. Monetization may be explored later but is not a current priority — focus is on building the best dart experience first.
+Free for all users. Monetisation may be explored later but is not a current priority — focus is on building the best dart experience first.
 
 ## Stack
 
@@ -135,6 +135,9 @@ supabase/
 - Tailwind classes directly on React Native components via `className`
 - No `StyleSheet.create()` — use NativeWind exclusively
 - Always use `ds-*` tokens (defined in `tailwind.config.js`) — never raw hex or old gray/emerald classes
+- For **native color props** (lucide `color`, `ActivityIndicator color`, `RefreshControl tintColor`, `placeholderTextColor`, Switch colors) use `DS_COLORS` from `constants/colors.ts` — never raw hex or `"white"` literals
+- Text/icons on red or dark surfaces use the semantic on-brand token: `text-ds-on-red` (className) / `DS_COLORS.onRed` (native props) — not raw white
+- **Allowed exceptions**: `bg-white/20`-style alpha overlays on colored cards and the `bg-white` selected radio dot inside red option rows (no token equivalent for alpha/contrast dots); avatar palette colors (centralized in `constants/avatarColors.ts`) and data-driven `avatarColor` values from the DB
 
 #### Color tokens
 
@@ -149,6 +152,7 @@ supabase/
 | `ds-outline` | `#747878` | Placeholder text, tertiary icons |
 | `ds-outline-variant` | `#c4c7c7` | Borders, dividers |
 | `ds-red` | `#ba1a1a` | Primary actions, brand accent, danger |
+| `ds-on-red` | `#ffffff` | Text/icons on red or dark surfaces |
 | `ds-red-container` | `#ffdad6` | Light red backgrounds |
 | `ds-green` | `#b8f0bc` | Success badge backgrounds |
 | `ds-green-dark` | `#1e502a` | Success badge text |
@@ -183,7 +187,7 @@ Fonts loaded in `app/_layout.tsx`. Always use these — no system fonts.
 <SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
   <View className="flex-row items-center gap-3 px-6 pt-4 pb-3 border-b border-ds-outline-variant">
     <Pressable onPress={() => router.back()} className="active:opacity-70">
-      <ArrowLeft size={22} color="#1c1b1b" />
+      <ArrowLeft size={22} color={DS_COLORS.onSurface} />
     </Pressable>
     <Text className="text-xl font-barlow-condensed text-ds-on-surface">Screen Title</Text>
   </View>
@@ -205,28 +209,28 @@ Fonts loaded in `app/_layout.tsx`. Always use these — no system fonts.
 // List row inside a card
 <Pressable className="px-4 py-4 flex-row items-center justify-between active:opacity-70 border-b border-ds-outline-variant">
   <Text className="text-base font-barlow text-ds-on-surface">Label</Text>
-  <ChevronRight size={18} color="#747878" />
+  <ChevronRight size={18} color={DS_COLORS.outline} />
 </Pressable>
 
 // Primary button (red)
 <Pressable className="bg-ds-red rounded-xl py-4 items-center active:opacity-70">
-  <Text className="text-white text-base font-barlow-semi">Action</Text>
+  <Text className="text-ds-on-red text-base font-barlow-semi">Action</Text>
 </Pressable>
 
 // Input field with icon
 <View className="bg-ds-surface border border-ds-outline-variant rounded-xl flex-row items-center px-4">
-  <SomeIcon size={18} color="#747878" />
+  <SomeIcon size={18} color={DS_COLORS.outline} />
   <TextInput className="flex-1 py-4 pl-3 text-base font-barlow text-ds-on-surface" />
 </View>
 
 // Large feature card (home screen style)
 <Pressable className="bg-ds-red rounded-2xl p-5 active:opacity-80" style={{ minHeight: 140 }}>
   <View className="w-11 h-11 rounded-full bg-white/20 items-center justify-center mb-auto">
-    <SomeIcon size={22} color="white" />
+    <SomeIcon size={22} color={DS_COLORS.onRed} />
   </View>
   <View className="mt-6 flex-row items-end justify-between">
-    <Text className="text-2xl font-barlow-condensed text-white">Label</Text>
-    <ChevronRight size={20} color="white" />
+    <Text className="text-2xl font-barlow-condensed text-ds-on-red">Label</Text>
+    <ChevronRight size={20} color={DS_COLORS.onRed} />
   </View>
 </Pressable>
 ```
@@ -238,14 +242,17 @@ Fonts loaded in `app/_layout.tsx`. Always use these — no system fonts.
 
 #### Icons (lucide-react-native)
 
-- `#1c1b1b` (`ds-on-surface`) — primary/strong icons
-- `#444748` (`ds-on-surface-variant`) — secondary icons
-- `#747878` (`ds-outline`) — tertiary icons in rows, placeholders
+Pass colors via `DS_COLORS` (constants/colors.ts), never raw hex:
+
+- `DS_COLORS.onSurface` — primary/strong icons
+- `DS_COLORS.onSurfaceVariant` — secondary icons
+- `DS_COLORS.outline` — tertiary icons in rows, placeholders
+- `DS_COLORS.onRed` — icons on red/dark surfaces
 - Sizes: 18 (inline rows), 20–22 (headers/nav), 24 (standalone emphasis)
 
 #### Tab bar
 
-Active: `#ba1a1a` | Inactive: `#9ca3af` | Background: `#ffffff`
+Active: `DS_COLORS.red` | Inactive: `DS_COLORS.outline` | Background: `DS_COLORS.surface`
 
 Tabs: **Home** (House), **Stats** (BarChart2), **Social** (Users)
 

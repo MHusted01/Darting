@@ -87,7 +87,7 @@ function PlayerRow({
         className="w-8 h-8 rounded-full items-center justify-center mr-3"
         style={{ backgroundColor: player.avatarColor }}
       >
-        <Text className="text-white text-xs font-barlow-semi">
+        <Text className="text-ds-on-red text-xs font-barlow-semi">
           {player.name.charAt(0).toUpperCase()}
         </Text>
       </View>

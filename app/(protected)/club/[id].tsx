@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { withErrorBoundary } from '@/components/ErrorBoundary';
 import {
   ActivityIndicator,
@@ -87,13 +88,13 @@ function InviteModal({ clubId, visible, onClose }: InviteModalProps) {
             <TextInput
               className="flex-1 py-4 text-base font-barlow text-ds-on-surface"
               placeholder="Search by name or email"
-              placeholderTextColor="#747878"
+              placeholderTextColor={DS_COLORS.outline}
               value={query}
               onChangeText={setQuery}
               autoCapitalize="none"
               autoCorrect={false}
             />
-            {isFetching && <ActivityIndicator size="small" color="#747878" />}
+            {isFetching && <ActivityIndicator size="small" color={DS_COLORS.outline} />}
           </View>
         </View>
         {results && results.length > 0 && (
@@ -112,7 +113,7 @@ function InviteModal({ clubId, visible, onClose }: InviteModalProps) {
                     onPress={() => handleInvite(user)}
                     disabled={inviteMember.isPending}
                   >
-                    <Text className="text-xs font-barlow-semi text-white">Invite</Text>
+                    <Text className="text-xs font-barlow-semi text-ds-on-red">Invite</Text>
                   </Pressable>
                 </View>
               ))}
@@ -141,7 +142,7 @@ function MemberRow({ member, isLast }: { member: ClubMember; isLast: boolean }) 
       <Text className="flex-1 text-sm font-barlow-semi text-ds-on-surface">{displayName(member)}</Text>
       {member.role === 'admin' && (
         <View className="flex-row items-center gap-1">
-          <Crown size={14} color="#ba1a1a" />
+          <Crown size={14} color={DS_COLORS.red} />
           <Text className="text-xs font-barlow-semi text-ds-red">Admin</Text>
         </View>
       )}
@@ -237,7 +238,7 @@ function ClubDetailScreen() {
           onPress={() => router.back()}
           className="active:opacity-70"
         >
-          <ArrowLeft size={22} color="#1c1b1b" />
+          <ArrowLeft size={22} color={DS_COLORS.onSurface} />
         </Pressable>
         <Text className="flex-1 text-xl font-barlow-condensed text-ds-on-surface">{clubName}</Text>
 
@@ -249,7 +250,7 @@ function ClubDetailScreen() {
             className="active:opacity-70"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <UserPlus size={20} color="#444748" />
+            <UserPlus size={20} color={DS_COLORS.onSurfaceVariant} />
           </Pressable>
         )}
 
@@ -261,7 +262,7 @@ function ClubDetailScreen() {
             className="active:opacity-70"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <LogOut size={20} color="#ba1a1a" />
+            <LogOut size={20} color={DS_COLORS.red} />
           </Pressable>
         )}
       </View>
@@ -305,8 +306,8 @@ function ClubDetailScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Create tournament"
               >
-                <Plus size={16} color="white" />
-                <Text className="text-sm font-barlow-semi text-white">New Tournament</Text>
+                <Plus size={16} color={DS_COLORS.onRed} />
+                <Text className="text-sm font-barlow-semi text-ds-on-red">New Tournament</Text>
               </Pressable>
             </View>
           )}
@@ -358,7 +359,7 @@ function ClubDetailScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 32 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor="#ba1a1a" />
+            <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={DS_COLORS.red} />
           }
         >
           {activeTab === 'members' && (

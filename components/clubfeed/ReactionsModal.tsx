@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { FlatList, Modal, Pressable, Text, View } from 'react-native';
 import Skeleton from '@/components/ui/Skeleton';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -73,7 +74,7 @@ export function ReactionsModal({ visible, target, onClose }: Props) {
             className="active:opacity-70"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <X size={22} color="#444748" />
+            <X size={22} color={DS_COLORS.onSurfaceVariant} />
           </Pressable>
         </View>
 
@@ -96,7 +97,7 @@ export function ReactionsModal({ visible, target, onClose }: Props) {
         )}
 
         {isLoading ? (
-          <View className="py-8 gap-2">
+          <View className="py-8 gap-2" accessible accessibilityState={{ busy: true }} accessibilityLabel="Loading reactions">
             <Skeleton className="h-10 w-full rounded-lg" />
             <Skeleton className="h-10 w-full rounded-lg" />
           </View>

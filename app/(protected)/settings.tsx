@@ -1,4 +1,5 @@
 import { useAuth, useUser } from '@clerk/expo';
+import { DS_COLORS } from '@/constants/colors';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, Switch, Text, View } from 'react-native';
@@ -7,12 +8,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronRight, ExternalLink, ArrowLeft } from 'lucide-react-native';
 import { PRIVACY_POLICY_URL } from '@/constants/links';
 import { useSupabase } from '@/providers/SupabaseProvider';
-
-const DS = {
-  green: '#b8f0bc',
-  outlineVariant: '#c4c7c7',
-  surface: '#ffffff',
-} as const;
 
 export default function SettingsScreen() {
   const { signOut, userId } = useAuth();
@@ -58,7 +53,7 @@ export default function SettingsScreen() {
           onPress={() => router.back()}
           className="active:opacity-70"
         >
-          <ArrowLeft size={22} color="#1c1b1b" />
+          <ArrowLeft size={22} color={DS_COLORS.onSurface} />
         </Pressable>
         <Text className="text-xl font-barlow-condensed text-ds-on-surface">Settings</Text>
       </View>
@@ -90,7 +85,7 @@ export default function SettingsScreen() {
               className="px-4 py-4 flex-row items-center justify-between border-b border-ds-outline-variant active:opacity-70"
             >
               <Text className="text-base font-barlow text-ds-on-surface">Personal Info</Text>
-              <ChevronRight size={18} color="#747878" />
+              <ChevronRight size={18} color={DS_COLORS.outline} />
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -99,7 +94,7 @@ export default function SettingsScreen() {
               className="px-4 py-4 flex-row items-center justify-between border-b border-ds-outline-variant active:opacity-70"
             >
               <Text className="text-base font-barlow text-ds-on-surface">Security</Text>
-              <ChevronRight size={18} color="#747878" />
+              <ChevronRight size={18} color={DS_COLORS.outline} />
             </Pressable>
             <View className="px-4 py-4 flex-row items-center justify-between">
               <Text className="text-base font-barlow text-ds-on-surface">Subscription</Text>
@@ -120,8 +115,8 @@ export default function SettingsScreen() {
               <Switch
                 value={notifications}
                 onValueChange={setNotifications}
-                trackColor={{ true: DS.green, false: DS.outlineVariant }}
-                thumbColor={DS.surface}
+                trackColor={{ true: DS_COLORS.green, false: DS_COLORS.outlineVariant }}
+                thumbColor={DS_COLORS.surface}
               />
             </View>
             <View className="px-4 py-3 flex-row items-center justify-between border-b border-ds-outline-variant">
@@ -129,8 +124,8 @@ export default function SettingsScreen() {
               <Switch
                 value={soundEffects}
                 onValueChange={setSoundEffects}
-                trackColor={{ true: DS.green, false: DS.outlineVariant }}
-                thumbColor={DS.surface}
+                trackColor={{ true: DS_COLORS.green, false: DS_COLORS.outlineVariant }}
+                thumbColor={DS_COLORS.surface}
               />
             </View>
             <Pressable
@@ -140,7 +135,7 @@ export default function SettingsScreen() {
               className="px-4 py-4 flex-row items-center justify-between active:opacity-70"
             >
               <Text className="text-base font-barlow text-ds-on-surface">Notification Preferences</Text>
-              <ChevronRight size={18} color="#747878" />
+              <ChevronRight size={18} color={DS_COLORS.outline} />
             </Pressable>
           </View>
         </View>
@@ -157,7 +152,7 @@ export default function SettingsScreen() {
               className="px-4 py-4 flex-row items-center justify-between border-b border-ds-outline-variant active:opacity-70"
             >
               <Text className="text-base font-barlow text-ds-on-surface">Help Center</Text>
-              <ChevronRight size={18} color="#747878" />
+              <ChevronRight size={18} color={DS_COLORS.outline} />
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -170,7 +165,7 @@ export default function SettingsScreen() {
               className="px-4 py-4 flex-row items-center justify-between active:opacity-70"
             >
               <Text className="text-base font-barlow text-ds-on-surface">Privacy Policy</Text>
-              <ExternalLink size={18} color="#747878" />
+              <ExternalLink size={18} color={DS_COLORS.outline} />
             </Pressable>
           </View>
         </View>
@@ -184,7 +179,7 @@ export default function SettingsScreen() {
             disabled={isSigningOut}
             className={`bg-ds-red rounded-xl py-4 items-center active:opacity-70 ${isSigningOut ? 'opacity-50' : ''}`}
           >
-            <Text className="text-white font-barlow-semi text-sm uppercase tracking-widest">
+            <Text className="text-ds-on-red font-barlow-semi text-sm uppercase tracking-widest">
               {isSigningOut ? 'Signing Out...' : 'Log Out'}
             </Text>
           </Pressable>

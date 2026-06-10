@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { DS_COLORS } from '@/constants/colors';
 import { House, BarChart2, Users } from 'lucide-react-native';
 
 export default function TabsLayout() {
@@ -6,9 +7,9 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#ba1a1a',
-        tabBarInactiveTintColor: '#9ca3af',
-        tabBarStyle: { backgroundColor: '#ffffff' },
+        tabBarActiveTintColor: DS_COLORS.red,
+        tabBarInactiveTintColor: DS_COLORS.outline,
+        tabBarStyle: { backgroundColor: DS_COLORS.surface },
       }}
     >
       <Tabs.Screen

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { withErrorBoundary } from '@/components/ErrorBoundary';
 import { View, Text, Pressable, Switch, ScrollView, Alert } from 'react-native';
 import Skeleton from '@/components/ui/Skeleton';
@@ -301,7 +302,7 @@ function GameSetup() {
     >
       <View className="items-center mb-8">
         <View className="w-16 h-16 rounded-2xl bg-ds-surface-container items-center justify-center mb-4">
-          <Icon size={32} color="#1c1b1b" />
+          <Icon size={32} color={DS_COLORS.onSurface} />
         </View>
         <Text className="text-2xl font-barlow-condensed text-ds-on-surface mb-1">{game.name}</Text>
         <Text className="text-base font-barlow text-ds-on-surface-variant text-center">
@@ -350,8 +351,8 @@ function GameSetup() {
             <Switch
               value={includeBull}
               onValueChange={setIncludeBull}
-              trackColor={{ false: '#c4c7c7', true: '#ba1a1a' }}
-              thumbColor="white"
+              trackColor={{ false: DS_COLORS.outlineVariant, true: DS_COLORS.red }}
+              thumbColor={DS_COLORS.surface}
               accessibilityLabel="Include bull as target 21"
             />
           </View>
@@ -388,7 +389,7 @@ function GameSetup() {
               >
                 <Text
                   className={`text-lg font-barlow-semi ${
-                    startingScore === score ? 'text-white' : 'text-ds-on-surface'
+                    startingScore === score ? 'text-ds-on-red' : 'text-ds-on-surface'
                   }`}
                 >
                   {score}
@@ -412,7 +413,7 @@ function GameSetup() {
         accessibilityLabel="Start game"
       >
         <Text
-          className={`text-lg font-barlow-semi ${canStart ? 'text-white' : 'text-ds-outline'}`}
+          className={`text-lg font-barlow-semi ${canStart ? 'text-ds-on-red' : 'text-ds-outline'}`}
         >
           {isStarting ? 'Starting...' : 'Start Game'}
         </Text>

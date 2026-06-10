@@ -49,12 +49,12 @@ export function RoundTargetInput({
                 accessibilityLabel={`${labels[m - 1]} ${targetSegment}`}
               >
                 <Text
-                  className={`text-base font-barlow-semi ${isRed ? 'text-white' : 'text-ds-on-surface'}`}
+                  className={`text-base font-barlow-semi ${isRed ? 'text-ds-on-red' : 'text-ds-on-surface'}`}
                 >
                   {labels[m - 1]}
                 </Text>
                 <Text
-                  className={`text-xs font-barlow mt-0.5 ${isRed ? 'text-white/80' : 'text-ds-on-surface-variant'}`}
+                  className={`text-xs font-barlow mt-0.5 ${isRed ? 'text-ds-on-red/80' : 'text-ds-on-surface-variant'}`}
                 >
                   {targetSegment * m}
                 </Text>
@@ -84,7 +84,7 @@ export function RoundTargetInput({
         accessibilityRole="button"
         accessibilityLabel={`Hit ${targetSegment}`}
       >
-        <Text className="text-xl font-barlow-semi text-white">Hit {targetSegment}</Text>
+        <Text className="text-xl font-barlow-semi text-ds-on-red">Hit {targetSegment}</Text>
       </Pressable>
       <Pressable
         onPress={throwMiss}

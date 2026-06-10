@@ -1,4 +1,5 @@
 import { useUser } from '@clerk/expo';
+import { DS_COLORS } from '@/constants/colors';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
@@ -40,14 +41,14 @@ export default function DeleteAccountScreen() {
           onPress={() => router.back()}
           className="active:opacity-70"
         >
-          <ArrowLeft size={22} color="#1c1b1b" />
+          <ArrowLeft size={22} color={DS_COLORS.onSurface} />
         </Pressable>
         <Text className="text-xl font-barlow-condensed text-ds-on-surface">Delete Account</Text>
       </View>
 
       <View className="px-6 pt-8 gap-6">
         <View className="bg-ds-red-container border border-ds-red rounded-xl p-4 flex-row gap-3 items-start">
-          <TriangleAlert size={20} color="#ba1a1a" />
+          <TriangleAlert size={20} color={DS_COLORS.red} />
           <Text className="text-sm font-barlow text-ds-on-surface flex-1 leading-relaxed">
             This will permanently delete your account and all associated data. This action cannot be undone.
           </Text>
@@ -62,7 +63,7 @@ export default function DeleteAccountScreen() {
               value={input}
               onChangeText={setInput}
               placeholder="DELETE"
-              placeholderTextColor="#747878"
+              placeholderTextColor={DS_COLORS.outline}
               accessibilityLabel="Type DELETE to confirm account deletion"
               className="py-4 text-base font-barlow text-ds-on-surface"
               autoCapitalize="characters"
@@ -79,7 +80,7 @@ export default function DeleteAccountScreen() {
           disabled={!isConfirmed || isDeleting}
           className={`bg-ds-red rounded-xl py-4 items-center active:opacity-70 ${!isConfirmed || isDeleting ? 'opacity-50' : ''}`}
         >
-          <Text className="text-white font-barlow-semi text-sm uppercase tracking-widest">
+          <Text className="text-ds-on-red font-barlow-semi text-sm uppercase tracking-widest">
             {isDeleting ? 'Deleting...' : 'Delete My Account'}
           </Text>
         </Pressable>

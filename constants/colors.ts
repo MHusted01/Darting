@@ -1,0 +1,15 @@
+export const DS_COLORS = {
+  bg: '#fdf8f8',
+  surface: '#ffffff',
+  surfaceLow: '#f7f3f2',
+  surfaceContainer: '#f1edec',
+  onSurface: '#1c1b1b',
+  onSurfaceVariant: '#444748',
+  outline: '#747878',
+  outlineVariant: '#c4c7c7',
+  red: '#ba1a1a',
+  onRed: '#ffffff',
+  redContainer: '#ffdad6',
+  green: '#b8f0bc',
+  greenDark: '#1e502a',
+} as const;

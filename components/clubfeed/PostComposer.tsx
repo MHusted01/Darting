@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import {
   ActivityIndicator,
   Alert,
@@ -98,7 +99,7 @@ export function PostComposer({ visible, clubId, onClose }: Props) {
             className="active:opacity-70"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <X size={22} color="#444748" />
+            <X size={22} color={DS_COLORS.onSurfaceVariant} />
           </Pressable>
         </View>
 
@@ -109,7 +110,7 @@ export function PostComposer({ visible, clubId, onClose }: Props) {
                 accessibilityLabel="Post body"
                 className="text-base font-barlow text-ds-on-surface min-h-24"
                 placeholder="What's on your mind? Type @ to mention a member."
-                placeholderTextColor="#747878"
+                placeholderTextColor={DS_COLORS.outline}
                 value={body}
                 onChangeText={setBody}
                 multiline
@@ -196,9 +197,9 @@ export function PostComposer({ visible, clubId, onClose }: Props) {
             className={`rounded-xl py-4 items-center active:opacity-70 ${body.trim() ? 'bg-ds-red' : 'bg-ds-surface-container'} ${createPost.isPending ? 'opacity-50' : ''}`}
           >
             {createPost.isPending ? (
-              <ActivityIndicator size="small" color="white" />
+              <ActivityIndicator size="small" color={DS_COLORS.onRed} />
             ) : (
-              <Text className={`text-base font-barlow-semi ${body.trim() ? 'text-white' : 'text-ds-outline'}`}>
+              <Text className={`text-base font-barlow-semi ${body.trim() ? 'text-ds-on-red' : 'text-ds-outline'}`}>
                 Post
               </Text>
             )}

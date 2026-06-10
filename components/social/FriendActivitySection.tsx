@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { DS_COLORS } from '@/constants/colors';
 import Skeleton from '@/components/ui/Skeleton';
 import { useRouter } from 'expo-router';
 import { useFriendsActivity } from '@/hooks/useFriendsActivity';
@@ -76,7 +77,7 @@ export function FriendActivitySection() {
             className="px-4 py-3 items-center active:opacity-70 border-t border-ds-outline-variant"
           >
             {isFetchingNextPage ? (
-              <ActivityIndicator size="small" color="#ba1a1a" />
+              <ActivityIndicator size="small" color={DS_COLORS.red} />
             ) : (
               <Text className="text-sm font-barlow-semi text-ds-on-surface-variant">Show more</Text>
             )}

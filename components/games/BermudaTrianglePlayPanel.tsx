@@ -91,7 +91,7 @@ export function BermudaTrianglePlayPanel({
                   className="w-8 h-8 rounded-full items-center justify-center"
                   style={{ backgroundColor: player.avatarColor }}
                 >
-                  <Text className="text-xs font-barlow-semi text-white">
+                  <Text className="text-xs font-barlow-semi text-ds-on-red">
                     {player.name.charAt(0).toUpperCase()}
                   </Text>
                 </View>

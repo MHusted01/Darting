@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { withErrorBoundary } from '@/components/ErrorBoundary';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import Skeleton from '@/components/ui/Skeleton';
@@ -164,7 +165,7 @@ function ChallengeLobbyScreen() {
           accessibilityLabel="Go back"
           className="active:opacity-70"
         >
-          <ArrowLeft size={22} color="#1c1b1b" />
+          <ArrowLeft size={22} color={DS_COLORS.onSurface} />
         </Pressable>
         <Text className="text-xl font-barlow-condensed text-ds-on-surface">Challenge Lobby</Text>
       </View>
@@ -191,7 +192,7 @@ function ChallengeLobbyScreen() {
           <View className="px-6 pt-6">
             <View className="items-center mb-6">
               <View className="w-14 h-14 rounded-full bg-ds-red-container items-center justify-center mb-3">
-                <Swords size={24} color="#ba1a1a" />
+                <Swords size={24} color={DS_COLORS.red} />
               </View>
               <Text className="text-2xl font-barlow-condensed text-ds-on-surface">
                 {game?.name ?? challenge.gameSlug}
@@ -228,7 +229,7 @@ function ChallengeLobbyScreen() {
                   accessibilityLabel="Accept challenge"
                   className={`bg-ds-red rounded-xl py-4 items-center active:opacity-70 ${acceptMutation.isPending ? 'opacity-50' : ''}`}
                 >
-                  <Text className="text-white text-base font-barlow-semi">Accept</Text>
+                  <Text className="text-ds-on-red text-base font-barlow-semi">Accept</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleDecline}
@@ -269,7 +270,7 @@ function ChallengeLobbyScreen() {
                 accessibilityLabel="Start game"
                 className={`bg-ds-red rounded-xl py-4 items-center active:opacity-70 ${isLaunching ? 'opacity-50' : ''}`}
               >
-                <Text className="text-white text-base font-barlow-semi">
+                <Text className="text-ds-on-red text-base font-barlow-semi">
                   {isLaunching ? 'Starting…' : 'Start Game'}
                 </Text>
               </Pressable>

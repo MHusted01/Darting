@@ -1,4 +1,5 @@
 import { useSignIn } from '@clerk/expo';
+import { DS_COLORS } from '@/constants/colors';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
@@ -156,12 +157,12 @@ export default function ResetPassword() {
               New Password
             </Text>
             <View className="bg-ds-surface border border-ds-outline-variant rounded-xl flex-row items-center px-4">
-              <Lock size={18} color="#747878" />
+              <Lock size={18} color={DS_COLORS.outline} />
               <TextInput
                 className="flex-1 py-4 pl-3 text-base font-barlow text-ds-on-surface"
                 style={{ lineHeight: 22 }}
                 placeholder="New password"
-                placeholderTextColor="#747878"
+                placeholderTextColor={DS_COLORS.outline}
                 value={newPassword}
                 onChangeText={setNewPassword}
                 secureTextEntry={!showPassword}
@@ -175,9 +176,9 @@ export default function ResetPassword() {
                 className="active:opacity-70 pl-2"
               >
                 {showPassword ? (
-                  <EyeOff size={18} color="#747878" />
+                  <EyeOff size={18} color={DS_COLORS.outline} />
                 ) : (
-                  <Eye size={18} color="#747878" />
+                  <Eye size={18} color={DS_COLORS.outline} />
                 )}
               </Pressable>
             </View>
@@ -191,7 +192,7 @@ export default function ResetPassword() {
             onPress={onResetPassword}
             disabled={busy}
           >
-            <Text className="text-white text-base font-barlow-semi">
+            <Text className="text-ds-on-red text-base font-barlow-semi">
               {busy ? 'Resetting...' : 'Reset Password'}
             </Text>
           </Pressable>
@@ -219,7 +220,7 @@ export default function ResetPassword() {
           onPress={() => router.back()}
           className="active:opacity-70 self-start mb-8"
         >
-          <ArrowLeft size={22} color="#1c1b1b" />
+          <ArrowLeft size={22} color={DS_COLORS.onSurface} />
         </Pressable>
 
         <Text className="text-3xl font-barlow-condensed-xbold text-ds-on-surface mb-2">
@@ -234,12 +235,12 @@ export default function ResetPassword() {
             Email Address
           </Text>
           <View className="bg-ds-surface border border-ds-outline-variant rounded-xl flex-row items-center px-4">
-            <Mail size={18} color="#747878" />
+            <Mail size={18} color={DS_COLORS.outline} />
             <TextInput
               className="flex-1 py-4 pl-3 text-base font-barlow text-ds-on-surface"
               style={{ lineHeight: 22 }}
               placeholder="player@example.com"
-              placeholderTextColor="#747878"
+              placeholderTextColor={DS_COLORS.outline}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -258,7 +259,7 @@ export default function ResetPassword() {
           onPress={onSendCode}
           disabled={busy}
         >
-          <Text className="text-white text-base font-barlow-semi">
+          <Text className="text-ds-on-red text-base font-barlow-semi">
             {busy ? 'Sending...' : 'Send Reset Code'}
           </Text>
         </Pressable>

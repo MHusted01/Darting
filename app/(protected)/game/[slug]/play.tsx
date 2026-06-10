@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { Undo2 } from 'lucide-react-native';
 import Skeleton from '@/components/ui/Skeleton';
 import { withErrorBoundary } from '@/components/ErrorBoundary';
@@ -115,7 +116,7 @@ function PlayScreen() {
           accessibilityRole="button"
           accessibilityLabel="Go back to games"
         >
-          <Text className="text-white font-barlow-semi">Back to games</Text>
+          <Text className="text-ds-on-red font-barlow-semi">Back to games</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -176,7 +177,7 @@ function PlayScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Undo last dart"
               >
-                <Undo2 size={14} color="#444748" />
+                <Undo2 size={14} color={DS_COLORS.onSurfaceVariant} />
                 <Text className="text-sm font-barlow-semi text-ds-on-surface-variant">Undo</Text>
               </Pressable>
             )}
@@ -212,7 +213,7 @@ function PlayScreen() {
             className="w-12 h-12 rounded-full items-center justify-center mb-2"
             style={{ backgroundColor: currentPlayer.avatarColor }}
           >
-            <Text className="text-white text-lg font-barlow-bold">
+            <Text className="text-ds-on-red text-lg font-barlow-bold">
               {currentPlayer.name.charAt(0).toUpperCase()}
             </Text>
           </View>

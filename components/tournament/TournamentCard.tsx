@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { DS_COLORS } from '@/constants/colors';
 import AnimatedPressable from '@/components/ui/AnimatedPressable';
 import { Trophy, Users } from 'lucide-react-native';
 import type { Tournament, TournamentFormat, TournamentStatus } from '@/types/tournament';
@@ -34,7 +35,7 @@ export function TournamentCard({ tournament, onPress }: TournamentCardProps) {
     >
       <View className="flex-row items-start justify-between mb-2">
         <View className="flex-1 mr-3 flex-row items-center gap-2">
-          <Trophy size={16} color="#1c1b1b" />
+          <Trophy size={16} color={DS_COLORS.onSurface} />
           <Text className="text-base font-barlow-semi text-ds-on-surface flex-1" numberOfLines={1}>
             {tournament.name}
           </Text>
@@ -48,7 +49,7 @@ export function TournamentCard({ tournament, onPress }: TournamentCardProps) {
           {FORMAT_LABEL[tournament.format]} • {tournament.gameSlug.toUpperCase()}
         </Text>
         <View className="flex-row items-center gap-1">
-          <Users size={12} color="#747878" />
+          <Users size={12} color={DS_COLORS.outline} />
           <Text className="text-sm font-barlow text-ds-outline">{tournament.participantCount}</Text>
         </View>
       </View>
