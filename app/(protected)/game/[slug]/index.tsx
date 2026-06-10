@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { View, Text, Pressable, Switch, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, Switch, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUser } from '@clerk/expo';
+import { useSupabase } from '@/providers/SupabaseProvider';
 import { getOrCreateUserPlayer } from '@/lib/player';
 import { useFriends } from '@/hooks/useFriends';
 import { useMyClubs } from '@/hooks/useClubs';
@@ -67,8 +68,24 @@ function getConfig(slug: string, includeBull: boolean, startingScore: 501 | 301 
 
 export default function GameSetup() {
   const router = useRouter();
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const {
+    slug,
+    tournamentMatchId,
+    tmP1Id,
+    tmP2Id,
+    p1UserId,
+    p2UserId,
+  } = useLocalSearchParams<{
+    slug: string;
+    tournamentMatchId?: string;
+    tmP1Id?: string;
+    tmP2Id?: string;
+    p1UserId?: string;
+    p2UserId?: string;
+  }>();
   const normalizedSlug = Array.isArray(slug) ? slug[0] : slug;
+  const isTournamentMatch = Boolean(tournamentMatchId && tmP1Id && tmP2Id && p1UserId && p2UserId);
+  const supabase = useSupabase();
   const game = GAMES.find((g) => g.slug === normalizedSlug);
   const isAroundTheClock = normalizedSlug === AROUND_THE_CLOCK_SLUG;
   const isCricket = normalizedSlug === CRICKET_SLUG;
@@ -79,6 +96,7 @@ export default function GameSetup() {
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
   const [userPlayerId, setUserPlayerId] = useState<number | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [lockedPlayerIds, setLockedPlayerIds] = useState<Set<number>>(new Set());
   const [includeBull, setIncludeBull] = useState(false);
   const [startingScore, setStartingScore] = useState<501 | 301>(501);
   const [isStarting, setIsStarting] = useState(false);
@@ -116,6 +134,57 @@ export default function GameSetup() {
       });
     return () => { cancelled = true; };
   }, [isLoaded, user]);
+
+  useEffect(() => {
+    if (!isTournamentMatch || !supabase || !isLoaded) return;
+    let cancelled = false;
+
+    async function populateTournamentPlayers() {
+      if (!p1UserId || !p2UserId) return;
+      try {
+        const { data: users } = await supabase!
+          .from('users')
+          .select('id, first_name, last_name, username')
+          .in('id', [p1UserId, p2UserId]);
+
+        if (cancelled || !users) return;
+
+        const userMap = new Map(users.map((u: { id: string; first_name: string | null; last_name: string | null; username: string | null }) => [u.id, u]));
+        const u1 = userMap.get(p1UserId!);
+        const u2 = userMap.get(p2UserId!);
+
+        const name1 = u1 ? ([u1.first_name, u1.last_name].filter(Boolean).join(' ') || u1.username || 'Player 1') : 'Player 1';
+        const name2 = u2 ? ([u2.first_name, u2.last_name].filter(Boolean).join(' ') || u2.username || 'Player 2') : 'Player 2';
+
+        const color1 = getNextAvatarColor(0);
+        const color2 = getNextAvatarColor(1);
+
+        const [player1] = await db
+          .insert(playersTable)
+          .values({ name: name1, userId: p1UserId!, avatarColor: color1 })
+          .onConflictDoUpdate({ target: playersTable.userId, set: { name: name1 } })
+          .returning();
+        const [player2] = await db
+          .insert(playersTable)
+          .values({ name: name2, userId: p2UserId!, avatarColor: color2 })
+          .onConflictDoUpdate({ target: playersTable.userId, set: { name: name2 } })
+          .returning();
+
+        if (cancelled) return;
+        setSelectedPlayers([
+          { id: player1.id, name: player1.name, avatarColor: player1.avatarColor, userId: p1UserId! },
+          { id: player2.id, name: player2.name, avatarColor: player2.avatarColor, userId: p2UserId! },
+        ]);
+        setLockedPlayerIds(new Set([player1.id, player2.id]));
+        setIsLoadingUser(false);
+      } catch {
+        if (!cancelled) Alert.alert('Error', 'Could not load tournament players. Please try again.');
+      }
+    }
+
+    void populateTournamentPlayers();
+    return () => { cancelled = true; };
+  }, [isTournamentMatch, supabase, isLoaded, p1UserId, p2UserId]);
 
   const handleAddPlayer = useCallback(async (name: string) => {
     try {
@@ -175,10 +244,16 @@ export default function GameSetup() {
           .values({
             gameSlug: normalizedSlug,
             status: 'in_progress',
+            context: isTournamentMatch ? 'tournament' : 'casual',
             currentRound: 1,
             currentPlayerIndex: 0,
             config,
             startedAt: new Date(),
+            ...(isTournamentMatch && {
+              tournamentMatchId: tournamentMatchId ?? null,
+              tournamentParticipant1Id: tmP1Id ?? null,
+              tournamentParticipant2Id: tmP2Id ?? null,
+            }),
           })
           .returning();
 
@@ -229,7 +304,7 @@ export default function GameSetup() {
         </Text>
       </View>
 
-      {!isLoadingUser && (
+      {!isLoadingUser && !isTournamentMatch && (
         <SocialContactPicker
           friends={friends.filter((f) => f.id !== user?.id)}
           clubs={myClubs}
@@ -238,13 +313,23 @@ export default function GameSetup() {
         />
       )}
 
-      <PlayerManager
-        players={selectedPlayers}
-        onAddPlayer={handleAddPlayer}
-        onRemovePlayer={handleRemovePlayer}
-        minPlayers={minPlayers}
-        lockedPlayerId={userPlayerId ?? undefined}
-      />
+      {isTournamentMatch && isLoadingUser ? (
+        <View className="items-center py-8">
+          <ActivityIndicator color="#ba1a1a" />
+          <Text className="text-sm font-barlow text-ds-outline mt-2">Loading players…</Text>
+        </View>
+      ) : (
+        <PlayerManager
+          players={selectedPlayers}
+          onAddPlayer={isTournamentMatch ? undefined : handleAddPlayer}
+          onRemovePlayer={(id) => {
+            if (!lockedPlayerIds.has(id)) handleRemovePlayer(id);
+          }}
+          minPlayers={minPlayers}
+          lockedPlayerId={isTournamentMatch ? undefined : (userPlayerId ?? undefined)}
+          lockedPlayerIds={isTournamentMatch ? lockedPlayerIds : undefined}
+        />
+      )}
 
       {isAroundTheClock && (
         <View className="mt-6 bg-ds-surface border border-ds-outline-variant rounded-xl p-4">

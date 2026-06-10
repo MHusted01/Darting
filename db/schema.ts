@@ -52,6 +52,9 @@ export const gameSessions = sqliteTable('game_sessions', {
     .notNull()
     .default('unsynced'),
   cloudSessionId: text('cloud_session_id'),
+  tournamentMatchId: text('tournament_match_id'),
+  tournamentParticipant1Id: text('tournament_participant1_id'),
+  tournamentParticipant2Id: text('tournament_participant2_id'),
 });
 
 export const gamePlayers = sqliteTable(

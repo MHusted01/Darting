@@ -49,6 +49,9 @@ const makeSession = (overrides = {}) => ({
   createdAt: new Date('2026-06-01T09:00:00Z'),
   cloudSyncStatus: 'unsynced' as const,
   cloudSessionId: null as string | null,
+  tournamentMatchId: null as string | null,
+  tournamentParticipant1Id: null as string | null,
+  tournamentParticipant2Id: null as string | null,
   gamePlayers: [makePlayer()],
   gameTurns: [
     { id: 1, gameSessionId: 42, playerId: 10, roundNumber: 1, darts: [{ segment: 20, multiplier: 3 }], scoreDelta: 60, createdAt: new Date('2026-06-01T10:05:00Z') },

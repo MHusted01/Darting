@@ -11,10 +11,11 @@ export interface Player {
 
 interface PlayerManagerProps {
   players: Player[];
-  onAddPlayer: (name: string) => void;
+  onAddPlayer?: (name: string) => void;
   onRemovePlayer: (playerId: number) => void;
   minPlayers?: number;
   lockedPlayerId?: number;
+  lockedPlayerIds?: ReadonlySet<number>;
 }
 
 export const AVATAR_COLORS = [
@@ -38,45 +39,52 @@ export function PlayerManager({
   onRemovePlayer,
   minPlayers = 1,
   lockedPlayerId,
+  lockedPlayerIds,
 }: PlayerManagerProps) {
   const [name, setName] = useState('');
 
   const handleAdd = () => {
     const trimmed = name.trim();
-    if (!trimmed) return;
+    if (!trimmed || !onAddPlayer) return;
     onAddPlayer(trimmed);
     setName('');
   };
 
   const canRemove = players.length > minPlayers;
 
+  function isLocked(playerId: number): boolean {
+    return playerId === lockedPlayerId || (lockedPlayerIds?.has(playerId) ?? false);
+  }
+
   return (
     <View className="gap-4">
       <Text className="text-lg font-barlow-condensed text-ds-on-surface">Players</Text>
 
-      <View className="flex-row gap-2">
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder="Add guest player"
-          placeholderTextColor="#747878"
-          onSubmitEditing={handleAdd}
-          returnKeyType="done"
-          className="flex-1 bg-ds-surface border border-ds-outline-variant rounded-xl px-4 py-3 text-base font-barlow text-ds-on-surface"
-          accessibilityLabel="Enter player name"
-        />
-        <Pressable
-          onPress={handleAdd}
-          disabled={!name.trim()}
-          className={`items-center justify-center rounded-xl px-4 ${
-            name.trim() ? 'bg-ds-red active:opacity-70' : 'bg-ds-surface-container'
-          }`}
-          accessibilityRole="button"
-          accessibilityLabel="Add player"
-        >
-          <UserPlus size={20} color={name.trim() ? 'white' : '#747878'} />
-        </Pressable>
-      </View>
+      {onAddPlayer != null && (
+        <View className="flex-row gap-2">
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="Add guest player"
+            placeholderTextColor="#747878"
+            onSubmitEditing={handleAdd}
+            returnKeyType="done"
+            className="flex-1 bg-ds-surface border border-ds-outline-variant rounded-xl px-4 py-3 text-base font-barlow text-ds-on-surface"
+            accessibilityLabel="Enter player name"
+          />
+          <Pressable
+            onPress={handleAdd}
+            disabled={!name.trim()}
+            className={`items-center justify-center rounded-xl px-4 ${
+              name.trim() ? 'bg-ds-red active:opacity-70' : 'bg-ds-surface-container'
+            }`}
+            accessibilityRole="button"
+            accessibilityLabel="Add player"
+          >
+            <UserPlus size={20} color={name.trim() ? 'white' : '#747878'} />
+          </Pressable>
+        </View>
+      )}
 
       {players.length > 0 && (
         <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden">
@@ -96,11 +104,13 @@ export function PlayerManager({
 
               <Text className="flex-1 text-base font-barlow text-ds-on-surface">{player.name}</Text>
 
-              {player.id === lockedPlayerId && (
-                <Text className="text-xs font-barlow-semi text-ds-red mr-2">You</Text>
+              {isLocked(player.id) && (
+                <Text className="text-xs font-barlow-semi text-ds-red mr-2">
+                  {player.id === lockedPlayerId ? 'You' : 'Locked'}
+                </Text>
               )}
 
-              {canRemove && player.id !== lockedPlayerId && (
+              {canRemove && !isLocked(player.id) && (
                 <Pressable
                   onPress={() => onRemovePlayer(player.id)}
                   className="p-1 active:opacity-70"

@@ -2,11 +2,12 @@ import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Settings } from 'lucide-react-native';
+import { Settings, Trophy } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useMyClubs } from '@/hooks/useClubs';
 import { useFriends, useRemoveFriend } from '@/hooks/useFriends';
 import { usePresence } from '@/hooks/usePresence';
+import { useMyActiveTournaments } from '@/hooks/useTournament';
 import { mergePresence } from '@/lib/friends';
 import { FriendRequestsSection } from '@/components/social/FriendRequestsSection';
 import { FriendSearchModal } from '@/components/social/FriendSearchModal';
@@ -49,6 +50,7 @@ export default function SocialScreen() {
   const friendsQuery  = useFriends();
   const { presenceMap } = usePresence();
   const removeFriendMutation = useRemoveFriend();
+  const { data: activeTournaments = [] } = useMyActiveTournaments();
 
   const friends = mergePresence(friendsQuery.data ?? [], presenceMap);
 
@@ -87,6 +89,35 @@ export default function SocialScreen() {
 
         {/* ── Friend Activity ── */}
         <FriendActivitySection />
+
+        {/* ── Active Tournaments ── */}
+        {activeTournaments.length > 0 && (
+          <View className="px-6 pt-4">
+            <Text className="text-2xl font-barlow-condensed text-ds-on-surface mb-3">Tournaments</Text>
+            <View className="gap-2">
+              {activeTournaments.map(t => (
+                <Pressable
+                  key={t.id}
+                  onPress={() => router.push(`/tournament/${t.id}`)}
+                  className="bg-ds-surface border border-ds-outline-variant rounded-xl px-4 py-3 flex-row items-center gap-3 active:opacity-80"
+                  accessibilityRole="button"
+                  accessibilityLabel={t.name}
+                >
+                  <View className="w-9 h-9 rounded-full bg-ds-red-container items-center justify-center">
+                    <Trophy size={16} color="#ba1a1a" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-barlow-semi text-ds-on-surface" numberOfLines={1}>{t.name}</Text>
+                    <Text className="text-xs font-barlow text-ds-on-surface-variant">{t.gameSlug.toUpperCase()} • {t.participantCount} players</Text>
+                  </View>
+                  <View className="bg-ds-green rounded-full px-2 py-0.5">
+                    <Text className="text-xs font-barlow-semi text-ds-green-dark">Active</Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* ── My Clubs ── */}
         <View className="px-6 pt-4">
