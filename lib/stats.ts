@@ -13,8 +13,11 @@ import type { AggregatedStats } from '@/lib/suggestions';
 
 const GAME_NAMES = new Map(GAMES.map((g) => [g.slug, g.name] as const));
 
+export type X01Variant = 501 | 301;
+
 export interface PersonalBestRow {
   gameSlug: string;
+  variant: X01Variant | null;
   gamesPlayed: number;
   gamesWon: number;
   bestScore: number | null;
@@ -29,6 +32,7 @@ import type { SessionContext } from '@/lib/games/analytics';
 
 export interface StatsFilter {
   slug?: string;
+  variant?: X01Variant;
   since?: Date;
   context?: SessionContext | 'all';
 }
@@ -95,17 +99,45 @@ export function resolveTrendSlug(slug: string | undefined): string {
   return slug ?? 'x01';
 }
 
+export function resolveX01Variant(gameSlug: string, config: unknown): X01Variant | null {
+  if (gameSlug !== 'x01') return null;
+  let parsed = config;
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      parsed = null;
+    }
+  }
+  if (parsed != null && typeof parsed === 'object') {
+    const value = (parsed as { startingScore?: unknown }).startingScore;
+    if (value === 301 || value === '301') return 301;
+  }
+  return 501;
+}
+
+export function x01VariantCondition(variant: X01Variant | undefined) {
+  if (variant == null) return undefined;
+  return sql`COALESCE(json_extract(${gameSessions.config}, '$.startingScore'), 501) = ${variant}`;
+}
+
 export function buildPersonalBestsFromRows(rows: PersonalBestRow[]): PersonalBest[] {
   return rows.map((row) => ({
     ...row,
-    gameName: GAME_NAMES.get(row.gameSlug) ?? row.gameSlug,
+    gameName:
+      row.gameSlug === 'x01' && row.variant != null
+        ? String(row.variant)
+        : (GAME_NAMES.get(row.gameSlug) ?? row.gameSlug),
   }));
 }
 
 export async function getPersonalBests(playerId: number): Promise<PersonalBest[]> {
+  const variantExpr = sql<number | null>`CASE WHEN ${gameSessions.gameSlug} = 'x01' THEN COALESCE(json_extract(${gameSessions.config}, '$.startingScore'), 501) ELSE NULL END`;
+
   const rows = await db
     .select({
       gameSlug: gameSessions.gameSlug,
+      variant: variantExpr,
       gamesPlayed: sql<number>`count(DISTINCT ${gameSessions.id})`,
       gamesWon: sql<number>`sum(${gamePlayers.isWinner})`,
       bestScore: max(gamePlayers.currentScore),
@@ -114,10 +146,11 @@ export async function getPersonalBests(playerId: number): Promise<PersonalBest[]
     .from(gameSessions)
     .innerJoin(gamePlayers, eq(gamePlayers.gameSessionId, gameSessions.id))
     .where(and(eq(gameSessions.status, 'completed'), eq(gamePlayers.playerId, playerId)))
-    .groupBy(gameSessions.gameSlug);
+    .groupBy(gameSessions.gameSlug, variantExpr);
 
   const mapped: PersonalBestRow[] = rows.map((r) => ({
     gameSlug: r.gameSlug,
+    variant: r.gameSlug === 'x01' ? (Number(r.variant) === 301 ? 301 : 501) : null,
     gamesPlayed: r.gamesPlayed,
     gamesWon: Number(r.gamesWon ?? 0),
     bestScore: r.bestScore ?? null,
@@ -127,7 +160,10 @@ export async function getPersonalBests(playerId: number): Promise<PersonalBest[]
   return buildPersonalBestsFromRows(mapped);
 }
 
-export async function getOverallThreeDartAvg(playerId: number): Promise<number | null> {
+export async function getOverallThreeDartAvg(
+  playerId: number,
+  variant: X01Variant | 'all' = 501,
+): Promise<number | null> {
   const [result] = await db
     .select({ value: avg(gamePlayers.threeDartAvg) })
     .from(gamePlayers)
@@ -137,6 +173,7 @@ export async function getOverallThreeDartAvg(playerId: number): Promise<number |
         eq(gameSessions.status, 'completed'),
         eq(gamePlayers.playerId, playerId),
         eq(gameSessions.gameSlug, 'x01'),
+        x01VariantCondition(variant === 'all' ? undefined : variant),
       ),
     );
 
@@ -434,6 +471,7 @@ async function fetchPlayerSessionRows(
             ? eq(gameSessions.context, filter.context)
             : ne(gameSessions.context, 'practice'),
         filter?.slug ? eq(gameSessions.gameSlug, filter.slug) : undefined,
+        x01VariantCondition(filter?.slug === 'x01' ? filter.variant : undefined),
       ),
     );
 
@@ -491,6 +529,7 @@ export async function getTrendData(
         eq(gamePlayers.playerId, playerId),
         eq(gameSessions.status, 'completed'),
         eq(gameSessions.gameSlug, resolveTrendSlug(filter?.slug)),
+        x01VariantCondition(resolveTrendSlug(filter?.slug) === 'x01' ? filter?.variant : undefined),
         filter?.since ? gte(gameSessions.completedAt, filter.since) : undefined,
         filter?.context === 'all'
           ? undefined

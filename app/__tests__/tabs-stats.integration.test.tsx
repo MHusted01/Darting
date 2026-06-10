@@ -1,9 +1,14 @@
 import React from 'react';
-import { describe, expect, it, beforeEach, jest } from '@jest/globals';
+import { describe, expect, it, afterEach, beforeEach, jest } from '@jest/globals';
 import { Alert } from 'react-native';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import TabsLayout from '@/app/(protected)/(tabs)/_layout';
 import StatsScreen from '@/app/(protected)/(tabs)/stats';
+import {
+  getOverallThreeDartAvg,
+  getPerGameKPIs,
+  getTrendData,
+} from '@/lib/stats';
 
 const mockPush: jest.Mock<any> = jest.fn();
 const mockRefetch: jest.Mock<any> = jest.fn();
@@ -33,6 +38,8 @@ jest.mock('@tanstack/react-query', () => ({
   useQuery: (...args: unknown[]) => mockUseQuery(...args),
 }));
 
+jest.mock('@sentry/react-native', () => ({ captureException: jest.fn() }));
+
 jest.mock('@/lib/history', () => ({
   getHistoryData: jest.fn(),
 }));
@@ -48,6 +55,11 @@ jest.mock('@/lib/player', () => ({
 jest.mock('@/lib/stats', () => ({
   getPersonalBests: jest.fn(),
   getOverallThreeDartAvg: jest.fn(),
+  getSegmentAccuracy: jest.fn(),
+  getCheckoutStats: jest.fn(),
+  getPerGameKPIs: jest.fn(),
+  getAggregatedStats: jest.fn(),
+  getTrendData: jest.fn(),
 }));
 
 jest.mock('@/constants/games', () => ({
@@ -60,9 +72,17 @@ jest.mock('@/constants/games', () => ({
 
 describe('Tabs + Stats Integration', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     jest.clearAllMocks();
     mockRefetch.mockResolvedValue(undefined);
     jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
+  });
+
+  afterEach(() => {
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+    jest.useRealTimers();
   });
 
   it('renders all tab entries in tabs layout', () => {
@@ -188,17 +208,140 @@ describe('Tabs + Stats Integration', () => {
     expect(screen.getByLabelText('Filter by Last 30d')).toBeTruthy();
     expect(screen.getByLabelText('Filter by Last 7d')).toBeTruthy();
 
-    // Game filter pills are rendered (from mocked GAMES)
+    // Game filter pills are rendered (from mocked GAMES) — x01 splits into variant chips
     expect(screen.getByLabelText('Show all games')).toBeTruthy();
-    expect(screen.getByLabelText('Filter by 501 / 301')).toBeTruthy();
+    expect(screen.getByLabelText('Filter by 501')).toBeTruthy();
+    expect(screen.getByLabelText('Filter by 301')).toBeTruthy();
+    expect(screen.queryByLabelText('Filter by 501 / 301')).toBeNull();
 
     // Pressing a time filter does not throw
     fireEvent.press(screen.getByLabelText('Filter by Last 7d'));
     fireEvent.press(screen.getByLabelText('Filter by All time'));
 
     // Pressing a game filter does not throw
-    fireEvent.press(screen.getByLabelText('Filter by 501 / 301'));
+    fireEvent.press(screen.getByLabelText('Filter by 501'));
     fireEvent.press(screen.getByLabelText('Show all games'));
+  });
+
+  it('passes the x01 variant to stats queries when a variant chip is active', async () => {
+    const capturedOpts: any[] = [];
+    mockUseQuery.mockImplementation((opts: any) => {
+      capturedOpts.push(opts);
+      if (opts.queryKey[0] === 'user-player-id') return playerIdResult;
+      if (opts.queryKey[0] === 'history') {
+        return { data: { quickStats: { gamesPlayed: 0, completedCount: 0, winRate: 0, inProgressSessions: 0, abandonedSessions: 0 }, sessions: [] }, isLoading: false, isRefetching: false, error: null, refetch: mockRefetch };
+      }
+      return emptyQueryResult;
+    });
+
+    render(<StatsScreen />);
+    fireEvent.press(screen.getByLabelText('Filter by 301'));
+
+    const lastOf = (key: string) => capturedOpts.filter((o) => o.queryKey[1] === key).at(-1);
+
+    await lastOf('kpi')?.queryFn();
+    expect(getPerGameKPIs).toHaveBeenLastCalledWith(5, 'x01', expect.objectContaining({ variant: 301 }));
+
+    await lastOf('trend')?.queryFn();
+    expect(getTrendData).toHaveBeenLastCalledWith(5, expect.any(Number), expect.objectContaining({ slug: 'x01', variant: 301 }));
+
+    expect(lastOf('kpi')?.queryKey).toContain(301);
+    expect(lastOf('trend')?.queryKey).toContain(301);
+  });
+
+  it('defaults the hero average to 501-only with a combined toggle', async () => {
+    const capturedOpts: any[] = [];
+    mockUseQuery.mockImplementation((opts: any) => {
+      capturedOpts.push(opts);
+      if (opts.queryKey[0] === 'user-player-id') return playerIdResult;
+      if (opts.queryKey[0] === 'history') {
+        return { data: { quickStats: { gamesPlayed: 0, completedCount: 0, winRate: 0, inProgressSessions: 0, abandonedSessions: 0 }, sessions: [] }, isLoading: false, isRefetching: false, error: null, refetch: mockRefetch };
+      }
+      return emptyQueryResult;
+    });
+
+    render(<StatsScreen />);
+
+    expect(screen.getByText('3-Dart Average')).toBeTruthy();
+    const lastAvg = () => capturedOpts.filter((o) => o.queryKey[1] === 'three-dart-avg').at(-1);
+    expect(lastAvg()?.queryKey).toContain(501);
+    await lastAvg()?.queryFn();
+    expect(getOverallThreeDartAvg).toHaveBeenLastCalledWith(5, 501);
+
+    fireEvent.press(screen.getByLabelText('Show combined 501 and 301 average'));
+
+    expect(screen.getByText('3-Dart Average')).toBeTruthy();
+    expect(lastAvg()?.queryKey).toContain('all');
+    await lastAvg()?.queryFn();
+    expect(getOverallThreeDartAvg).toHaveBeenLastCalledWith(5, 'all');
+  });
+
+  it('filters the history list by x01 variant', () => {
+    const sessionBase = {
+      status: 'completed',
+      playerCount: 2,
+      currentRound: 5,
+      winnerName: null,
+      lastActivityAt: new Date('2026-03-14T12:00:00Z'),
+    };
+    mockUseQuery.mockImplementation((opts: any) => {
+      if (opts.queryKey[0] === 'user-player-id') return playerIdResult;
+      if (opts.queryKey[0] === 'history') {
+        return {
+          data: {
+            quickStats: { gamesPlayed: 2, completedCount: 2, winRate: 100, inProgressSessions: 0, abandonedSessions: 0 },
+            sessions: [
+              { ...sessionBase, sessionId: 10, gameSlug: 'x01', startingScore: 501, gameName: '501 / 301' },
+              { ...sessionBase, sessionId: 11, gameSlug: 'x01', startingScore: 301, gameName: '501 / 301' },
+              { ...sessionBase, sessionId: 12, gameSlug: 'cricket', startingScore: null, gameName: 'Cricket' },
+            ],
+          },
+          isLoading: false,
+          isRefetching: false,
+          error: null,
+          refetch: mockRefetch,
+        };
+      }
+      return emptyQueryResult;
+    });
+
+    render(<StatsScreen />);
+    expect(screen.getAllByLabelText('501 / 301 Completed session')).toHaveLength(2);
+
+    fireEvent.press(screen.getByLabelText('Filter by 501'));
+    expect(screen.getAllByLabelText('501 / 301 Completed session')).toHaveLength(1);
+    expect(screen.queryByLabelText('Cricket Completed session')).toBeNull();
+  });
+
+  it('renders per-variant personal best rows', () => {
+    mockUseQuery.mockImplementation((opts: any) => {
+      if (opts.queryKey[0] === 'user-player-id') return playerIdResult;
+      if (opts.queryKey[0] === 'history') {
+        return { data: { quickStats: { gamesPlayed: 0, completedCount: 0, winRate: 0, inProgressSessions: 0, abandonedSessions: 0 }, sessions: [] }, isLoading: false, isRefetching: false, error: null, refetch: mockRefetch };
+      }
+      if (opts.queryKey[1] === 'personal-bests') {
+        return {
+          data: [
+            { gameSlug: 'x01', variant: 501, gameName: '501', gamesPlayed: 4, gamesWon: 2, bestScore: null, avgThreeDartAvg: 55.2 },
+            { gameSlug: 'x01', variant: 301, gameName: '301', gamesPlayed: 2, gamesWon: 1, bestScore: null, avgThreeDartAvg: 48.1 },
+          ],
+          isLoading: false,
+          isRefetching: false,
+          error: null,
+          refetch: mockRefetch,
+        };
+      }
+      return emptyQueryResult;
+    });
+
+    render(<StatsScreen />);
+
+    expect(screen.getAllByText('501').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('301').length).toBeGreaterThan(0);
+    expect(screen.getByText('4 played · 2 won')).toBeTruthy();
+    expect(screen.getByText('2 played · 1 won')).toBeTruthy();
+    expect(screen.getByText('Avg: 55.2')).toBeTruthy();
+    expect(screen.getByText('Avg: 48.1')).toBeTruthy();
   });
 
   it('renders personal bests when data is available', () => {

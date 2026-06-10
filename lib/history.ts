@@ -2,6 +2,7 @@ import { asc, max } from 'drizzle-orm';
 import { GAMES } from '@/constants/games';
 import { db } from '@/db/client';
 import { gamePlayers, gameTurns } from '@/db/schema';
+import { resolveX01Variant, type X01Variant } from '@/lib/stats';
 
 const GAME_NAMES = new Map(GAMES.map((game) => [game.slug, game.name] as const));
 
@@ -14,6 +15,7 @@ export type HistorySessionStatus =
 export interface HistorySessionItem {
   sessionId: number;
   gameSlug: string;
+  startingScore: X01Variant | null;
   gameName: string;
   status: HistorySessionStatus;
   startedAt: Date | null;
@@ -199,6 +201,7 @@ export async function getHistoryData(): Promise<HistoryData> {
       return {
         sessionId: session.id,
         gameSlug: session.gameSlug,
+        startingScore: resolveX01Variant(session.gameSlug, session.config),
         gameName: GAME_NAMES.get(session.gameSlug) ?? session.gameSlug,
         status: normalizeSessionStatus(session.status),
         startedAt: session.startedAt ?? null,
