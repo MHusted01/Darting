@@ -1,0 +1,1 @@
+CREATE INDEX `game_sessions_challenge_id_idx` ON `game_sessions` (`challenge_id`);

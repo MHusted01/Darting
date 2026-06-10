@@ -8,6 +8,8 @@ import m0003 from './0003_tiny_warbound.sql';
 import m0004 from './0004_opposite_trish_tilby.sql';
 import m0005 from './0005_free_firebrand.sql';
 import m0006 from './0006_phase9_tournament_session_columns.sql';
+import m0007 from './0007_phase10_challenge_columns.sql';
+import m0008 from './0008_challenge_id_index.sql';
 
   export default {
     journal,
@@ -18,7 +20,9 @@ m0002,
 m0003,
 m0004,
 m0005,
-m0006
+m0006,
+m0007,
+m0008
     }
   }
   

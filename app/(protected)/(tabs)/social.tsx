@@ -6,10 +6,11 @@ import { Settings, Trophy } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useMyClubs } from '@/hooks/useClubs';
 import { useFriends, useRemoveFriend } from '@/hooks/useFriends';
-import { usePresence } from '@/hooks/usePresence';
+import { usePresenceContext } from '@/providers/PresenceProvider';
 import { useMyActiveTournaments } from '@/hooks/useTournament';
 import { mergePresence } from '@/lib/friends';
 import { FriendRequestsSection } from '@/components/social/FriendRequestsSection';
+import { ChallengeInvitesSection } from '@/components/social/ChallengeInvitesSection';
 import { FriendSearchModal } from '@/components/social/FriendSearchModal';
 import { CreateClubModal } from '@/components/social/CreateClubModal';
 import { ClubSearchModal } from '@/components/social/ClubSearchModal';
@@ -48,7 +49,7 @@ export default function SocialScreen() {
 
   const clubsQuery    = useMyClubs();
   const friendsQuery  = useFriends();
-  const { presenceMap } = usePresence();
+  const { presenceMap } = usePresenceContext();
   const removeFriendMutation = useRemoveFriend();
   const { data: activeTournaments = [] } = useMyActiveTournaments();
 
@@ -202,6 +203,7 @@ export default function SocialScreen() {
           </View>
 
           <FriendRequestsSection />
+          <ChallengeInvitesSection />
 
           {friendsQuery.isLoading && (
             <ActivityIndicator size="small" color="#ba1a1a" />

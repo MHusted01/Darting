@@ -65,6 +65,7 @@ import {
 } from '@/lib/games/killer';
 import type { DartThrow } from '@/types/game';
 import { computeThreeDartAvg } from '@/lib/stats';
+import { applyGameTurn as applyChallengeTurn } from '@/lib/realtime-game';
 import { syncCompletedSession } from '@/lib/supabase-sync';
 import { computeSessionAnalytics } from '@/lib/games/analytics';
 
@@ -72,6 +73,7 @@ export interface LoadedPlayer {
   id: number; // gamePlayers.id
   playerId: number;
   playerOrder: number;
+  userId: string | null;
   name: string;
   avatarColor: string;
   currentScore: number;
@@ -91,9 +93,22 @@ export interface LoadedGameState {
 interface UsePlaySessionParams {
   slug?: string;
   sessionId?: string;
+  onBeforeCommitTurn?: (
+    darts: DartThrow[],
+    isComplete: boolean,
+    winnerGamePlayerId: number | null | undefined,
+    gameState: LoadedGameState,
+    newScore: number,
+  ) => Promise<void>;
+  onQuitConfirmed?: () => Promise<void>;
 }
 
-export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
+export function usePlaySession({
+  slug,
+  sessionId,
+  onBeforeCommitTurn,
+  onQuitConfirmed,
+}: UsePlaySessionParams) {
   const router = useRouter();
   const { userId, getToken } = useAuth();
 
@@ -149,6 +164,7 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
         id: gp.id,
         playerId: gp.playerId,
         playerOrder: gp.playerOrder,
+        userId: gp.player.userId,
         name: gp.player.name,
         avatarColor: gp.player.avatarColor,
         currentScore: gp.currentScore,
@@ -202,6 +218,7 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
       winnerGamePlayerId?: number | null,
       additionalUpdates?: { gamePlayerId: number; newState: unknown; newScore?: number }[],
       nextPlayerOverride?: number,
+      isRemote?: boolean,
     ) => {
       if (!gameState) return;
       setIsProcessing(true);
@@ -210,6 +227,10 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
       const isTie = isComplete && winnerGamePlayerId === null;
 
       try {
+        if (!isRemote && onBeforeCommitTurn) {
+          await onBeforeCommitTurn(darts, isComplete, winnerGamePlayerId, gameState, newScore);
+        }
+
         await db.transaction(async (tx) => {
           await tx.insert(gameTurns).values({
             gameSessionId: gameState.sessionId,
@@ -346,8 +367,64 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
         setIsProcessing(false);
       }
     },
-    [gameState, loadSession, router, slug, userId, getToken],
+    [gameState, loadSession, router, slug, userId, getToken, onBeforeCommitTurn],
   );
+
+  const pendingRemoteTurnsRef = useRef<
+    { darts: DartThrow[]; remoteUserId: string; localUserId: string }[]
+  >([]);
+
+  const applyRemoteTurn = useCallback(
+    async (darts: DartThrow[], remoteUserId: string, localUserId: string) => {
+      if (remoteUserId === localUserId) return;
+      if (!gameState || isProcessing) {
+        pendingRemoteTurnsRef.current.push({ darts, remoteUserId, localUserId });
+        return;
+      }
+
+      const sessionCurrentPlayer = gameState.players[gameState.currentPlayerIndex];
+      if (sessionCurrentPlayer?.userId !== remoteUserId) return;
+
+      const applied = applyChallengeTurn(
+        gameState.gameSlug,
+        gameState.config,
+        gameState.players.map((player) => ({
+          gameState: player.gameState,
+          currentScore: player.currentScore,
+        })),
+        gameState.currentPlayerIndex,
+        darts,
+      );
+
+      const winnerGamePlayerId =
+        applied.isComplete && applied.winnerIndex !== undefined
+          ? applied.winnerIndex !== null
+            ? gameState.players[applied.winnerIndex].id
+            : null
+          : undefined;
+
+      await finishTurn(
+        darts,
+        applied.scoreDelta,
+        applied.newState,
+        applied.newScore,
+        applied.isComplete,
+        winnerGamePlayerId,
+        undefined,
+        undefined,
+        true,
+      );
+    },
+    [finishTurn, gameState, isProcessing],
+  );
+
+  useEffect(() => {
+    if (isProcessing || !gameState) return;
+    const next = pendingRemoteTurnsRef.current.shift();
+    if (next) {
+      void applyRemoteTurn(next.darts, next.remoteUserId, next.localUserId);
+    }
+  }, [isProcessing, gameState, applyRemoteTurn]);
 
   const handleATCDartThrown = useCallback(
     async (dart: DartThrow) => {
@@ -632,6 +709,18 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
           if (!gameState) return;
 
           try {
+            if (onQuitConfirmed) {
+              try {
+                await onQuitConfirmed();
+              } catch (error) {
+                console.error('Failed to notify quit:', error);
+                Alert.alert(
+                  'Error',
+                  'Could not leave the match. Check your connection and try again.',
+                );
+                return;
+              }
+            }
             await db
               .update(gameSessions)
               .set({ status: 'abandoned', completedAt: new Date() })
@@ -644,7 +733,7 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
         },
       },
     ]);
-  }, [gameState, router]);
+  }, [gameState, router, onQuitConfirmed]);
 
   const handleKillerDartThrown = useCallback(
     async (dart: DartThrow) => {
@@ -779,5 +868,6 @@ export function usePlaySession({ slug, sessionId }: UsePlaySessionParams) {
     handleKillerDartThrown,
     handleQuit,
     isX01,
+    applyRemoteTurn,
   };
 }
