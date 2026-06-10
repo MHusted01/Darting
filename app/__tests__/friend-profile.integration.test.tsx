@@ -15,6 +15,10 @@ jest.mock('@/providers/SupabaseProvider', () => ({
   useSupabase: () => ({ rpc: mockRpc }),
 }));
 
+jest.mock('@/hooks/useChallenges', () => ({
+  useCreateChallenge: () => ({ mutate: jest.fn(), isPending: false }),
+}));
+
 jest.mock('@tanstack/react-query', () => {
   const actual = jest.requireActual('@tanstack/react-query') as any;
   return {

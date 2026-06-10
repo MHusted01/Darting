@@ -10,6 +10,7 @@ import { usePresence } from '@/hooks/usePresence';
 import { useMyActiveTournaments } from '@/hooks/useTournament';
 import { mergePresence } from '@/lib/friends';
 import { FriendRequestsSection } from '@/components/social/FriendRequestsSection';
+import { ChallengeInvitesSection } from '@/components/social/ChallengeInvitesSection';
 import { FriendSearchModal } from '@/components/social/FriendSearchModal';
 import { CreateClubModal } from '@/components/social/CreateClubModal';
 import { ClubSearchModal } from '@/components/social/ClubSearchModal';
@@ -202,6 +203,7 @@ export default function SocialScreen() {
           </View>
 
           <FriendRequestsSection />
+          <ChallengeInvitesSection />
 
           {friendsQuery.isLoading && (
             <ActivityIndicator size="small" color="#ba1a1a" />

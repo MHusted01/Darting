@@ -1,4 +1,5 @@
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { useCallback, useEffect, useRef } from 'react';
+import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AroundTheClockPlayPanel } from '@/components/games/AroundTheClockPlayPanel';
@@ -15,14 +16,35 @@ import {
   getMaxTarget,
   type AroundTheClockConfig,
 } from '@/lib/games/around-the-clock';
-import { usePlaySession } from '@/hooks/usePlaySession';
+import { usePlaySession, type LoadedGameState } from '@/hooks/usePlaySession';
+import { useRealtimeGame } from '@/hooks/useRealtimeGame';
+import type { DartThrow } from '@/types/game';
+
+type BeforeCommitTurn = (
+  darts: DartThrow[],
+  isComplete: boolean,
+  winnerGamePlayerId: number | null | undefined,
+  gameState: LoadedGameState,
+  newScore: number,
+) => Promise<void>;
 
 export default function PlayScreen() {
   const router = useRouter();
-  const { slug, sessionId } = useLocalSearchParams<{
+  const { slug, sessionId, challengeId } = useLocalSearchParams<{
     slug: string;
     sessionId: string;
+    challengeId?: string;
   }>();
+  const isRealtimeMatch = Boolean(challengeId);
+
+  const beforeCommitRef = useRef<BeforeCommitTurn | null>(null);
+  const onBeforeCommitTurn = useCallback<BeforeCommitTurn>(
+    (...args) => beforeCommitRef.current?.(...args) ?? Promise.resolve(),
+    [],
+  );
+
+  const abandonRef = useRef<(() => Promise<void>) | null>(null);
+  const onQuitConfirmed = useCallback(() => abandonRef.current?.() ?? Promise.resolve(), []);
 
   const {
     gameState,
@@ -49,7 +71,33 @@ export default function PlayScreen() {
     handleRoundDartThrown,
     handleKillerDartThrown,
     handleQuit,
-  } = usePlaySession({ slug, sessionId });
+    applyRemoteTurn,
+  } = usePlaySession({
+    slug,
+    sessionId,
+    onBeforeCommitTurn: isRealtimeMatch ? onBeforeCommitTurn : undefined,
+    onQuitConfirmed: isRealtimeMatch ? onQuitConfirmed : undefined,
+  });
+
+  const realtime = useRealtimeGame({
+    challengeId: challengeId ?? null,
+    gameState,
+    applyRemoteTurn,
+  });
+  beforeCommitRef.current = realtime.onBeforeCommitTurn;
+  abandonRef.current = realtime.abandon;
+
+  const waitingForOpponent = isRealtimeMatch && !realtime.isMyTurn;
+  const inputDisabled = isProcessing || waitingForOpponent;
+
+  const opponentAbandoned = isRealtimeMatch && realtime.challengeStatus === 'abandoned';
+
+  useEffect(() => {
+    if (!opponentAbandoned) return;
+    Alert.alert('Match ended', 'Your opponent left the game.', [
+      { text: 'OK', onPress: () => router.replace('/(protected)/(tabs)') },
+    ]);
+  }, [opponentAbandoned, router]);
 
   if (loadError) {
     return (
@@ -102,6 +150,22 @@ export default function PlayScreen() {
           </Pressable>
         </View>
 
+        {isRealtimeMatch && !realtime.opponentOnline && (
+          <View className="bg-ds-red-container rounded-xl px-4 py-3 mb-4">
+            <Text className="text-sm font-barlow-semi text-ds-red text-center">
+              Opponent is offline
+            </Text>
+          </View>
+        )}
+
+        {waitingForOpponent && (
+          <View className="bg-ds-surface-low border border-ds-outline-variant rounded-xl px-4 py-3 mb-4">
+            <Text className="text-sm font-barlow-semi text-ds-on-surface-variant text-center">
+              Waiting for {currentPlayer.name}…
+            </Text>
+          </View>
+        )}
+
         <View className="items-center mb-6">
           <View
             className="w-12 h-12 rounded-full items-center justify-center mb-2"
@@ -123,7 +187,7 @@ export default function PlayScreen() {
             localTarget={localTarget}
             maxTarget={maxTarget}
             turnDarts={turnDarts}
-            isProcessing={isProcessing}
+            isProcessing={inputDisabled}
             onDartThrown={handleATCDartThrown}
           />
         )}
@@ -134,7 +198,7 @@ export default function PlayScreen() {
             currentPlayerIndex={gameState.currentPlayerIndex}
             localCricketState={localCricketState}
             turnDarts={turnDarts}
-            isProcessing={isProcessing}
+            isProcessing={inputDisabled}
             onDartThrown={handleCricketDartThrown}
           />
         )}
@@ -145,7 +209,7 @@ export default function PlayScreen() {
             currentPlayerId={currentPlayer.id}
             localX01State={localX01State}
             turnDarts={turnDarts}
-            isProcessing={isProcessing}
+            isProcessing={inputDisabled}
             onDartThrown={handleX01DartThrown}
           />
         )}
@@ -155,7 +219,7 @@ export default function PlayScreen() {
             players={gameState.players}
             currentPlayerId={currentPlayer.id}
             turnDarts={turnDarts}
-            isProcessing={isProcessing}
+            isProcessing={inputDisabled}
             onDartThrown={handleRoundDartThrown}
           />
         )}
@@ -165,7 +229,7 @@ export default function PlayScreen() {
             players={gameState.players}
             currentPlayerId={currentPlayer.id}
             turnDarts={turnDarts}
-            isProcessing={isProcessing}
+            isProcessing={inputDisabled}
             onDartThrown={handleRoundDartThrown}
           />
         )}
@@ -175,7 +239,7 @@ export default function PlayScreen() {
             players={gameState.players}
             currentPlayerId={currentPlayer.id}
             turnDarts={turnDarts}
-            isProcessing={isProcessing}
+            isProcessing={inputDisabled}
             onDartThrown={handleRoundDartThrown}
           />
         )}
@@ -185,7 +249,7 @@ export default function PlayScreen() {
             players={gameState.players}
             currentPlayerId={currentPlayer.id}
             turnDarts={turnDarts}
-            isProcessing={isProcessing}
+            isProcessing={inputDisabled}
             onDartThrown={handleRoundDartThrown}
           />
         )}
@@ -195,7 +259,7 @@ export default function PlayScreen() {
             players={gameState.players}
             currentPlayerId={currentPlayer.id}
             turnDarts={turnDarts}
-            isProcessing={isProcessing}
+            isProcessing={inputDisabled}
             onDartThrown={handleRoundDartThrown}
           />
         )}
@@ -205,7 +269,7 @@ export default function PlayScreen() {
             players={gameState.players}
             currentPlayerId={currentPlayer.id}
             turnDarts={turnDarts}
-            isProcessing={isProcessing}
+            isProcessing={inputDisabled}
             onDartThrown={handleRoundDartThrown}
           />
         )}
@@ -215,7 +279,7 @@ export default function PlayScreen() {
             players={gameState.players}
             currentPlayerId={currentPlayer.id}
             turnDarts={turnDarts}
-            isProcessing={isProcessing}
+            isProcessing={inputDisabled}
             onDartThrown={handleKillerDartThrown}
           />
         )}

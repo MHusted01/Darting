@@ -407,9 +407,25 @@ verify_jwt = false
 import_map = "./functions/notify-mention/deno.json"
 entrypoint = "./functions/notify-mention/index.ts"
 
+[functions.notify-game-challenge]
+enabled = true
+verify_jwt = false
+import_map = "./functions/notify-game-challenge/deno.json"
+entrypoint = "./functions/notify-game-challenge/index.ts"
+
+# verify_jwt is false because the client authenticates with a Clerk-issued JWT,
+# which the platform's built-in Supabase JWT check would reject. Authentication
+# is enforced inside the function: the forwarded Authorization header is passed
+# to PostgREST, which verifies the Clerk JWT before advance_challenge_turn runs.
+[functions.validate-turn]
+enabled = true
+verify_jwt = false
+import_map = "./functions/validate-turn/deno.json"
+entrypoint = "./functions/validate-turn/index.ts"
+
 # ─── Required Supabase Dashboard DB Webhooks ──────────────────────────────────
 # Configure these under Database → Webhooks (type: Supabase Edge Functions).
-# All four webhooks use the same HTTP header:
+# All five webhooks use the same HTTP header:
 #   Key:   x-webhook-secret
 #   Value: <WEBHOOK_SECRET env var value>
 #
@@ -419,3 +435,4 @@ entrypoint = "./functions/notify-mention/index.ts"
 # on-friendship-accepted  | public.friendships   | UPDATE | notify-friend-accepted
 # on-club-post-insert     | public.club_posts    | INSERT | notify-mention
 # on-club-comment-insert  | public.club_post_comments | INSERT | notify-mention
+# on-game-challenge       | public.game_challenges | INSERT | notify-game-challenge

@@ -17,6 +17,17 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ replace: mockReplace }),
 }));
 
+jest.mock('@/hooks/useRealtimeGame', () => ({
+  useRealtimeGame: () => ({
+    isMyTurn: true,
+    opponentUserId: null,
+    opponentOnline: false,
+    challengeStatus: null,
+    onBeforeCommitTurn: jest.fn(),
+    abandon: jest.fn(),
+  }),
+}));
+
 const basePlayer = {
   id: 1,
   playerId: 1,

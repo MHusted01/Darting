@@ -55,6 +55,8 @@ export const gameSessions = sqliteTable('game_sessions', {
   tournamentMatchId: text('tournament_match_id'),
   tournamentParticipant1Id: text('tournament_participant1_id'),
   tournamentParticipant2Id: text('tournament_participant2_id'),
+  challengeId: text('challenge_id'),
+  challengeOpponentUserId: text('challenge_opponent_user_id'),
 });
 
 export const gamePlayers = sqliteTable(

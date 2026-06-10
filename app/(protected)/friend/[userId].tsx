@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +7,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useSupabase } from '@/providers/SupabaseProvider';
 import { useMutualClubs, usePlayerRecentGames, usePlayerStreak } from '@/hooks/useFriendSocial';
 import { timeAgo } from '@/lib/time';
+import { useFeatureGate } from '@/lib/subscription';
+import { useCreateChallenge } from '@/hooks/useChallenges';
+import { ChallengeSheet } from '@/components/ChallengeSheet';
+import type { ChallengeSettings } from '@/lib/realtime-game';
 
 interface PublicPlayerStats {
   user_id: string;
@@ -163,7 +167,7 @@ export default function FriendProfileScreen() {
               </>
             )}
 
-            <Phase8Sections userId={userId} />
+            <Phase8Sections userId={userId} displayName={displayName} />
           </View>
         </ScrollView>
       )}
@@ -171,10 +175,29 @@ export default function FriendProfileScreen() {
   );
 }
 
-function Phase8Sections({ userId }: { userId: string }) {
+function Phase8Sections({ userId, displayName }: { userId: string; displayName: string }) {
+  const router = useRouter();
   const { streak, isLoading: streakLoading } = usePlayerStreak(userId);
   const { data: recentGames, isLoading: gamesLoading } = usePlayerRecentGames(userId);
   const { data: mutualClubs, isLoading: clubsLoading } = useMutualClubs(userId);
+  const realtimeGamesEnabled = useFeatureGate('REALTIME_GAMES');
+  const createChallenge = useCreateChallenge();
+  const [sheetVisible, setSheetVisible] = useState(false);
+
+  const handleSendChallenge = (gameSlug: string, settings: ChallengeSettings) => {
+    createChallenge.mutate(
+      { challengeeId: userId, gameSlug, settings },
+      {
+        onSuccess: (challengeId) => {
+          setSheetVisible(false);
+          router.push(`/challenge/${challengeId}`);
+        },
+        onError: () => {
+          Alert.alert('Error', 'Could not send the challenge. Please try again.');
+        },
+      },
+    );
+  };
 
   return (
     <>
@@ -247,20 +270,29 @@ function Phase8Sections({ userId }: { userId: string }) {
         </>
       )}
 
-      {/* Challenge stub */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Challenge to a game (coming soon)"
-        accessibilityState={{ disabled: true }}
-        disabled
-        className="bg-ds-surface border border-ds-outline-variant rounded-xl py-4 items-center opacity-50 mb-6"
-      >
-        <View className="flex-row items-center gap-2">
-          <Swords size={18} color="#444748" />
-          <Text className="text-base font-barlow-semi text-ds-on-surface-variant">Challenge to a game</Text>
-        </View>
-        <Text className="text-xs font-barlow text-ds-outline mt-1">Coming soon</Text>
-      </Pressable>
+      {/* Challenge CTA */}
+      {realtimeGamesEnabled && (
+        <>
+          <Pressable
+            onPress={() => setSheetVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Challenge to a game"
+            className="bg-ds-red rounded-xl py-4 items-center active:opacity-70 mb-6"
+          >
+            <View className="flex-row items-center gap-2">
+              <Swords size={18} color="white" />
+              <Text className="text-base font-barlow-semi text-white">Challenge to a game</Text>
+            </View>
+          </Pressable>
+          <ChallengeSheet
+            visible={sheetVisible}
+            opponentName={displayName}
+            onClose={() => setSheetVisible(false)}
+            onSubmit={handleSendChallenge}
+            isLoading={createChallenge.isPending}
+          />
+        </>
+      )}
     </>
   );
 }

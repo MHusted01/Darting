@@ -18,6 +18,7 @@ jest.mock('@clerk/expo', () => ({
 }));
 
 jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
   Redirect: ({ href }: { href: string }) => {
     const React = jest.requireActual('react') as typeof import('react');
     const { Text } = jest.requireActual('react-native') as typeof import('react-native');
@@ -28,6 +29,11 @@ jest.mock('expo-router', () => ({
     const { Text } = jest.requireActual('react-native') as typeof import('react-native');
     return React.createElement(Text, null, 'stack-rendered');
   },
+}));
+
+jest.mock('expo-notifications', () => ({
+  getLastNotificationResponseAsync: jest.fn(() => Promise.resolve(null)),
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
 
 describe('Auth Route Integration', () => {

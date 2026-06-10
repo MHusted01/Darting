@@ -19,6 +19,7 @@ import { useClubLeaderboard, useClubMembers, useInviteMember, useLeaveClub, useM
 import { useUserSearch } from '@/hooks/useFriends';
 import { useClubTournaments, useCreateTournament } from '@/hooks/useTournament';
 import { ClubFeed } from '@/components/clubfeed/ClubFeed';
+import { LiveChallengesSection } from '@/components/social/LiveChallengesSection';
 import { TournamentCard } from '@/components/tournament/TournamentCard';
 import { CreateTournamentModal } from '@/components/tournament/CreateTournamentModal';
 import type { ClubLeaderboardRow, ClubMember, UserProfile } from '@/types/social';
@@ -335,6 +336,7 @@ export default function ClubDetailScreen() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
           {activeTab === 'members' && (
             <View className="px-6 pt-4">
+              <LiveChallengesSection clubId={id ?? ''} />
               {membersLoading ? (
                 <ActivityIndicator size="small" color="#ba1a1a" />
               ) : !members || members.length === 0 ? (
