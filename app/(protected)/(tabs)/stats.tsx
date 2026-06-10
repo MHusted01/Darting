@@ -611,7 +611,7 @@ function StatsScreen() {
               const chartPoints = [...trendPoints].reverse();
               const trendLabel = activeSlug
                 ? `Last ${trendPoints.length} ${GAMES.find((g) => g.slug === activeSlug)?.name ?? activeSlug} Sessions`
-                : `Last ${trendPoints.length} Sessions`;
+                : `Last ${trendPoints.length} 501/301 Sessions`;
               return (
                 <View className="mx-6 mb-4 bg-ds-surface border border-ds-outline-variant rounded-2xl p-4">
                   <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-3">

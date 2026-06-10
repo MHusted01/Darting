@@ -387,103 +387,14 @@ Shipped: personal info editing, in-app password change, notification preference 
 
 ### Phase 7 — Advanced Stats & Game Intelligence ✅
 
-Shipped: `lib/games/analytics.ts` session analytics (dart counts, per-game KPIs, checkout stats) computed on session complete + idempotent backfill; context tagging; segment heatmap; per-game KPI dashboards; checkout analysis; extended trends; rule-based suggestions (`lib/suggestions.ts`) + drill catalogue + drill screens; friend public profile via `get_player_public_stats` RPC; `ai-coaching` edge function (gated behind `AI_COACHING`). Original design notes kept below for reference.
+Shipped: `lib/games/analytics.ts` session analytics (dart counts, per-game KPIs, checkout stats) on completion + idempotent backfill; context tagging (`casual | tournament | practice | realtime`); segment heatmap; per-game KPI dashboards; checkout analysis; extended trends; rule-based suggestions (`lib/suggestions.ts`) + drill catalogue/screens; friend public profile via `get_player_public_stats`; `ai-coaching` edge function gated by `AI_COACHING`.
 
-#### Stat collection rules
-
-- **Skill KPIs** (3-dart avg, checkout %, win rate, marks/round, personal bests): completed games only (`status = 'completed'`).
-- **Segment accuracy / dart-count heatmap**: all sessions with turn data (completed + abandoned) — each dart is individually valid regardless of game outcome.
-- **Engagement stats** (games started, abandon rate): all sessions.
-
-#### Context tagging
-
-Every `game_session` gets a `context` column: `'casual' | 'tournament' | 'practice' | 'realtime'`, defaulting to `'casual'`. Tournament games (Phase 9) set `'tournament'`; drill sessions set `'practice'`; real-time challenges (Phase 10) set `'realtime'`.
-
-**Stats are unified — not forked.** Headline numbers (lifetime avg, personal bests) aggregate `casual + tournament`. A context filter pill on the stats screen lets you slice by context. Practice throws count toward the segment heatmap but are excluded from competitive KPIs by default. This prevents players from avoiding tournaments to "protect" their stats while still enabling "how do I perform under pressure?" analysis.
-
-#### Schema changes
-
-**Local SQLite** (`db/schema.ts` + new Drizzle migration):
-- `gameSessions.context` — `text` enum `['casual','tournament','practice','realtime']` default `'casual'`
-- `gamePlayers.analytics` — `text({mode:'json'})` nullable: `{ dartCounts, perGameKPIs, checkoutStats }` stored per-player (not per-session) so multi-player games get individual blobs
-
-**Cloud** (new Supabase migration):
-- `ALTER TABLE game_sessions ADD COLUMN context text NOT NULL DEFAULT 'casual'`
-- `ALTER TABLE game_players ADD COLUMN analytics jsonb, ADD COLUMN dart_counts jsonb, ADD COLUMN checkout_stats jsonb`
-- New RPC `get_player_public_stats(p_user_id text)` — `security definer`, returns aggregate KPIs only (mirrors `get_club_leaderboard` privacy model); checks friendship/club-mutual relationship before returning
-
-**Sync mapping** (`lib/supabase-sync.ts` `buildPlayerPayloads` / `buildSessionPayload`):
-- `gameSessions.context` → `game_sessions.context` (1-to-1)
-- `gamePlayers.analytics` (full blob) → `game_players.analytics` (same blob)
-- `gamePlayers.analytics.dartCounts` → `game_players.dart_counts` (promoted to top-level column for direct SQL queries)
-- `gamePlayers.analytics.checkoutStats` → `game_players.checkout_stats` (promoted to top-level column)
-- `gamePlayers.analytics.perGameKPIs` — stays inside the `analytics` blob only; no dedicated cloud column
-- `get_player_public_stats` and `get_club_leaderboard` aggregate from `game_players` / `game_sessions` directly; raw dart data (`dart_counts`, `checkout_stats`) is never returned by either RPC
-
-#### Phase 7a — Engine + capture (foundation)
-
-- `lib/games/analytics.ts` — pure functions: `computeSessionAnalytics(session, turns)` → `{ dartCounts, perGameKPIs, checkoutStats }`. Per-game KPI calculators reuse existing `lib/games/*` helpers.
-- Hook computation into session-complete in the results screen; store blob on `gamePlayers.analytics`.
-- One-time backfill for existing completed sessions (idempotent, keyed on null `analytics`).
-- Extend `supabase-sync.ts` `buildPlayerPayloads` to send new columns + `buildSessionPayload` to send `context`.
-
-#### Phase 7b — Self stats UI
-
-**Segment accuracy heatmap**
-- Hit rate per number 1–20 + bull, with single/double/triple/miss breakdown
-- Filterable by game type and context pill
-- Includes abandoned sessions (raw dart data is valid regardless of completion)
-
-**Per-game-type KPI dashboards** — each game gets its meaningful coaching metrics:
-
-| Game | Key stats |
-|---|---|
-| **X01 (501/301)** | 3-dart avg, first-9-dart avg, checkout % per double, highest checkout, 180s / 140s / 100+ count, bust rate |
-| **Cricket** | Marks per round (MPR), hit rate on 15–20 + bull, segments closed efficiency, points conceded |
-| **Around the Clock** | Darts per number (which numbers need work), total darts to complete, stuck-number count |
-| **Shanghai** | Hit rate per round-target (1–7), triples hit, Shanghais achieved |
-| **Baseball** | Runs per inning, hit rate on inning segment |
-| **Halve-It** | Halve count, hit rate per target including doubles/triples rounds |
-| **High Score** | Avg score per round, best single round |
-| **Bob's 27** | Doubles hit rate by number, rounds survived, elimination rate |
-| **Killer** | Hits on own number, opponent eliminations, survival rate |
-| **Bermuda Triangle** | Hit rate per fixed target in the 12-round sequence |
-
-Target-based games (ATC, Shanghai, Baseball, Bob's 27, Bermuda, Halve-It) have a deterministic target per round number — since `roundNumber` is stored, intended-target accuracy is computable without any extra capture.
-
-**Universal coaching metrics** (every game type):
-- Consistency (std-dev of per-turn scores)
-- Improvement velocity (KPI slope over last N sessions)
-- Session fatigue (KPI by round-number bucket — "your avg drops after round 12")
-- Head-to-head stats vs a specific opponent (filter sessions containing their `playerId`)
-
-**Checkout analysis (X01)**
-- Attempt detection (as implemented): a turn counts as a checkout attempt when `remaining ≤ 170` before the turn and a double was thrown; success = remaining hits exactly 0 (see `lib/games/analytics.ts`)
-- Best closer / worst closer — top and bottom doubles by success rate
-- Suggested doubles to practice (lowest success rate with ≥ meaningful attempt count)
-
-**Extended trends**
-- Trend chart extended from last 10 → last 30 sessions, per-KPI, per-game-type breakdown
-- Full history gated behind `UNLIMITED_STATS_HISTORY` (free tier: last 3 months / ~90 sessions)
-
-#### Phase 7c — Intelligence + social profile
-
-**Rule-based improvement suggestions**
-- `lib/suggestions.ts` — deterministic rules engine
-- Rules: low doubles %, low average for game type, inconsistent finishing, high bust rate, etc.
-- Each suggestion maps to a named drill in `constants/drills.ts` catalogue
-- Drill detail screen: what to practice, how to score it, benchmark targets
-
-**Friend / club member stat profile** (`app/(protected)/friend/[userId].tsx`)
-- Tapping a friend or club member row navigates to their profile (aggregate-only)
-- Stats shown: 3-dart avg, games played, win rate, per-game KPIs via `get_player_public_stats` RPC
-- Raw dart data stays self-only (RLS on `game_turns` is unchanged)
-- Phase 8 enriches this same file with recent games, streak, mutual clubs, challenge CTA — do not duplicate or re-create the file in Phase 8
-
-**Claude-powered coaching (gated)**
-- Gate: `AI_COACHING` (off by default until Phase 11)
-- When gate open: call Claude API with aggregated stats JSON → return 3 personalised coaching observations
-- Prompt lives in `supabase/functions/ai-coaching/index.ts` (edge function to keep API key server-side)
+Current rules:
+- Skill KPIs use completed games only; segment heatmaps can include abandoned sessions because each dart is still valid data.
+- Context is unified, not forked: casual+tournament count toward headline competitive stats; practice is excluded from competitive KPIs by default; context filters allow pressure analysis.
+- Analytics sync mapping: local `gameSessions.context` and `gamePlayers.analytics` map to cloud `game_sessions.context`, `game_players.analytics`, `dart_counts`, and `checkout_stats`; raw dart data stays self-only.
+- X01 checkout attempt detection currently counts a turn when `remaining ≤ 170` and a double is thrown; success means remaining reaches exactly 0.
+- Friend profiles are aggregate-only; Phase 8 extends the same `app/(protected)/friend/[userId].tsx` screen with recent games, streaks, mutual clubs, and challenge CTA.
 
 ---
 
@@ -593,7 +504,9 @@ Note: `expo-haptics` added a native module — dev clients must be rebuilt (`npm
 
 A broad correctness + product-improvement pass before monetisation. Two tracks: **(a) verify everything we have is right**, **(b) sharpen the club/tournament/realtime differentiators**.
 
-#### 12a — Full logic audit (correctness)
+#### 12a — Full logic audit (correctness) ✅
+
+Shipped: all six audit areas swept with verdicts in `docs/PHASE12A_AUDIT.md`; the 5 known findings fixed with tests (cloud migration `20260629000000_x01_only_three_dart_avgs.sql` makes `get_player_public_stats` / `get_club_leaderboard` x01-only and adds `get_friends_three_dart_avgs`; `getTrendData` defaults to x01; friends list 3DA populated; `threeDartAvg` stored null for non-x01); club leaderboard aligned to participation-based, practice-excluded, realtime-deduped semantics; 43 new rule tests for cricket / around-the-clock / results (no rule bugs found). Deferred with reasons in the report: practice-context filter, heatmap abandoned sessions, friend-profile per-game KPI surface, weekly pg_cron reset. Original design notes below.
 
 Systematically verify, with tests or fixes for every finding:
 

@@ -11,7 +11,11 @@ type FriendshipRow = {
   addressee: { id: string; first_name: string | null; last_name: string | null; avatar_url: string | null; username: string | null };
 };
 
-export function mapFriendRow(row: FriendshipRow, currentUserId: string): Friend {
+export function mapFriendRow(
+  row: FriendshipRow,
+  currentUserId: string,
+  threeDartAvgs?: Map<string, number>,
+): Friend {
   const other = row.requester_id === currentUserId ? row.addressee : row.requester;
   return {
     friendshipId: row.id,
@@ -21,7 +25,7 @@ export function mapFriendRow(row: FriendshipRow, currentUserId: string): Friend 
     avatarUrl:    other.avatar_url,
     username:     other.username,
     status:       'offline',
-    threeDartAvg: null,
+    threeDartAvg: threeDartAvgs?.get(other.id) ?? null,
   };
 }
 
@@ -129,24 +133,44 @@ export async function getPendingRequests(
   }));
 }
 
+export async function getFriendThreeDartAvgs(
+  supabase: SupabaseClient,
+): Promise<Map<string, number>> {
+  const { data, error } = await supabase.rpc('get_friends_three_dart_avgs');
+
+  if (error) return new Map();
+
+  type AvgRow = { friend_id: string; avg_three_dart_avg: number | null };
+  const avgs = new Map<string, number>();
+  for (const row of (data ?? []) as AvgRow[]) {
+    if (row.avg_three_dart_avg != null) avgs.set(row.friend_id, row.avg_three_dart_avg);
+  }
+  return avgs;
+}
+
 export async function getFriends(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<Friend[]> {
-  const { data, error } = await supabase
-    .from('friendships')
-    .select(`
-      id,
-      requester_id,
-      addressee_id,
-      requester:requester_id(id, first_name, last_name, avatar_url, username),
-      addressee:addressee_id(id, first_name, last_name, avatar_url, username)
-    `)
-    .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
-    .eq('status', 'accepted');
+  const [{ data, error }, threeDartAvgs] = await Promise.all([
+    supabase
+      .from('friendships')
+      .select(`
+        id,
+        requester_id,
+        addressee_id,
+        requester:requester_id(id, first_name, last_name, avatar_url, username),
+        addressee:addressee_id(id, first_name, last_name, avatar_url, username)
+      `)
+      .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
+      .eq('status', 'accepted'),
+    getFriendThreeDartAvgs(supabase).catch(() => new Map<string, number>()),
+  ]);
 
   if (error) throw new Error(error.message);
-  return ((data ?? []) as unknown as FriendshipRow[]).map((row) => mapFriendRow(row, userId));
+  return ((data ?? []) as unknown as FriendshipRow[]).map((row) =>
+    mapFriendRow(row, userId, threeDartAvgs),
+  );
 }
 
 export async function acceptFriendRequest(
