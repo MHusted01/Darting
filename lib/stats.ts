@@ -84,6 +84,17 @@ export function computeThreeDartAvg(
   return (totalScore / totalDarts) * 3;
 }
 
+export function sessionThreeDartAvg(
+  gameSlug: string,
+  turns: Array<{ darts: number; scoreDelta: number }>,
+): number | null {
+  return gameSlug === 'x01' ? computeThreeDartAvg(turns) : null;
+}
+
+export function resolveTrendSlug(slug: string | undefined): string {
+  return slug ?? 'x01';
+}
+
 export function buildPersonalBestsFromRows(rows: PersonalBestRow[]): PersonalBest[] {
   return rows.map((row) => ({
     ...row,
@@ -479,7 +490,7 @@ export async function getTrendData(
       and(
         eq(gamePlayers.playerId, playerId),
         eq(gameSessions.status, 'completed'),
-        filter?.slug ? eq(gameSessions.gameSlug, filter.slug) : undefined,
+        eq(gameSessions.gameSlug, resolveTrendSlug(filter?.slug)),
         filter?.since ? gte(gameSessions.completedAt, filter.since) : undefined,
         filter?.context === 'all'
           ? undefined

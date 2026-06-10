@@ -65,7 +65,7 @@ import {
   type KillerPlayerState,
 } from '@/lib/games/killer';
 import type { DartThrow } from '@/types/game';
-import { computeThreeDartAvg } from '@/lib/stats';
+import { sessionThreeDartAvg } from '@/lib/stats';
 import { applyGameTurn as applyChallengeTurn } from '@/lib/realtime-game';
 import { syncCompletedSession } from '@/lib/supabase-sync';
 import { computeSessionAnalytics } from '@/lib/games/analytics';
@@ -305,7 +305,7 @@ export function usePlaySession({
             }
 
             for (const [pid, turns] of turnsByPlayer) {
-              const playerAvg = computeThreeDartAvg(turns);
+              const playerAvg = sessionThreeDartAvg(gameState.gameSlug, turns);
               const playerFullTurns = fullTurnsByPlayer.get(pid) ?? [];
               const analytics = computeSessionAnalytics(
                 gameState.gameSlug,
