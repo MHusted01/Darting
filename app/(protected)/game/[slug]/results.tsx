@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { eq, asc } from 'drizzle-orm';
-import { Trophy } from 'lucide-react-native';
+import { CheckCircle, Trophy } from 'lucide-react-native';
+import { useSupabase } from '@/providers/SupabaseProvider';
+import { completeTournamentMatch } from '@/lib/tournament-api';
 import { db } from '@/db/client';
 import { gameSessions, gamePlayers } from '@/db/schema';
 import {
@@ -51,9 +53,13 @@ export default function ResultsScreen() {
     slug: string;
     sessionId: string;
   }>();
+  const supabase = useSupabase();
 
   const [results, setResults] = useState<GameResults | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tournamentMatchId, setTournamentMatchId] = useState<string | null>(null);
+  const [matchRecorded, setMatchRecorded] = useState(false);
+  const matchRecordingRef = useRef(false);
 
   const loadResults = useCallback(async () => {
     setLoading(true);
@@ -78,6 +84,10 @@ export default function ResultsScreen() {
       if (!session) {
         setResults(null);
         return;
+      }
+
+      if (session.tournamentMatchId) {
+        setTournamentMatchId(session.tournamentMatchId);
       }
 
       const players: SessionResultPlayerInput[] = session.gamePlayers.map((gp) => ({
@@ -138,6 +148,54 @@ export default function ResultsScreen() {
   useEffect(() => {
     void loadResults();
   }, [loadResults]);
+
+  useEffect(() => {
+    if (!tournamentMatchId || matchRecorded || matchRecordingRef.current || !supabase) return;
+
+    const MAX_POLLS = 20;
+    let polls = 0;
+
+    const interval = setInterval(async () => {
+      polls++;
+      if (polls > MAX_POLLS) {
+        clearInterval(interval);
+        return;
+      }
+      if (matchRecordingRef.current) return;
+
+      try {
+        const session = await db.query.gameSessions.findFirst({
+          where: eq(gameSessions.id, Number(sessionId)),
+          with: {
+            gamePlayers: {
+              with: { player: true },
+              orderBy: [asc(gamePlayers.playerOrder)],
+            },
+          },
+        });
+
+        if (!session?.cloudSessionId || !session.tournamentMatchId) return;
+        if (!session.tournamentParticipant1Id || !session.tournamentParticipant2Id) return;
+
+        const winnerPlayer = session.gamePlayers.find(gp => gp.isWinner);
+        if (!winnerPlayer) return;
+
+        const winnerId =
+          winnerPlayer.playerOrder === 0
+            ? session.tournamentParticipant1Id
+            : session.tournamentParticipant2Id;
+
+        matchRecordingRef.current = true;
+        await completeTournamentMatch(supabase, session.tournamentMatchId, winnerId, session.cloudSessionId);
+        clearInterval(interval);
+        setMatchRecorded(true);
+      } catch {
+        matchRecordingRef.current = false;
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [tournamentMatchId, matchRecorded, supabase, sessionId]);
 
   if (loading) {
     return (
@@ -237,15 +295,35 @@ export default function ResultsScreen() {
           )}
         </View>
 
+        {tournamentMatchId && (
+          <View className={`rounded-xl px-4 py-3 mb-1 flex-row items-center gap-2 ${matchRecorded ? 'bg-ds-green' : 'bg-ds-surface-container'}`}>
+            {matchRecorded && <CheckCircle size={16} color="#1e502a" />}
+            <Text className={`text-sm font-barlow-semi flex-1 ${matchRecorded ? 'text-ds-green-dark' : 'text-ds-on-surface-variant'}`}>
+              {matchRecorded ? 'Match result recorded' : 'Syncing match result…'}
+            </Text>
+          </View>
+        )}
+
         <View className="gap-3">
-          <Pressable
-            onPress={() => router.replace(`/game/${slug}`)}
-            className="bg-ds-red rounded-xl py-4 items-center active:opacity-70"
-            accessibilityRole="button"
-            accessibilityLabel="Play again"
-          >
-            <Text className="text-white text-lg font-barlow-semi">Play Again</Text>
-          </Pressable>
+          {tournamentMatchId ? (
+            <Pressable
+              onPress={() => router.back()}
+              className="bg-ds-red rounded-xl py-4 items-center active:opacity-70"
+              accessibilityRole="button"
+              accessibilityLabel="Back to tournament"
+            >
+              <Text className="text-white text-lg font-barlow-semi">Back to Tournament</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={() => router.replace(`/game/${slug}`)}
+              className="bg-ds-red rounded-xl py-4 items-center active:opacity-70"
+              accessibilityRole="button"
+              accessibilityLabel="Play again"
+            >
+              <Text className="text-white text-lg font-barlow-semi">Play Again</Text>
+            </Pressable>
+          )}
 
           <Pressable
             onPress={() => router.replace('/(protected)/(tabs)')}

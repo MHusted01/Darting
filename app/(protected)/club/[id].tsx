@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Modal,
   Pressable,
   ScrollView,
@@ -11,13 +12,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Crown, LogOut, UserPlus } from 'lucide-react-native';
+import { ArrowLeft, Crown, LogOut, Plus, UserPlus } from 'lucide-react-native';
+import { useAuth } from '@clerk/expo';
+import { useFeatureGate } from '@/lib/subscription';
 import { useClubLeaderboard, useClubMembers, useInviteMember, useLeaveClub, useMyClubs } from '@/hooks/useClubs';
 import { useUserSearch } from '@/hooks/useFriends';
+import { useClubTournaments, useCreateTournament } from '@/hooks/useTournament';
 import { ClubFeed } from '@/components/clubfeed/ClubFeed';
+import { TournamentCard } from '@/components/tournament/TournamentCard';
+import { CreateTournamentModal } from '@/components/tournament/CreateTournamentModal';
 import type { ClubLeaderboardRow, ClubMember, UserProfile } from '@/types/social';
 
-type Tab = 'members' | 'leaderboard' | 'feed';
+type Tab = 'members' | 'leaderboard' | 'feed' | 'tournaments';
 
 // ─── Invite modal ─────────────────────────────────────────────────────────────
 
@@ -174,17 +180,22 @@ function LeaderboardRow({ row, rank, isLast }: { row: ClubLeaderboardRow; rank: 
 export default function ClubDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { userId } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('members');
   const [inviteVisible, setInviteVisible] = useState(false);
+  const [createTournamentVisible, setCreateTournamentVisible] = useState(false);
 
   const { data: myClubs } = useMyClubs();
   const { data: members, isLoading: membersLoading } = useClubMembers(id);
   const { data: leaderboard, isLoading: leaderboardLoading } = useClubLeaderboard(id);
+  const { data: tournamentsPages, isLoading: tournamentsLoading, fetchNextPage, hasNextPage } = useClubTournaments(id ?? '');
   const leaveClub = useLeaveClub();
+  const createTournament = useCreateTournament(id ?? '');
 
   const myMembership = myClubs?.find((c) => c.id === id);
   const isAdmin = myMembership?.role === 'admin';
   const clubName = myMembership?.name ?? 'Club';
+  const canCreateTournament = useFeatureGate('CREATE_TOURNAMENT');
 
   function handleLeave() {
     Alert.alert('Leave Club', `Are you sure you want to leave ${clubName}?`, [
@@ -242,21 +253,26 @@ export default function ClubDetailScreen() {
 
       {/* Tab strip */}
       <View className="flex-row border-b border-ds-outline-variant">
-        {(['members', 'leaderboard', 'feed'] as Tab[]).map((tab) => (
+        {([
+          { key: 'members', label: 'Members' },
+          { key: 'leaderboard', label: 'Board' },
+          { key: 'feed', label: 'Feed' },
+          { key: 'tournaments', label: 'Events' },
+        ] as { key: Tab; label: string }[]).map(({ key, label }) => (
           <Pressable
-            key={tab}
-            onPress={() => setActiveTab(tab)}
+            key={key}
+            onPress={() => setActiveTab(key)}
             accessibilityRole="tab"
-            accessibilityLabel={tab}
-            accessibilityState={{ selected: activeTab === tab }}
+            accessibilityLabel={label}
+            accessibilityState={{ selected: activeTab === key }}
             className={`flex-1 py-3 items-center active:opacity-70 ${
-              activeTab === tab ? 'border-b-2 border-ds-red' : ''
+              activeTab === key ? 'border-b-2 border-ds-red' : ''
             }`}
           >
-            <Text className={`text-sm font-barlow-semi capitalize ${
-              activeTab === tab ? 'text-ds-red' : 'text-ds-on-surface-variant'
+            <Text className={`text-sm font-barlow-semi ${
+              activeTab === key ? 'text-ds-red' : 'text-ds-on-surface-variant'
             }`}>
-              {tab}
+              {label}
             </Text>
           </Pressable>
         ))}
@@ -264,6 +280,57 @@ export default function ClubDetailScreen() {
 
       {activeTab === 'feed' ? (
         <ClubFeed clubId={id} isAdmin={isAdmin} />
+      ) : activeTab === 'tournaments' ? (
+        <View className="flex-1">
+          {isAdmin && canCreateTournament && (
+            <View className="px-6 pt-4 pb-2">
+              <Pressable
+                onPress={() => setCreateTournamentVisible(true)}
+                className="bg-ds-red rounded-xl py-3 flex-row items-center justify-center gap-2 active:opacity-70"
+                accessibilityRole="button"
+                accessibilityLabel="Create tournament"
+              >
+                <Plus size={16} color="white" />
+                <Text className="text-sm font-barlow-semi text-white">New Tournament</Text>
+              </Pressable>
+            </View>
+          )}
+          {tournamentsLoading ? (
+            <ActivityIndicator size="small" color="#ba1a1a" className="mt-8" />
+          ) : (
+            <FlatList
+              data={tournamentsPages?.pages.flatMap(p => p.items) ?? []}
+              keyExtractor={t => t.id}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32, gap: 10 }}
+              onEndReached={() => { if (hasNextPage) void fetchNextPage(); }}
+              onEndReachedThreshold={0.3}
+              renderItem={({ item }) => (
+                <TournamentCard
+                  tournament={item}
+                  onPress={() => router.push(`/tournament/${item.id}`)}
+                />
+              )}
+              ListEmptyComponent={
+                <Text className="text-sm font-barlow text-ds-outline text-center py-8">
+                  No tournaments yet{isAdmin ? ' — create one above' : ''}
+                </Text>
+              }
+            />
+          )}
+          <CreateTournamentModal
+            visible={createTournamentVisible}
+            clubId={id ?? ''}
+            createdBy={userId ?? ''}
+            onClose={() => setCreateTournamentVisible(false)}
+            isLoading={createTournament.isPending}
+            onSubmit={(input) => {
+              createTournament.mutate(input, {
+                onSuccess: () => setCreateTournamentVisible(false),
+                onError: (err) => Alert.alert('Error', err.message),
+              });
+            }}
+          />
+        </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
           {activeTab === 'members' && (

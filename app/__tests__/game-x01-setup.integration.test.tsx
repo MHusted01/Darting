@@ -23,6 +23,10 @@ jest.mock('@clerk/expo', () => ({
   useAuth: () => ({ userId: 'clerk-test-user' }),
 }));
 
+jest.mock('@/providers/SupabaseProvider', () => ({
+  useSupabase: () => null,
+}));
+
 jest.mock('@/hooks/useFriends', () => ({
   useFriends: () => ({ data: [] }),
 }));
