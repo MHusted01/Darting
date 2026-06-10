@@ -1,7 +1,7 @@
 import { useSignIn } from '@clerk/expo';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Text, TextInput, Pressable, View, Alert } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import OtpInput from '@/components/OtpInput';
@@ -109,6 +109,7 @@ export default function ResetPassword() {
   if (step === 'otp') {
     return (
       <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-ds-bg">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View className="flex-1 px-6 pt-8 pb-6 justify-center">
           <Text className="text-3xl font-barlow-condensed-xbold text-ds-on-surface mb-2">
             Check Your Email
@@ -126,13 +127,14 @@ export default function ResetPassword() {
               Verifying...
             </Text>
           ) : (
-            <Pressable onPress={() => setStep('email')} className="active:opacity-70">
+            <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => setStep('email')} className="active:opacity-70">
               <Text className="mt-6 text-center font-barlow text-ds-on-surface-variant">
                 Go back
               </Text>
             </Pressable>
           )}
         </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
@@ -140,6 +142,7 @@ export default function ResetPassword() {
   if (step === 'password') {
     return (
       <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-ds-bg">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View className="flex-1 px-6 pt-8 pb-6">
           <Text className="text-3xl font-barlow-condensed-xbold text-ds-on-surface mb-2">
             New Password
@@ -194,19 +197,21 @@ export default function ResetPassword() {
           </Pressable>
 
           {!busy && (
-            <Pressable onPress={() => setStep('otp')} className="active:opacity-70">
+            <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => setStep('otp')} className="active:opacity-70">
               <Text className="mt-6 text-center font-barlow text-ds-on-surface-variant">
                 Go back
               </Text>
             </Pressable>
           )}
         </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-ds-bg">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <View className="flex-1 px-6 pt-8 pb-6">
         <Pressable
           accessibilityRole="button"
@@ -258,6 +263,7 @@ export default function ResetPassword() {
           </Text>
         </Pressable>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

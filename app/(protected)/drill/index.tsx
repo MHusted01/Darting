@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
@@ -21,14 +22,15 @@ export default function DrillCatalogueScreen() {
         <View className="px-6 pt-6">
           <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden">
             {DRILLS.map((drill, i) => (
+              <Animated.View key={drill.slug} entering={FadeInDown.duration(200).delay(Math.min(i, 8) * 40)}>
               <DrillCatalogueItem
-                key={drill.slug}
                 name={drill.name}
                 description={drill.description}
                 benchmarkTarget={drill.benchmarkTarget}
                 isLast={i === DRILLS.length - 1}
                 onPress={() => router.push(`/drill/${drill.slug}`)}
               />
+              </Animated.View>
             ))}
           </View>
         </View>

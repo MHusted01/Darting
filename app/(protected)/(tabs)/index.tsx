@@ -1,4 +1,7 @@
 import { ScrollView, Text, View, Pressable } from 'react-native';
+import AnimatedPressable from '@/components/ui/AnimatedPressable';
+import { withErrorBoundary } from '@/components/ErrorBoundary';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Settings, Play, Target, PartyPopper, ChevronRight } from 'lucide-react-native';
@@ -52,7 +55,7 @@ const MODE_CARDS: ModeCard[] = [
   },
 ];
 
-export default function HomeScreen() {
+function HomeScreen() {
   const router = useRouter();
   const { user } = useUser();
 
@@ -80,6 +83,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
+      <Animated.View entering={FadeIn.duration(150)} style={{ flex: 1 }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
         <View className="px-6 pt-6 pb-4">
           <Text className="text-4xl font-barlow-condensed-xbold text-ds-on-surface leading-tight">Step Up</Text>
@@ -90,8 +94,9 @@ export default function HomeScreen() {
           {MODE_CARDS.map((card) => {
             const Icon = card.Icon;
             return (
-              <Pressable
+              <AnimatedPressable
                 key={card.category}
+                haptic="light"
                 accessibilityRole="button"
                 accessibilityLabel={`${card.label} - ${card.subtitle}`}
                 className={`${card.bg} rounded-2xl p-5 active:opacity-80`}
@@ -108,11 +113,14 @@ export default function HomeScreen() {
                   </View>
                   <ChevronRight size={20} color={card.iconColor} />
                 </View>
-              </Pressable>
+              </AnimatedPressable>
             );
           })}
         </View>
       </ScrollView>
+      </Animated.View>
     </SafeAreaView>
   );
 }
+
+export default withErrorBoundary(HomeScreen, 'home');

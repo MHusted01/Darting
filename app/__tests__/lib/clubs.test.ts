@@ -17,7 +17,7 @@ import {
 // ─── Fake Supabase builder ────────────────────────────────────────────────────
 
 function makeChain(result: { data: unknown; error: unknown }) {
-  const chain: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+  const chain: any = {};  
   const self = () => chain;
   chain.select  = jest.fn(self) as jest.Mock;
   chain.insert  = jest.fn(self) as jest.Mock;

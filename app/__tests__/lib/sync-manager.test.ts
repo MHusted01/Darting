@@ -1,11 +1,11 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+import { describe, it, expect, jest } from '@jest/globals';
+
+import { retryFailedSyncs } from '@/lib/sync-manager';
 
 jest.mock('@/db/client', () => ({ db: {} }));
 jest.mock('@/lib/supabase', () => ({
   createClerkSupabaseClient: jest.fn(),
 }));
-
-import { retryFailedSyncs } from '@/lib/sync-manager';
 
 const getToken = async () => 'fake-token';
 

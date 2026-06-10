@@ -1,5 +1,8 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { withErrorBoundary } from '@/components/ErrorBoundary';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import Skeleton from '@/components/ui/Skeleton';
+import EmptyState from '@/components/ui/EmptyState';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Eye } from 'lucide-react-native';
@@ -23,7 +26,7 @@ function dartLabel(segment: number, multiplier: number): string {
   return `${prefix}${segment === 25 ? 'Bull' : segment}`;
 }
 
-export default function ChallengeSpectatorScreen() {
+function ChallengeSpectatorScreen() {
   const router = useRouter();
   const { challengeId } = useLocalSearchParams<{ challengeId: string }>();
   const supabase = useSupabase();
@@ -91,16 +94,23 @@ export default function ChallengeSpectatorScreen() {
       </View>
 
       {isLoading && (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#ba1a1a" />
+        <View className="px-6 pt-6 gap-3" accessible accessibilityState={{ busy: true }} accessibilityLabel="Loading match">
+          <Skeleton className="h-24 w-full rounded-2xl" />
+          <Skeleton className="h-16 w-full rounded-xl" />
+          <Skeleton className="h-16 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
         </View>
       )}
 
       {!isLoading && !challenge && (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-sm font-barlow text-ds-outline text-center">
-            This match is not available.
-          </Text>
+        <View className="flex-1 justify-center">
+          <EmptyState
+            icon={Eye}
+            title="Match not available"
+            message="This match has ended or is no longer visible."
+            ctaLabel="Go back"
+            onCtaPress={() => router.back()}
+          />
         </View>
       )}
 
@@ -177,3 +187,5 @@ export default function ChallengeSpectatorScreen() {
     </SafeAreaView>
   );
 }
+
+export default withErrorBoundary(ChallengeSpectatorScreen, 'challenge-spectator');

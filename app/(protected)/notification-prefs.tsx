@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Alert, Pressable, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, Switch, Text, View } from 'react-native';
+import Skeleton from '@/components/ui/Skeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { useNotificationPrefs, useUpdateNotificationPrefs } from '@/hooks/useNotificationPrefs';
@@ -61,7 +62,12 @@ export default function NotificationPrefsScreen() {
         </Text>
 
         {isLoading ? (
-          <ActivityIndicator size="small" color="#ba1a1a" />
+          <View className="gap-2">
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+          </View>
         ) : (
           <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden">
             {PREF_ROWS.map((row, index) => (

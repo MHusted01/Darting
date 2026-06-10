@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import Skeleton from '@/components/ui/Skeleton';
+import EmptyState from '@/components/ui/EmptyState';
+import { MessageSquare } from 'lucide-react-native';
 import { useAuth } from '@clerk/expo';
 import { useClubFeed, useDeletePost, useSetReaction } from '@/hooks/useClubFeed';
 import type { ClubPost, ReactionType } from '@/types/social';
@@ -52,16 +55,18 @@ export function ClubFeed({ clubId, isAdmin }: Props) {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           isLoading ? (
-            <View className="py-16 items-center">
-              <ActivityIndicator color="#ba1a1a" />
+            <View className="py-6 gap-3">
+              <Skeleton className="h-28 w-full rounded-xl" />
+              <Skeleton className="h-28 w-full rounded-xl" />
             </View>
           ) : (
-            <View className="py-16 px-8 items-center gap-2">
-              <Text className="text-base font-barlow-condensed text-ds-on-surface">No posts yet</Text>
-              <Text className="text-sm font-barlow text-ds-outline text-center">
-                Be the first to share something with the club!
-              </Text>
-            </View>
+            <EmptyState
+              icon={MessageSquare}
+              title="No posts yet"
+              message="Be the first to share something with the club!"
+              ctaLabel="Create a post"
+              onCtaPress={() => setComposerVisible(true)}
+            />
           )
         }
         ListFooterComponent={

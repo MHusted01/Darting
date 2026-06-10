@@ -168,7 +168,10 @@ function QuickCommentInput({ postId, clubId, currentUserId, onOpenFull }: {
     const text = commentText.trim();
     setCommentText('');
     addComment.mutate({ body: text }, {
-      onError: (err) => Alert.alert('Error', err.message),
+      onError: (err) => {
+        setCommentText(text);
+        Alert.alert('Error', err.message);
+      },
     });
   }
 

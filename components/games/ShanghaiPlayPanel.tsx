@@ -1,4 +1,5 @@
 import { View, Text } from 'react-native';
+import { MAX_FONT_SCALE_DENSE } from '@/constants/typography';
 import { RoundTargetInput } from '@/components/games/RoundTargetInput';
 import { SHANGHAI_MAX_ROUNDS } from '@/lib/games/shanghai';
 import type { LoadedPlayer } from '@/hooks/usePlaySession';
@@ -32,7 +33,7 @@ export function ShanghaiPlayPanel({
         <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-1">
           Round {round} of {SHANGHAI_MAX_ROUNDS}
         </Text>
-        <Text className="text-6xl font-barlow-bold text-ds-on-surface">
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE_DENSE} className="text-6xl font-barlow-bold text-ds-on-surface">
           {state.totalScore}
         </Text>
         <Text className="text-sm font-barlow text-ds-on-surface-variant mt-1">

@@ -1,7 +1,7 @@
 import { useSignUp } from '@clerk/expo';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Text, TextInput, Pressable, View, Alert, ScrollView } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react-native';
@@ -151,7 +151,7 @@ export default function SignUp() {
           {verifyingBusy ? (
             <Text className="mt-6 text-center font-barlow text-ds-on-surface-variant">Verifying...</Text>
           ) : (
-            <Pressable onPress={() => setPendingVerification(false)} className="active:opacity-70">
+            <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => setPendingVerification(false)} className="active:opacity-70">
               <Text className="mt-6 text-center font-barlow text-ds-on-surface-variant">Go back</Text>
             </Pressable>
           )}
@@ -162,6 +162,7 @@ export default function SignUp() {
 
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-ds-bg">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -300,7 +301,7 @@ export default function SignUp() {
 
           <View className="mt-6 items-center">
             <Link href="/(public)/sign-in" asChild>
-              <Pressable className="active:opacity-70">
+              <Pressable accessibilityRole="button" accessibilityLabel="Log in" className="active:opacity-70">
                 <Text className="text-base font-barlow text-ds-on-surface-variant">
                   Already have an account?{' '}
                   <Text className="font-barlow-semi text-ds-on-surface">Login</Text>
@@ -317,6 +318,7 @@ export default function SignUp() {
           </Text>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

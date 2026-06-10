@@ -1,7 +1,7 @@
 import { useUser } from '@clerk/expo';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, TriangleAlert } from 'lucide-react-native';
 import { getErrorMessage } from '@/lib/errors';
@@ -31,6 +31,8 @@ export default function DeleteAccountScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+
       <View className="flex-row items-center gap-3 px-6 pt-4 pb-3 border-b border-ds-outline-variant">
         <Pressable
           accessibilityRole="button"
@@ -82,6 +84,7 @@ export default function DeleteAccountScreen() {
           </Text>
         </Pressable>
       </View>
+    </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

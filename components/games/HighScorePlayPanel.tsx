@@ -1,4 +1,5 @@
 import { View, Text } from 'react-native';
+import { MAX_FONT_SCALE_DENSE } from '@/constants/typography';
 import { FullBoardInput } from '@/components/games/FullBoardInput';
 import { HIGH_SCORE_MAX_ROUNDS } from '@/lib/games/high-score';
 import type { LoadedPlayer } from '@/hooks/usePlaySession';
@@ -31,7 +32,7 @@ export function HighScorePlayPanel({
         <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-1">
           Round {state.currentRound} of {HIGH_SCORE_MAX_ROUNDS}
         </Text>
-        <Text className="text-6xl font-barlow-bold text-ds-on-surface">
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE_DENSE} className="text-6xl font-barlow-bold text-ds-on-surface">
           {state.totalScore}
         </Text>
         <Text className="text-sm font-barlow text-ds-on-surface-variant mt-1">Total score</Text>

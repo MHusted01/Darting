@@ -15,7 +15,7 @@ import type { PresenceMap } from '@/types/social';
 // ─── Fake Supabase builder ────────────────────────────────────────────────────
 
 function makeChain(result: { data: unknown; error: unknown }) {
-  const chain: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+  const chain: any = {};  
   const self = () => chain;
   chain.from     = jest.fn(self) as jest.Mock;
   chain.select   = jest.fn(self) as jest.Mock;

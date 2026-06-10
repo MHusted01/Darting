@@ -1,4 +1,5 @@
 import { View, Text } from 'react-native';
+import { MAX_FONT_SCALE_DENSE } from '@/constants/typography';
 import { CricketInput } from '@/components/games/CricketInput';
 import { CricketScoreboard } from '@/components/games/CricketScoreboard';
 import type { CricketPlayerState } from '@/lib/games/cricket';
@@ -30,8 +31,8 @@ export function CricketPlayPanel({
   return (
     <>
       <View className="items-center mb-6">
-        <Text className="text-sm text-gray-500 mb-1">Points</Text>
-        <Text className="text-5xl font-bold text-black">
+        <Text className="text-sm font-barlow text-ds-on-surface-variant mb-1">Points</Text>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE_DENSE} className="text-5xl font-barlow-bold text-ds-on-surface">
           {localCricketState.points}
         </Text>
       </View>

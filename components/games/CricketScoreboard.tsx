@@ -42,15 +42,15 @@ function MarkSymbol({ count }: { count: number }) {
     return <View className="h-6" />;
   }
   if (count === 1) {
-    return <Text className="text-black text-base font-bold text-center">/</Text>;
+    return <Text className="text-ds-on-surface text-base font-barlow-bold text-center">/</Text>;
   }
   if (count === 2) {
-    return <Text className="text-black text-base font-bold text-center">X</Text>;
+    return <Text className="text-ds-on-surface text-base font-barlow-bold text-center">X</Text>;
   }
   // 3+ marks = closed
   return (
-    <View className="w-6 h-6 rounded-full border-2 border-emerald-500 items-center justify-center self-center">
-      <Text className="text-emerald-600 text-xs font-bold">X</Text>
+    <View className="w-6 h-6 rounded-full border-2 border-ds-green-dark items-center justify-center self-center">
+      <Text className="text-ds-green-dark text-xs font-barlow-bold">X</Text>
     </View>
   );
 }
@@ -82,38 +82,38 @@ export function CricketScoreboard({
 }: CricketScoreboardProps) {
   return (
     <View className="mt-8">
-      <Text className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">
+      <Text className="text-sm font-barlow-semi text-ds-on-surface-variant mb-3 uppercase tracking-wide">
         Scoreboard
       </Text>
 
-      <View className="border border-gray-200 rounded-xl overflow-hidden">
+      <View className="border border-ds-outline-variant rounded-xl overflow-hidden">
         <View className="flex-row">
           {/* Fixed left segment column */}
-          <View className="w-14 border-r border-gray-200">
+          <View className="w-14 border-r border-ds-outline-variant">
             <View
-              className="px-2 justify-center bg-gray-50 border-b border-gray-200"
+              className="px-2 justify-center bg-ds-surface-low border-b border-ds-outline-variant"
               style={{ height: HEADER_ROW_HEIGHT }}
             >
-              <Text className="text-xs text-gray-400 font-semibold">Seg</Text>
+              <Text className="text-xs text-ds-outline font-barlow-semi">Seg</Text>
             </View>
             {DISPLAY_ORDER.map((segment, rowIdx) => (
               <View
                 key={segment}
                 className={`px-2 justify-center ${
-                  rowIdx < DISPLAY_ORDER.length - 1 ? 'border-b border-gray-100' : ''
+                  rowIdx < DISPLAY_ORDER.length - 1 ? 'border-b border-ds-outline-variant' : ''
                 }`}
                 style={{ height: SEGMENT_ROW_HEIGHT }}
               >
-                <Text className="text-sm font-bold text-black">
+                <Text className="text-sm font-barlow-bold text-ds-on-surface">
                   {getSegmentLabel(segment)}
                 </Text>
               </View>
             ))}
             <View
-              className="px-2 justify-center bg-gray-50 border-t border-gray-200"
+              className="px-2 justify-center bg-ds-surface-low border-t border-ds-outline-variant"
               style={{ height: FOOTER_ROW_HEIGHT }}
             >
-              <Text className="text-xs text-gray-400 font-semibold">Pts</Text>
+              <Text className="text-xs text-ds-outline font-barlow-semi">Pts</Text>
             </View>
           </View>
 
@@ -121,12 +121,12 @@ export function CricketScoreboard({
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View>
               {/* Header row */}
-              <View className="flex-row border-b border-gray-200 bg-gray-50">
+              <View className="flex-row border-b border-ds-outline-variant bg-ds-surface-low">
                 {players.map((player, idx) => (
                   <View
                     key={idx}
                     className={`w-20 px-1 items-center justify-center ${
-                      player.isCurrent || idx === currentPlayerIndex ? 'bg-gray-100' : ''
+                      player.isCurrent || idx === currentPlayerIndex ? 'bg-ds-surface-low' : ''
                     }`}
                     style={{ height: HEADER_ROW_HEIGHT }}
                   >
@@ -134,11 +134,11 @@ export function CricketScoreboard({
                       className="w-6 h-6 rounded-full items-center justify-center mb-1"
                       style={{ backgroundColor: player.avatarColor }}
                     >
-                      <Text className="text-white text-xs font-bold">
+                      <Text className="text-white text-xs font-barlow-bold">
                         {player.name.charAt(0).toUpperCase()}
                       </Text>
                     </View>
-                    <Text className="text-xs text-gray-600 text-center" numberOfLines={1}>
+                    <Text className="text-xs text-ds-on-surface-variant text-center" numberOfLines={1}>
                       {player.name}
                     </Text>
                   </View>
@@ -150,7 +150,7 @@ export function CricketScoreboard({
                 <View
                   key={segment}
                   className={`flex-row ${
-                    rowIdx < DISPLAY_ORDER.length - 1 ? 'border-b border-gray-100' : ''
+                    rowIdx < DISPLAY_ORDER.length - 1 ? 'border-b border-ds-outline-variant' : ''
                   }`}
                 >
                   {players.map((player, idx) => {
@@ -160,7 +160,7 @@ export function CricketScoreboard({
                       <View
                         key={idx}
                         className={`w-20 px-1 items-center justify-center ${
-                          player.isCurrent || idx === currentPlayerIndex ? 'bg-gray-50' : ''
+                          player.isCurrent || idx === currentPlayerIndex ? 'bg-ds-surface-low' : ''
                         }`}
                         style={{ height: SEGMENT_ROW_HEIGHT }}
                       >
@@ -172,16 +172,16 @@ export function CricketScoreboard({
               ))}
 
               {/* Points footer */}
-              <View className="flex-row border-t border-gray-200 bg-gray-50">
+              <View className="flex-row border-t border-ds-outline-variant bg-ds-surface-low">
                 {players.map((player, idx) => (
                   <View
                     key={idx}
                     className={`w-20 px-1 items-center justify-center ${
-                      player.isCurrent || idx === currentPlayerIndex ? 'bg-gray-100' : ''
+                      player.isCurrent || idx === currentPlayerIndex ? 'bg-ds-surface-low' : ''
                     }`}
                     style={{ height: FOOTER_ROW_HEIGHT }}
                   >
-                    <Text className="text-sm font-bold text-black">{player.points}</Text>
+                    <Text className="text-sm font-barlow-bold text-ds-on-surface">{player.points}</Text>
                   </View>
                 ))}
               </View>

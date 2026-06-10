@@ -1,4 +1,5 @@
 import { View, Text } from 'react-native';
+import { MAX_FONT_SCALE_DENSE } from '@/constants/typography';
 import { X01Input } from '@/components/games/X01Input';
 import type { LoadedPlayer } from '@/hooks/usePlaySession';
 import type { X01PlayerState } from '@/lib/games/x01';
@@ -116,7 +117,7 @@ export function X01PlayPanel({
     <View className="gap-5">
       {/* Big remaining score */}
       <View className="items-center">
-        <Text className="text-7xl font-barlow-bold text-ds-on-surface leading-none">
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE_DENSE} className="text-7xl font-barlow-bold text-ds-on-surface leading-none">
           {localX01State.remaining}
         </Text>
         <Text className="text-sm font-barlow text-ds-on-surface-variant mt-1">

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { withErrorBoundary } from '@/components/ErrorBoundary';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -191,10 +193,14 @@ function filterBySlug(sessions: HistorySessionItem[], slug: string | null): Hist
   return sessions.filter((s) => s.gameSlug === slug);
 }
 
-export default function StatsScreen() {
+function StatsScreen() {
   const router = useRouter();
   const { userId } = useAuth();
   const hasFocusedOnce = useRef(false);
+  const hasAnimatedRows = useRef(false);
+  useEffect(() => {
+    hasAnimatedRows.current = true;
+  }, []);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [contextFilter, setContextFilter] = useState<ContextFilter>('casual');
@@ -391,10 +397,12 @@ export default function StatsScreen() {
   }
 
   const avgDisplay = overallAvg != null ? overallAvg.toFixed(1) : '—';
+
   const hasAvg = overallAvg != null;
 
   return (
     <SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
+      <Animated.View entering={FadeIn.duration(150)} style={{ flex: 1 }}>
       <FlatList
         testID="tabs-stats-flatlist"
         data={filteredSessions}
@@ -767,11 +775,17 @@ export default function StatsScreen() {
           </View>
         }
         renderItem={({ item, index }) => (
-          <View className={`mx-6 bg-ds-surface border-x border-ds-outline-variant ${
-            index === filteredSessions.length - 1 ? 'border-b rounded-b-2xl' : 'border-b'
-          } ${index === 0 ? 'border-t rounded-t-2xl' : ''}`}>
-            {renderSessionRow({ item })}
-          </View>
+          <Animated.View
+            entering={
+              hasAnimatedRows.current ? undefined : FadeInDown.duration(200).delay(Math.min(index, 8) * 40)
+            }
+          >
+            <View className={`mx-6 bg-ds-surface border-x border-ds-outline-variant ${
+              index === filteredSessions.length - 1 ? 'border-b rounded-b-2xl' : 'border-b'
+            } ${index === 0 ? 'border-t rounded-t-2xl' : ''}`}>
+              {renderSessionRow({ item })}
+            </View>
+          </Animated.View>
         )}
         ListEmptyComponent={
           hasError ? null : (
@@ -787,6 +801,9 @@ export default function StatsScreen() {
         }
         ListFooterComponent={null}
       />
+      </Animated.View>
     </SafeAreaView>
   );
 }
+
+export default withErrorBoundary(StatsScreen, 'stats');

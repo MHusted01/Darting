@@ -38,6 +38,7 @@ describe('Friend Profile Screen', () => {
     useQuery.mockReturnValue({ data: undefined, isLoading: true, isError: false });
     render(<FriendProfileScreen />);
     expect(screen.getByText('Profile')).toBeTruthy();
+    expect(screen.getAllByTestId('skeleton').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders player name, games played, avg when data resolves', async () => {

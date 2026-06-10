@@ -1,4 +1,5 @@
-import { View, Text, Pressable } from 'react-native';
+import { View, Text } from 'react-native';
+import AnimatedPressable from '@/components/ui/AnimatedPressable';
 import type { DartGame } from '@/constants/games';
 
 /**
@@ -12,31 +13,32 @@ export function GameCard({ game, onPress }: { game: DartGame; onPress: () => voi
   const Icon = game.icon;
 
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
-      className="border border-gray-200 rounded-xl p-4 bg-white active:opacity-70"
+      haptic="light"
+      className="border border-ds-outline-variant rounded-xl p-4 bg-ds-surface active:opacity-70"
       accessibilityRole="button"
       accessibilityLabel={`${game.name} - ${game.description}`}
     >
       <View className="flex-row items-start gap-3">
-        <View className="w-10 h-10 rounded-lg bg-gray-100 items-center justify-center">
-          <Icon size={20} color="black" />
+        <View className="w-10 h-10 rounded-lg bg-ds-surface-low items-center justify-center">
+          <Icon size={20} color="#1c1b1b" />
         </View>
         <View className="flex-1 flex-shrink">
-          <Text className="text-lg font-semibold text-black">{game.name}</Text>
-          <Text className="text-sm text-gray-500 mt-0.5" numberOfLines={2}>
+          <Text className="text-lg font-barlow-semi text-ds-on-surface">{game.name}</Text>
+          <Text className="text-sm font-barlow text-ds-on-surface-variant mt-0.5" numberOfLines={2}>
             {game.description}
           </Text>
           <View className="flex-row gap-2 mt-2">
-            <View className="bg-gray-100 rounded-full px-2.5 py-0.5">
-              <Text className="text-xs text-gray-600">{game.playerCount} players</Text>
+            <View className="bg-ds-surface-low rounded-full px-2.5 py-0.5">
+              <Text className="text-xs text-ds-on-surface-variant">{game.playerCount} players</Text>
             </View>
-            <View className="bg-gray-100 rounded-full px-2.5 py-0.5">
-              <Text className="text-xs text-gray-600">{game.difficulty}</Text>
+            <View className="bg-ds-surface-low rounded-full px-2.5 py-0.5">
+              <Text className="text-xs text-ds-on-surface-variant">{game.difficulty}</Text>
             </View>
           </View>
         </View>
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 }

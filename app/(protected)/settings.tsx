@@ -101,15 +101,12 @@ export default function SettingsScreen() {
               <Text className="text-base font-barlow text-ds-on-surface">Security</Text>
               <ChevronRight size={18} color="#747878" />
             </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Subscription"
-              onPress={() => Alert.alert('Coming Soon', 'Subscription settings will be available soon.')}
-              className="px-4 py-4 flex-row items-center justify-between active:opacity-70"
-            >
+            <View className="px-4 py-4 flex-row items-center justify-between">
               <Text className="text-base font-barlow text-ds-on-surface">Subscription</Text>
-              <ChevronRight size={18} color="#747878" />
-            </Pressable>
+              <View className="bg-ds-green rounded-full px-3 py-1">
+                <Text className="text-xs font-barlow-semi text-ds-green-dark">Free</Text>
+              </View>
+            </View>
           </View>
         </View>
 

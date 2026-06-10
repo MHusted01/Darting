@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { withErrorBoundary } from '@/components/ErrorBoundary';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import Skeleton from '@/components/ui/Skeleton';
+import { impact } from '@/lib/haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Swords } from 'lucide-react-native';
@@ -47,7 +50,7 @@ function PlayerRow({
   );
 }
 
-export default function ChallengeLobbyScreen() {
+function ChallengeLobbyScreen() {
   const router = useRouter();
   const { challengeId } = useLocalSearchParams<{ challengeId: string }>();
   const supabase = useSupabase();
@@ -128,6 +131,7 @@ export default function ChallengeLobbyScreen() {
 
   const handleAccept = () => {
     if (!challengeId) return;
+    void impact('light');
     acceptMutation.mutate(challengeId, {
       onSuccess: (accepted) => {
         if (!accepted) {
@@ -142,6 +146,7 @@ export default function ChallengeLobbyScreen() {
 
   const handleDecline = () => {
     if (!challengeId) return;
+    void impact('light');
     declineMutation.mutate(challengeId, { onSuccess: () => router.back() });
   };
 
@@ -165,8 +170,11 @@ export default function ChallengeLobbyScreen() {
       </View>
 
       {isLoading && (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#ba1a1a" />
+        <View className="px-6 pt-6 gap-3" accessible accessibilityState={{ busy: true }} accessibilityLabel="Loading challenge">
+          <Skeleton className="h-24 w-full rounded-2xl" />
+          <Skeleton className="h-16 w-full rounded-xl" />
+          <Skeleton className="h-16 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
         </View>
       )}
 
@@ -290,3 +298,5 @@ export default function ChallengeLobbyScreen() {
     </SafeAreaView>
   );
 }
+
+export default withErrorBoundary(ChallengeLobbyScreen, 'challenge-lobby');

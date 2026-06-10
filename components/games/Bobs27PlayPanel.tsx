@@ -1,4 +1,5 @@
 import { View, Text } from 'react-native';
+import { MAX_FONT_SCALE_DENSE } from '@/constants/typography';
 import { FullBoardInput } from '@/components/games/FullBoardInput';
 import { BOBS_27_MAX_ROUNDS } from '@/lib/games/bobs-27';
 import type { LoadedPlayer } from '@/hooks/usePlaySession';
@@ -35,7 +36,7 @@ export function Bobs27PlayPanel({
         {state.eliminated ? (
           <Text className="text-2xl font-barlow-semi text-ds-red">Eliminated</Text>
         ) : (
-          <Text className="text-6xl font-barlow-bold text-ds-on-surface">
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE_DENSE} className="text-6xl font-barlow-bold text-ds-on-surface">
             {state.score}
           </Text>
         )}

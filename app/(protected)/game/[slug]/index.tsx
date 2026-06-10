@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { View, Text, Pressable, Switch, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { withErrorBoundary } from '@/components/ErrorBoundary';
+import { View, Text, Pressable, Switch, ScrollView, Alert } from 'react-native';
+import Skeleton from '@/components/ui/Skeleton';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUser } from '@clerk/expo';
 import { useSupabase } from '@/providers/SupabaseProvider';
@@ -66,7 +68,7 @@ function getConfig(slug: string, includeBull: boolean, startingScore: 501 | 301 
   return {};
 }
 
-export default function GameSetup() {
+function GameSetup() {
   const router = useRouter();
   const {
     slug,
@@ -317,9 +319,9 @@ export default function GameSetup() {
       )}
 
       {isTournamentMatch && isLoadingUser ? (
-        <View className="items-center py-8">
-          <ActivityIndicator color="#ba1a1a" />
-          <Text className="text-sm font-barlow text-ds-outline mt-2">Loading players…</Text>
+        <View className="py-4 gap-2">
+          <Skeleton className="h-14 w-full rounded-xl" />
+          <Skeleton className="h-14 w-full rounded-xl" />
         </View>
       ) : (
         <PlayerManager
@@ -418,3 +420,5 @@ export default function GameSetup() {
     </ScrollView>
   );
 }
+
+export default withErrorBoundary(GameSetup, 'game-setup');

@@ -1,16 +1,20 @@
 import { useState, useMemo } from 'react';
+import { withErrorBoundary } from '@/components/ErrorBoundary';
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   Pressable,
+  RefreshControl,
+  ScrollView,
   Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Skeleton from '@/components/ui/Skeleton';
+import EmptyState from '@/components/ui/EmptyState';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useAuth, useUser } from '@clerk/expo';
-import { ArrowLeft, UserPlus } from 'lucide-react-native';
+import { useAuth } from '@clerk/expo';
+import { ArrowLeft, Swords, UserPlus, Users } from 'lucide-react-native';
 import {
   useTournamentDetail,
   useRegisterParticipant,
@@ -34,14 +38,13 @@ const FORMAT_LABEL: Record<string, string> = {
   round_robin: 'Round Robin',
 };
 
-export default function TournamentScreen() {
+function TournamentScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { userId } = useAuth();
-  const { user } = useUser();
   const [tab, setTab] = useState<Tab>('overview');
 
-  const { data: tournament, isLoading, error } = useTournamentDetail(id ?? '');
+  const { data: tournament, isLoading, error, refetch, isRefetching } = useTournamentDetail(id ?? '');
   const registerParticipant = useRegisterParticipant(id ?? '');
   const unregisterParticipant = useUnregisterParticipant(id ?? '');
   const startTournamentMutation = useStartTournament(id ?? '', tournament?.clubId ?? '');
@@ -140,8 +143,13 @@ export default function TournamentScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-ds-bg justify-center items-center">
-        <ActivityIndicator color="#ba1a1a" />
+      <SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
+        <View className="px-6 pt-6 gap-3" accessible accessibilityState={{ busy: true }} accessibilityLabel="Loading tournament">
+          <Skeleton className="h-24 w-full rounded-2xl" />
+          <Skeleton className="h-12 w-full rounded-xl" />
+          <Skeleton className="h-12 w-full rounded-xl" />
+          <Skeleton className="h-12 w-full rounded-xl" />
+        </View>
       </SafeAreaView>
     );
   }
@@ -152,7 +160,7 @@ export default function TournamentScreen() {
         <Text className="text-base font-barlow text-ds-on-surface-variant text-center mb-4">
           Could not load tournament.
         </Text>
-        <Pressable onPress={() => router.back()} className="bg-ds-red rounded-xl px-5 py-3 active:opacity-70">
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} className="bg-ds-red rounded-xl px-5 py-3 active:opacity-70">
           <Text className="text-white font-barlow-semi">Back</Text>
         </Pressable>
       </SafeAreaView>
@@ -210,7 +218,14 @@ export default function TournamentScreen() {
       <View className="h-px bg-ds-outline-variant" />
 
       {tab === 'overview' && (
-        <View className="flex-1 pt-4">
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: 32 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} tintColor="#ba1a1a" />
+          }
+        >
           {tournament.format === 'cup' ? (
             <BracketView
               rounds={tournament.rounds}
@@ -241,7 +256,7 @@ export default function TournamentScreen() {
               ))}
             </View>
           )}
-        </View>
+        </ScrollView>
       )}
 
       {tab === 'matches' && (
@@ -249,6 +264,8 @@ export default function TournamentScreen() {
           data={allMatches}
           keyExtractor={m => m.id}
           contentContainerStyle={{ padding: 16, gap: 10 }}
+          onRefresh={() => void refetch()}
+          refreshing={isRefetching}
           renderItem={({ item }) => (
             <TournamentMatchCard
               match={item}
@@ -257,9 +274,7 @@ export default function TournamentScreen() {
             />
           )}
           ListEmptyComponent={
-            <Text className="text-sm font-barlow text-ds-outline text-center py-8">
-              No matches yet
-            </Text>
+            <EmptyState icon={Swords} title="No matches yet" message="Matches appear once the tournament starts." />
           }
         />
       )}
@@ -269,6 +284,8 @@ export default function TournamentScreen() {
           data={tournament.participants}
           keyExtractor={p => p.id}
           contentContainerStyle={{ padding: 16 }}
+          onRefresh={() => void refetch()}
+          refreshing={isRefetching}
           ListHeaderComponent={
             tournament.status === 'draft' ? (
               <View className="mb-4">
@@ -315,9 +332,7 @@ export default function TournamentScreen() {
             );
           }}
           ListEmptyComponent={
-            <Text className="text-sm font-barlow text-ds-outline text-center py-8">
-              No participants yet
-            </Text>
+            <EmptyState icon={Users} title="No participants yet" message="Invite players to join this tournament." />
           }
         />
       )}
@@ -337,3 +352,5 @@ export default function TournamentScreen() {
     </SafeAreaView>
   );
 }
+
+export default withErrorBoundary(TournamentScreen, 'tournament-detail');

@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react';
+import { withErrorBoundary } from '@/components/ErrorBoundary';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Skeleton from '@/components/ui/Skeleton';
+import EmptyState from '@/components/ui/EmptyState';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Crown, LogOut, Plus, UserPlus } from 'lucide-react-native';
+import { ArrowLeft, BarChart2, Crown, LogOut, Plus, Trophy, UserPlus, Users } from 'lucide-react-native';
 import { useAuth } from '@clerk/expo';
 import { useFeatureGate } from '@/lib/subscription';
 import { useClubLeaderboard, useClubMembers, useInviteMember, useLeaveClub, useMyClubs } from '@/hooks/useClubs';
@@ -178,7 +182,7 @@ function LeaderboardRow({ row, rank, isLast }: { row: ClubLeaderboardRow; rank: 
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export default function ClubDetailScreen() {
+function ClubDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { userId } = useAuth();
@@ -187,11 +191,21 @@ export default function ClubDetailScreen() {
   const [createTournamentVisible, setCreateTournamentVisible] = useState(false);
 
   const { data: myClubs } = useMyClubs();
-  const { data: members, isLoading: membersLoading } = useClubMembers(id);
-  const { data: leaderboard, isLoading: leaderboardLoading } = useClubLeaderboard(id);
-  const { data: tournamentsPages, isLoading: tournamentsLoading, fetchNextPage, hasNextPage } = useClubTournaments(id ?? '');
+  const { data: members, isLoading: membersLoading, refetch: refetchMembers } = useClubMembers(id);
+  const { data: leaderboard, isLoading: leaderboardLoading, refetch: refetchLeaderboard } = useClubLeaderboard(id);
+  const { data: tournamentsPages, isLoading: tournamentsLoading, fetchNextPage, hasNextPage, isFetchingNextPage, isRefetching: tournamentsRefetching, refetch: refetchTournaments } = useClubTournaments(id ?? '');
   const leaveClub = useLeaveClub();
   const createTournament = useCreateTournament(id ?? '');
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([refetchMembers(), refetchLeaderboard(), refetchTournaments()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const myMembership = myClubs?.find((c) => c.id === id);
   const isAdmin = myMembership?.role === 'admin';
@@ -297,13 +311,18 @@ export default function ClubDetailScreen() {
             </View>
           )}
           {tournamentsLoading ? (
-            <ActivityIndicator size="small" color="#ba1a1a" className="mt-8" />
+            <View className="px-6 mt-8 gap-2">
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </View>
           ) : (
             <FlatList
               data={tournamentsPages?.pages.flatMap(p => p.items) ?? []}
               keyExtractor={t => t.id}
               contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32, gap: 10 }}
-              onEndReached={() => { if (hasNextPage) void fetchNextPage(); }}
+              refreshing={tournamentsRefetching}
+              onRefresh={() => void refetchTournaments()}
+              onEndReached={() => { if (hasNextPage && !isFetchingNextPage) void fetchNextPage(); }}
               onEndReachedThreshold={0.3}
               renderItem={({ item }) => (
                 <TournamentCard
@@ -312,9 +331,11 @@ export default function ClubDetailScreen() {
                 />
               )}
               ListEmptyComponent={
-                <Text className="text-sm font-barlow text-ds-outline text-center py-8">
-                  No tournaments yet{isAdmin ? ' — create one above' : ''}
-                </Text>
+                <EmptyState
+                  icon={Trophy}
+                  title="No tournaments yet"
+                  message={isAdmin ? 'Create one above to get started.' : 'Tournaments will appear here.'}
+                />
               }
             />
           )}
@@ -333,14 +354,24 @@ export default function ClubDetailScreen() {
           />
         </View>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 32 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor="#ba1a1a" />
+          }
+        >
           {activeTab === 'members' && (
             <View className="px-6 pt-4">
               <LiveChallengesSection clubId={id ?? ''} />
               {membersLoading ? (
-                <ActivityIndicator size="small" color="#ba1a1a" />
+                <View className="gap-2">
+                  <Skeleton className="h-14 w-full rounded-xl" />
+                  <Skeleton className="h-14 w-full rounded-xl" />
+                  <Skeleton className="h-14 w-full rounded-xl" />
+                </View>
               ) : !members || members.length === 0 ? (
-                <Text className="text-sm font-barlow text-ds-outline text-center py-8">No members yet.</Text>
+                <EmptyState icon={Users} title="No members yet" message="Invite players to join this club." />
               ) : (
                 <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden">
                   {members.map((member, index) => (
@@ -354,11 +385,13 @@ export default function ClubDetailScreen() {
           {activeTab === 'leaderboard' && (
             <View className="px-6 pt-4">
               {leaderboardLoading ? (
-                <ActivityIndicator size="small" color="#ba1a1a" />
+                <View className="gap-2">
+                  <Skeleton className="h-14 w-full rounded-xl" />
+                  <Skeleton className="h-14 w-full rounded-xl" />
+                  <Skeleton className="h-14 w-full rounded-xl" />
+                </View>
               ) : !leaderboard || leaderboard.length === 0 ? (
-                <Text className="text-sm font-barlow text-ds-outline text-center py-8">
-                  No stats yet. Complete some games to appear here.
-                </Text>
+                <EmptyState icon={BarChart2} title="No stats yet" message="Complete some games to appear here." />
               ) : (
                 <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden">
                   {leaderboard.map((row, index) => (
@@ -375,3 +408,5 @@ export default function ClubDetailScreen() {
     </SafeAreaView>
   );
 }
+
+export default withErrorBoundary(ClubDetailScreen, 'club-detail');

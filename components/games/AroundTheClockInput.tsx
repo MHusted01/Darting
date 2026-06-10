@@ -54,12 +54,12 @@ export function AroundTheClockInput({
               key={i}
               className={`w-10 h-10 rounded-full items-center justify-center ${
                 isCurrent
-                  ? 'bg-black'
+                  ? 'bg-ds-on-surface'
                   : isThrown
                     ? wasHit
-                      ? 'bg-emerald-500'
-                      : 'bg-gray-300'
-                    : 'bg-gray-200'
+                      ? 'bg-ds-green-dark'
+                      : 'bg-ds-outline-variant'
+                    : 'bg-ds-surface-container'
               }`}
             >
               {isThrown ? (
@@ -70,8 +70,8 @@ export function AroundTheClockInput({
                 )
               ) : (
                 <Text
-                  className={`text-sm font-bold ${
-                    isCurrent ? 'text-white' : 'text-gray-500'
+                  className={`text-sm font-barlow-bold ${
+                    isCurrent ? 'text-white' : 'text-ds-on-surface-variant'
                   }`}
                 >
                   {i + 1}
@@ -87,22 +87,22 @@ export function AroundTheClockInput({
         <View className="gap-3">
           <Pressable
             onPress={handleHit}
-            className="bg-black rounded-xl py-5 items-center active:opacity-70"
+            className="bg-ds-on-surface rounded-xl py-5 items-center active:opacity-70"
             accessibilityRole="button"
             accessibilityLabel={`Hit ${targetLabel}`}
           >
-            <Text className="text-white text-lg font-bold">
+            <Text className="text-white text-lg font-barlow-semi">
               Hit {targetLabel}
             </Text>
           </Pressable>
 
           <Pressable
             onPress={handleMiss}
-            className="border border-gray-300 rounded-xl py-5 items-center active:opacity-70"
+            className="border border-ds-outline-variant rounded-xl py-5 items-center active:opacity-70"
             accessibilityRole="button"
             accessibilityLabel="Miss"
           >
-            <Text className="text-gray-600 text-lg font-bold">Miss</Text>
+            <Text className="text-ds-on-surface-variant text-lg font-barlow-semi">Miss</Text>
           </Pressable>
         </View>
       )}

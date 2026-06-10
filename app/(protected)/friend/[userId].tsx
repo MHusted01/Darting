@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
+import { withErrorBoundary } from '@/components/ErrorBoundary';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import Skeleton from '@/components/ui/Skeleton';
+import EmptyState from '@/components/ui/EmptyState';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Swords } from 'lucide-react-native';
+import { ArrowLeft, History, Swords } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useSupabase } from '@/providers/SupabaseProvider';
 import { useMutualClubs, usePlayerRecentGames, usePlayerStreak } from '@/hooks/useFriendSocial';
@@ -34,12 +37,12 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function FriendProfileScreen() {
+function FriendProfileScreen() {
   const router = useRouter();
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const supabase = useSupabase();
 
-  const { data, isLoading, isError } = useQuery<PublicPlayerStats | null>({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery<PublicPlayerStats | null>({
     queryKey: ['friend-stats', userId],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_player_public_stats', {
@@ -79,8 +82,11 @@ export default function FriendProfileScreen() {
       </View>
 
       {isLoading && (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#ba1a1a" />
+        <View className="px-6 pt-6 gap-3" accessible accessibilityState={{ busy: true }} accessibilityLabel="Loading friend profile">
+          <Skeleton className="h-24 w-full rounded-2xl" />
+          <Skeleton className="h-16 w-full rounded-xl" />
+          <Skeleton className="h-16 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
         </View>
       )}
 
@@ -101,7 +107,13 @@ export default function FriendProfileScreen() {
       )}
 
       {!isLoading && !isError && data && (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 32 }}
+          refreshControl={
+            <RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} tintColor="#ba1a1a" />
+          }
+        >
           <View className="px-6">
             {/* Avatar + name */}
             <View className="items-center pt-8 pb-6">
@@ -216,9 +228,14 @@ function Phase8Sections({ userId, displayName }: { userId: string; displayName: 
         Recent Games
       </Text>
       {gamesLoading ? (
-        <ActivityIndicator size="small" color="#ba1a1a" className="mb-6" />
+        <View className="gap-2 mb-6">
+          <Skeleton className="h-12 w-full rounded-xl" />
+          <Skeleton className="h-12 w-full rounded-xl" />
+        </View>
       ) : !Array.isArray(recentGames) || recentGames.length === 0 ? (
-        <Text className="text-sm font-barlow text-ds-outline mb-6">No recent games.</Text>
+        <View className="bg-ds-surface border border-ds-outline-variant rounded-xl mb-6">
+          <EmptyState icon={History} title="No recent games" message="Completed games will show up here." />
+        </View>
       ) : (
         <View className="bg-ds-surface border border-ds-outline-variant rounded-xl overflow-hidden mb-6">
           {recentGames.map((game, index) => (
@@ -296,3 +313,5 @@ function Phase8Sections({ userId, displayName }: { userId: string; displayName: 
     </>
   );
 }
+
+export default withErrorBoundary(FriendProfileScreen, 'friend-profile');

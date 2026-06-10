@@ -1,7 +1,7 @@
 import { useSignIn } from '@clerk/expo';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Text, TextInput, Pressable, View, Alert } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
@@ -13,7 +13,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function SignIn() {
   const { signIn, fetchStatus } = useSignIn();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const si = signIn as any;
   const router = useRouter();
 
@@ -120,7 +120,7 @@ export default function SignIn() {
           {verifyingBusy ? (
             <Text className="mt-6 text-center font-barlow text-ds-on-surface-variant">Verifying...</Text>
           ) : (
-            <Pressable onPress={() => setPendingVerification(false)} className="active:opacity-70">
+            <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => setPendingVerification(false)} className="active:opacity-70">
               <Text className="mt-6 text-center font-barlow text-ds-on-surface-variant">Go back</Text>
             </Pressable>
           )}
@@ -131,6 +131,7 @@ export default function SignIn() {
 
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-ds-bg">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <View className="flex-1 px-6 pt-8 pb-6">
         <Text className="text-center text-base font-barlow-semi text-ds-on-surface tracking-widest uppercase mb-12">
           Darting
@@ -217,7 +218,7 @@ export default function SignIn() {
         <View className="flex-1" />
 
         <Link href="/(public)/sign-up" asChild>
-          <Pressable className="items-center active:opacity-70">
+          <Pressable accessibilityRole="button" accessibilityLabel="Sign up" className="items-center active:opacity-70">
             <Text className="text-base font-barlow text-ds-on-surface-variant">
               Don{'\''}t have an account?{' '}
               <Text className="text-ds-red font-barlow-semi">Sign Up</Text>
@@ -225,6 +226,7 @@ export default function SignIn() {
           </Pressable>
         </Link>
       </View>
+    </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

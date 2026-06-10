@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import AnimatedPressable from '@/components/ui/AnimatedPressable';
 import { ChevronRight } from 'lucide-react-native';
 
 interface DrillCatalogueItemProps {
@@ -17,8 +18,9 @@ export default function DrillCatalogueItem({
   isLast = false,
 }: DrillCatalogueItemProps) {
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
+      haptic="light"
       accessibilityRole="button"
       accessibilityLabel={name}
       className={`px-4 py-4 flex-row items-center justify-between active:opacity-70${isLast ? '' : ' border-b border-ds-outline-variant'}`}
@@ -31,6 +33,6 @@ export default function DrillCatalogueItem({
         <Text className="text-xs font-barlow-semi text-ds-red mt-0.5">{benchmarkTarget}</Text>
       </View>
       <ChevronRight size={18} color="#747878" />
-    </Pressable>
+    </AnimatedPressable>
   );
 }

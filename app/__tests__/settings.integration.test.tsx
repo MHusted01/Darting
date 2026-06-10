@@ -108,6 +108,16 @@ describe('Settings Screen Integration', () => {
     });
   });
 
+  it('Subscription row shows the current plan without a Coming Soon alert', () => {
+    render(<SettingsScreen />);
+    expect(screen.getByText('Subscription')).toBeTruthy();
+    expect(screen.getByText('Free')).toBeTruthy();
+    expect(Alert.alert).not.toHaveBeenCalledWith(
+      'Coming Soon',
+      'Subscription settings will be available soon.',
+    );
+  });
+
   it('Personal Info row navigates to personal-info screen', () => {
     render(<SettingsScreen />);
     fireEvent.press(screen.getByLabelText('Personal Info'));
