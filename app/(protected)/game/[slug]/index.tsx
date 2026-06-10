@@ -110,7 +110,7 @@ export default function GameSetup() {
   );
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || isTournamentMatch) return;
     if (!user) {
       setIsLoadingUser(false);
       return;
@@ -133,7 +133,7 @@ export default function GameSetup() {
         Alert.alert('Error', 'Could not load your player profile. Please try again.');
       });
     return () => { cancelled = true; };
-  }, [isLoaded, user]);
+  }, [isLoaded, user, isTournamentMatch]);
 
   useEffect(() => {
     if (!isTournamentMatch || !supabase || !isLoaded) return;
@@ -178,7 +178,10 @@ export default function GameSetup() {
         setLockedPlayerIds(new Set([player1.id, player2.id]));
         setIsLoadingUser(false);
       } catch {
-        if (!cancelled) Alert.alert('Error', 'Could not load tournament players. Please try again.');
+        if (!cancelled) {
+          setIsLoadingUser(false);
+          Alert.alert('Error', 'Could not load tournament players. Please try again.');
+        }
       }
     }
 

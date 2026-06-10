@@ -59,7 +59,7 @@ export function CreateTournamentModal({
   function handleClose() {
     setName('');
     setFormat('cup');
-    setGameSlug(GAMES[0]?.slug ?? 'x01');
+    setGameSlug(TOURNAMENT_GAMES[0]?.slug ?? 'x01');
     setLegsPerMatch(1);
     setDoubleOut(true);
     onClose();

@@ -88,11 +88,12 @@ export async function startTournament(
       if (roundError) throw new Error(roundError.message);
 
       const { error: matchError } = await client.from('tournament_matches').insert(
-        specs.map(s => ({
+        specs.map((s, i) => ({
           round_id: (round as { id: string }).id,
           participant1_id: s.participant1Id,
           participant2_id: s.participant2Id,
           status: s.status,
+          bracket_slot: i + 1,
         })),
       );
       if (matchError) throw new Error(matchError.message);
@@ -105,11 +106,12 @@ export async function startTournament(
 
       if ((count ?? 0) === 0) {
         const { error: matchError } = await client.from('tournament_matches').insert(
-          specs.map(s => ({
+          specs.map((s, i) => ({
             round_id: existingRound.id,
             participant1_id: s.participant1Id,
             participant2_id: s.participant2Id,
             status: s.status,
+            bracket_slot: i + 1,
           })),
         );
         if (matchError) throw new Error(matchError.message);

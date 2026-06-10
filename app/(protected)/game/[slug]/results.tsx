@@ -157,10 +157,11 @@ export default function ResultsScreen() {
 
     const interval = setInterval(async () => {
       polls++;
-      if (matchRecordingRef.current || polls > MAX_POLLS) {
+      if (polls > MAX_POLLS) {
         clearInterval(interval);
         return;
       }
+      if (matchRecordingRef.current) return;
 
       try {
         const session = await db.query.gameSessions.findFirst({
@@ -185,12 +186,11 @@ export default function ResultsScreen() {
             : session.tournamentParticipant2Id;
 
         matchRecordingRef.current = true;
-        clearInterval(interval);
-
         await completeTournamentMatch(supabase, session.tournamentMatchId, winnerId, session.cloudSessionId);
+        clearInterval(interval);
         setMatchRecorded(true);
       } catch {
-        // will retry next interval tick
+        matchRecordingRef.current = false;
       }
     }, 2000);
 
