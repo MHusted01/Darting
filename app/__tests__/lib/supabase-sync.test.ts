@@ -1,17 +1,16 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
-jest.mock('@/db/client', () => ({ db: {} }));
-jest.mock('@/lib/supabase', () => ({
-  createClerkSupabaseClient: jest.fn(),
-}));
-
 import {
   buildSessionPayload,
   buildPlayerPayloads,
   buildTurnPayloads,
   syncCompletedSession,
 } from '@/lib/supabase-sync';
-import { gameSessions } from '@/db/schema';
+
+jest.mock('@/db/client', () => ({ db: {} }));
+jest.mock('@/lib/supabase', () => ({
+  createClerkSupabaseClient: jest.fn(),
+}));
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 

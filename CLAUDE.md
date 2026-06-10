@@ -24,9 +24,9 @@ Darting is the go-to dart companion app — covering the most widely played dart
 - **Training games**: Structured practice drills to improve accuracy and consistency
 - **Free play**: Classic dartboard mode for just throwing and scoring without game rules
 
-### Monetization
+### Monetisation
 
-Free for all users. Monetization may be explored later but is not a current priority — focus is on building the best dart experience first.
+Free for all users. Monetisation may be explored later but is not a current priority — focus is on building the best dart experience first.
 
 ## Stack
 
@@ -56,27 +56,45 @@ npx drizzle-kit push       # Push schema to dev database
 
 ```
 app/
-  _layout.tsx              # Root: ClerkProvider + fonts + migrations
-  (public)/                # Unauthenticated: sign-in, sign-up
+  _layout.tsx              # Root: Sentry + ClerkProvider + fonts + migrations + splash
+  (public)/                # Unauthenticated: sign-in, sign-up, reset-password
   (protected)/             # Auth-gated routes
     (tabs)/                # Bottom tab nav: index, stats, social
-    games/                 # Game screens: setup → play → results
-    settings.tsx           # Settings (pushed screen, not a tab)
-components/                # Reusable UI (GameCard, PlayerManager, etc.)
+    game/[slug]/           # Game screens: setup (index) → play → results
+    games/[category].tsx   # Game list per category
+    club/[id].tsx          # Club detail (members, leaderboard, tournaments, feed)
+    tournament/[id].tsx    # Tournament detail (standings/bracket, matches, participants)
+    challenge/[challengeId]/ # Realtime challenge lobby (index) + spectator (watch)
+    friend/[userId].tsx    # Friend public profile (aggregate stats, challenge CTA)
+    drill/                 # Drill catalogue (index) + drill detail ([slug])
+    settings.tsx           # Settings + personal-info, security, notification-prefs,
+                           # help-center, delete-account (pushed screens)
+components/                # Reusable UI (GameCard, PlayerManager, KPICard, etc.)
+  ui/                      # Phase 11 primitives: AnimatedPressable, Skeleton, EmptyState
+  ErrorBoundary.tsx        # Sentry-aware class boundary + withErrorBoundary HOC
+  games/                   # Per-game play panels, inputs, scoreboards, results rows
+  social/                  # Friend/challenge/club sections + modals
+  clubfeed/                # Club feed: PostCard, PostComposer, CommentsModal, reactions
+  tournament/              # Tournament cards, bracket view, create/invite modals
 db/
   client.ts                # Drizzle + expo-sqlite client
   schema.ts                # All table definitions
-drizzle/                   # SQL migrations (auto-generated)
-lib/                       # Utilities (supabase client, storage, game logic)
-  games/                   # Pure game logic functions per game type
-hooks/                     # Custom React hooks
+drizzle/                   # SQL migrations 0000–0008 (auto-generated)
+lib/                       # Utilities (supabase client, storage, stats, haptics, sync)
+  games/                   # Pure game logic per game type + analytics.ts
+  haptics.ts               # expo-haptics wrapper (web no-op, failure-safe)
+  suggestions.ts           # Rule-based coaching suggestions engine
+  realtime-api.ts / realtime-game.ts / challenge-session.ts  # Phase 10 realtime
+hooks/                     # Custom React hooks (usePlaySession, useChallenges, …)
 stores/                    # Zustand stores (appStore)
 types/                     # Shared TypeScript types
-constants/                 # App constants (game definitions)
-providers/                 # Context providers (Supabase + QueryClient)
+constants/                 # Game definitions, drills catalogue, typography scales
+providers/                 # SupabaseProvider (+ QueryClient), PresenceProvider
 supabase/
-  functions/               # Edge functions (clerk-webhook)
-  migrations/              # Cloud DB migrations
+  functions/               # Edge functions: clerk-webhook, validate-turn,
+                           # notify-game-challenge, notify-friend-request,
+                           # notify-friend-accepted, notify-mention, ai-coaching
+  migrations/              # Cloud DB migrations (through 20260628)
 ```
 
 ## Architecture Rules
@@ -117,6 +135,9 @@ supabase/
 - Tailwind classes directly on React Native components via `className`
 - No `StyleSheet.create()` — use NativeWind exclusively
 - Always use `ds-*` tokens (defined in `tailwind.config.js`) — never raw hex or old gray/emerald classes
+- For **native color props** (lucide `color`, `ActivityIndicator color`, `RefreshControl tintColor`, `placeholderTextColor`, Switch colors) use `DS_COLORS` from `constants/colors.ts` — never raw hex or `"white"` literals
+- Text/icons on red or dark surfaces use the semantic on-brand token: `text-ds-on-red` (className) / `DS_COLORS.onRed` (native props) — not raw white
+- **Allowed exceptions**: `bg-white/20`-style alpha overlays on colored cards and the `bg-white` selected radio dot inside red option rows (no token equivalent for alpha/contrast dots); avatar palette colors (centralized in `constants/avatarColors.ts`) and data-driven `avatarColor` values from the DB
 
 #### Color tokens
 
@@ -131,6 +152,7 @@ supabase/
 | `ds-outline` | `#747878` | Placeholder text, tertiary icons |
 | `ds-outline-variant` | `#c4c7c7` | Borders, dividers |
 | `ds-red` | `#ba1a1a` | Primary actions, brand accent, danger |
+| `ds-on-red` | `#ffffff` | Text/icons on red or dark surfaces |
 | `ds-red-container` | `#ffdad6` | Light red backgrounds |
 | `ds-green` | `#b8f0bc` | Success badge backgrounds |
 | `ds-green-dark` | `#1e502a` | Success badge text |
@@ -165,7 +187,7 @@ Fonts loaded in `app/_layout.tsx`. Always use these — no system fonts.
 <SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
   <View className="flex-row items-center gap-3 px-6 pt-4 pb-3 border-b border-ds-outline-variant">
     <Pressable onPress={() => router.back()} className="active:opacity-70">
-      <ArrowLeft size={22} color="#1c1b1b" />
+      <ArrowLeft size={22} color={DS_COLORS.onSurface} />
     </Pressable>
     <Text className="text-xl font-barlow-condensed text-ds-on-surface">Screen Title</Text>
   </View>
@@ -187,28 +209,28 @@ Fonts loaded in `app/_layout.tsx`. Always use these — no system fonts.
 // List row inside a card
 <Pressable className="px-4 py-4 flex-row items-center justify-between active:opacity-70 border-b border-ds-outline-variant">
   <Text className="text-base font-barlow text-ds-on-surface">Label</Text>
-  <ChevronRight size={18} color="#747878" />
+  <ChevronRight size={18} color={DS_COLORS.outline} />
 </Pressable>
 
 // Primary button (red)
 <Pressable className="bg-ds-red rounded-xl py-4 items-center active:opacity-70">
-  <Text className="text-white text-base font-barlow-semi">Action</Text>
+  <Text className="text-ds-on-red text-base font-barlow-semi">Action</Text>
 </Pressable>
 
 // Input field with icon
 <View className="bg-ds-surface border border-ds-outline-variant rounded-xl flex-row items-center px-4">
-  <SomeIcon size={18} color="#747878" />
+  <SomeIcon size={18} color={DS_COLORS.outline} />
   <TextInput className="flex-1 py-4 pl-3 text-base font-barlow text-ds-on-surface" />
 </View>
 
 // Large feature card (home screen style)
 <Pressable className="bg-ds-red rounded-2xl p-5 active:opacity-80" style={{ minHeight: 140 }}>
   <View className="w-11 h-11 rounded-full bg-white/20 items-center justify-center mb-auto">
-    <SomeIcon size={22} color="white" />
+    <SomeIcon size={22} color={DS_COLORS.onRed} />
   </View>
   <View className="mt-6 flex-row items-end justify-between">
-    <Text className="text-2xl font-barlow-condensed text-white">Label</Text>
-    <ChevronRight size={20} color="white" />
+    <Text className="text-2xl font-barlow-condensed text-ds-on-red">Label</Text>
+    <ChevronRight size={20} color={DS_COLORS.onRed} />
   </View>
 </Pressable>
 ```
@@ -220,14 +242,17 @@ Fonts loaded in `app/_layout.tsx`. Always use these — no system fonts.
 
 #### Icons (lucide-react-native)
 
-- `#1c1b1b` (`ds-on-surface`) — primary/strong icons
-- `#444748` (`ds-on-surface-variant`) — secondary icons
-- `#747878` (`ds-outline`) — tertiary icons in rows, placeholders
+Pass colors via `DS_COLORS` (constants/colors.ts), never raw hex:
+
+- `DS_COLORS.onSurface` — primary/strong icons
+- `DS_COLORS.onSurfaceVariant` — secondary icons
+- `DS_COLORS.outline` — tertiary icons in rows, placeholders
+- `DS_COLORS.onRed` — icons on red/dark surfaces
 - Sizes: 18 (inline rows), 20–22 (headers/nav), 24 (standalone emphasis)
 
 #### Tab bar
 
-Active: `#ba1a1a` | Inactive: `#9ca3af` | Background: `#ffffff`
+Active: `DS_COLORS.red` | Inactive: `DS_COLORS.outline` | Background: `DS_COLORS.surface`
 
 Tabs: **Home** (House), **Stats** (BarChart2), **Social** (Users)
 
@@ -306,7 +331,7 @@ Schema and sync shipped:
 - [x] **Presence** — online / in-match status via Supabase Realtime (`usePresence` hook)
 - [x] Wire Social screen to real data, removed `PLACEHOLDER_CLUBS` and `PLACEHOLDER_FRIENDS`
 
-### Phase 4.5 — Smart Game Setup (depends on Social)
+### Phase 4.5 — Smart Game Setup ✅
 
 The current setup screen requires typing every player name manually every game. The intended model:
 
@@ -328,9 +353,9 @@ Order of delivery:
 
 ---
 
-### Phase 6 — Settings & Account Polish
+### Phase 6 — Settings & Account Polish ✅
 
-Make every settings item functional; nothing shows "Coming Soon".
+Shipped: personal info editing, in-app password change, notification preference toggles (JSONB `users.notification_prefs`), unfriend with confirmation, help center, privacy policy link, account deletion, and the `useFeatureGate` architecture. The last "Coming Soon" remnant (settings subscription row) was removed in Phase 11.
 
 **Personal Info screen** (`app/(protected)/personal-info.tsx`)
 - Edit first name, last name (Clerk `updateUser`)
@@ -360,9 +385,9 @@ Make every settings item functional; nothing shows "Coming Soon".
 
 ---
 
-### Phase 7 — Advanced Stats & Game Intelligence
+### Phase 7 — Advanced Stats & Game Intelligence ✅
 
-Transform stats from a history viewer into a genuine coaching tool. Stats answer: "What do I need to practice to actually get better?"
+Shipped: `lib/games/analytics.ts` session analytics (dart counts, per-game KPIs, checkout stats) computed on session complete + idempotent backfill; context tagging; segment heatmap; per-game KPI dashboards; checkout analysis; extended trends; rule-based suggestions (`lib/suggestions.ts`) + drill catalogue + drill screens; friend public profile via `get_player_public_stats` RPC; `ai-coaching` edge function (gated behind `AI_COACHING`). Original design notes kept below for reference.
 
 #### Stat collection rules
 
@@ -433,7 +458,7 @@ Target-based games (ATC, Shanghai, Baseball, Bob's 27, Bermuda, Halve-It) have a
 - Head-to-head stats vs a specific opponent (filter sessions containing their `playerId`)
 
 **Checkout analysis (X01)**
-- Attempt detection: double thrown while `remaining ≤ 50` = attempt (labeled "estimated")
+- Attempt detection (as implemented): a turn counts as a checkout attempt when `remaining ≤ 170` before the turn and a double was thrown; success = remaining hits exactly 0 (see `lib/games/analytics.ts`)
 - Best closer / worst closer — top and bottom doubles by success rate
 - Suggested doubles to practice (lowest success rate with ≥ meaningful attempt count)
 
@@ -462,7 +487,9 @@ Target-based games (ATC, Shanghai, Baseball, Bob's 27, Bermuda, Halve-It) have a
 
 ---
 
-### Phase 8 — Social Evolution
+### Phase 8 — Social Evolution ✅
+
+Shipped: club feed (posts, one-level comment replies with collapse/expand, 👍 👎 🎯 🔥 reactions, @mentions + `notify-mention` push, admin moderation, cursor pagination), enriched friend profile (recent games, mutual clubs, challenge CTA), friend activity feed on Social tab, `notify-friend-accepted` edge function. Original design notes below.
 
 **Club social feed**
 - New tables: `club_posts` (clubId, authorId, body, createdAt), `club_post_comments` (postId, authorId, body), `club_post_reactions` (postId, userId, type)
@@ -483,7 +510,9 @@ Target-based games (ATC, Shanghai, Baseball, Bob's 27, Bermuda, Halve-It) have a
 
 ---
 
-### Phase 9 — Tournaments
+### Phase 9 — Tournaments ✅
+
+Shipped: league, cup with bracket view, and round-robin tournaments are creatable inside clubs; weekly challenge schema/detail groundwork exists but weekly creation/reset automation is still deferred. Also shipped: divisions + multi-club invites, match → game-engine integration (`context='tournament'`, `tournament_match_id` link), standings/bracket/participants UI. Known gap: the weekly pg_cron reset migration (`20260621`) is still commented out pending the pg_cron extension. Original design notes below.
 
 **Schema**
 - `tournaments` — id, clubId (nullable for multi-club), createdBy, name, format (`league`|`cup`|`weekly`|`round_robin`), gameSlug, status, startDate, endDate, settings (JSONB: legs per match, double-out, etc.)
@@ -513,7 +542,9 @@ Target-based games (ATC, Shanghai, Baseball, Bob's 27, Bermuda, Halve-It) have a
 
 ---
 
-### Phase 10 — Real-Time Multiplayer
+### Phase 10 — Real-Time Multiplayer ✅
+
+Shipped: `game_challenges` table + RLS + CAS `advance_challenge_turn` RPC, mirrored local sessions (each device replays opponent darts through shared pure logic; both players sync their own copy with social-RPC dedupe), transactional turn delivery via `last_turn` on the challenge row + `postgres_changes` (reconnect-safe), `validate-turn` server enforcement, challenge lobby + spectator screen, friend-profile Challenge CTA, Social incoming-invite + outgoing "Sent Challenges" sections, club "Live Now" list, push-tap routing, app-wide `PresenceProvider`. Cloud migrations `20260626`–`20260628`, drizzle `0007`–`0008`; manual project setup requires the `on-game-challenge` database webhook. Original design notes below.
 
 Play against a friend or club member in real time from different locations.
 
@@ -537,23 +568,90 @@ Play against a friend or club member in real time from different locations.
 
 ---
 
-### Phase 11 — UI / UX Optimisation
+### Phase 11 — UI / UX Optimisation ✅
 
-A dedicated polish pass across all screens before App Store submission.
+A dedicated polish pass across all screens before App Store submission. All items shipped:
 
-- Empty states: every list screen has an illustrated empty state with a clear CTA
-- Skeleton loaders: replace `ActivityIndicator` with skeleton screens on all data-fetching screens
-- Haptic feedback: `expo-haptics` on button presses, game score submission, achievements
-- Reanimated micro-interactions: card press scale, list item slide-in, tab switch transitions
-- Accessibility: ensure all interactive elements have `accessibilityLabel`, support Dynamic Type, VoiceOver/TalkBack passes
-- Keyboard avoidance: `KeyboardAvoidingView` on all form screens
-- Pull-to-refresh on all feed / list screens
-- Error boundary wrapping key screens (Sentry-aware)
-- Review every "Coming Soon" remnant — replace or remove
+- [x] Empty states: `EmptyState` primitive (icon + title + message + CTA) on every list surface, including club feed and comments
+- [x] Skeleton loaders: `Skeleton` primitive (reanimated pulse, reduced-motion aware, decorative for screen readers) replaced every full-screen/section `ActivityIndicator`; loading containers expose `accessible` + busy state with specific labels; only inline button/search/pagination spinners remain
+- [x] Haptics: `lib/haptics.ts` wrapper (web no-op, failure-safe) — turn commit, game completion, primary CTAs, challenge accept/decline
+- [x] Reanimated micro-interactions: `AnimatedPressable` press-scale (+optional haptic) on cards, `FadeInDown` list rows (first-mount only on FlatLists), `FadeIn` tab content
+- [x] Accessibility: all Pressables labeled, Dynamic Type caps (`constants/typography.ts` `maxFontSizeMultiplier`) on dense numeric UI, Reduce Motion respected (Reanimated `ReduceMotion.System` defaults + explicit Skeleton branch)
+- [x] `KeyboardAvoidingView` on sign-in, sign-up, reset-password, delete-account (+ existing personal-info/security)
+- [x] Pull-to-refresh on Social (all sections), club tabs, friend profile, tournament tabs, stats
+- [x] Sentry-aware `ErrorBoundary` + `withErrorBoundary` HOC on 10 key screens
+- [x] "Coming Soon" fully removed (settings subscription row shows current plan)
+- [x] Gameplay correction: "Undo" affordance for pending darts (`undoLastDart`, pre-commit only — realtime-safe)
+- [x] Legacy styling converted to `ds-*` tokens + Barlow across Cricket/ATC/results/OtpInput/GameCard
+- [x] Phase 10 leftovers folded in: outgoing challenges section, per-row decline/cancel pending state
+
+Note: `expo-haptics` added a native module — dev clients must be rebuilt (`npm run ios` / `npm run android`); Metro reload alone is not enough.
 
 ---
 
-### Phase 12 — Subscription & Monetisation
+### Phase 12 — Product Logic Audit & Growth
+
+A broad correctness + product-improvement pass before monetisation. Two tracks: **(a) verify everything we have is right**, **(b) sharpen the club/tournament/realtime differentiators**.
+
+#### 12a — Full logic audit (correctness)
+
+Systematically verify, with tests or fixes for every finding:
+
+- **Stats**: every aggregate (lifetime avg, trends, personal bests, heatmap, KPIs) pulls from the right sessions and game types; context filters behave; abandoned-session rules match the Phase 7 collection rules
+- **Game logic**: each `lib/games/*` module re-checked against official rules (bust edge cases, double-out, Shanghai instant-win, Killer phases, halve-it rounding); cross-check engine vs analytics for consistency
+- **Social**: friendships, presence, activity dedupe, mentions, reactions, moderation permissions
+- **DB**: all RLS policies, RPCs (`get_club_leaderboard`, `get_player_public_stats`, `get_friends_activity`, `advance_challenge_turn`, …), edge functions, webhook paths; local↔cloud sync mapping; migration idempotency
+- **Coaching**: suggestion thresholds sane; drill mappings correct; AI-coaching prompt/output validated
+- **Cross-feature coherence**: tournament match results → stats → leaderboards → feeds; realtime sessions → both players' stats exactly once
+
+**Known findings to fix in 12a** (verified against current code):
+1. `get_player_public_stats` top-level `avg_three_dart_avg` averages `three_dart_avg` across **all game types** (Cricket marks, ATC counts, etc. pollute it) — the friend profile shows this as "3-dart avg". Fix: filter to `game_slug='x01'` in the RPC (local stats screen already does this correctly in `getOverallThreeDartAvg`).
+2. `getTrendData` supports a slug filter, but the default **All Games** trend still plots `threeDartAvg` across mixed game types when no game is selected. Fix: default the 3DA trend to x01/501, hide 3DA in the All Games view, or make the trend metric game-type-specific.
+3. Friends list `threeDartAvg` is **always null** (never populated in `lib/friends.ts`) — the Social tab renders "—" for everyone. Fix: populate from `get_friends_activity`-style aggregate or drop the column from the row UI.
+4. Audit `get_club_leaderboard` for the same cross-game 3DA mixing.
+5. `threeDartAvg` is computed and stored for **every** game type on session complete (`usePlaySession`) — harmless locally (consumers filter) but the cloud column is what unfiltered RPCs average; document or stop storing it for non-x01.
+
+#### 12b — 501/301 split
+
+`x01` is one slug; `config.startingScore` (501|301) is stored locally and synced to `game_sessions.config`. Decision: **keep one engine + one slug, split at the stats/UI layer**:
+
+- Add `variant` derived from `config->>'startingScore'` in stats queries (local Drizzle + cloud RPCs) — no schema migration needed, config is already everywhere
+- Stats screen: "501" and "301" as separate filter values under the X01 section; headline "3-Dart Avg" defaults to **501-only** (the number players compare to pub/league play), with a combined-X01 toggle
+- Personal bests, checkout analysis, trends: per-variant
+- Backfill: nothing to backfill — config already stored on historical sessions
+
+#### 12c — Coaching improvements
+
+- **Intended-target inference (approved direction)**: when `remaining ≤ 170` and a standard checkout route exists, infer the intended double from the out-chart (e.g. 20 left → aiming D10). Score proximity: hitting S10 in the same wedge, adjacent wedges S6/S15, or adjacent double-ring misses D6/D15 counts as an "attempt + miss at D10". This upgrades checkout stats from "doubles thrown" to "doubles aimed at" without any input friction. Label inferred data "estimated" in the UI.
+- Keep the current explicit rule (double thrown in checkout range) as ground truth; the inference only adds attempts, never successes
+- New coaching metrics worth adding: first-9 average trend, checkout position analysis (which remaining values the player leaves themselves), setup-shot quality (do they leave 32/40/36?), pressure split (casual vs tournament/realtime KPIs), per-session consistency (σ of turn scores — already computed, surface it)
+- Optional later: a one-tap "missed target?" chip after a turn for players who want exact data (off by default)
+
+#### 12d — Clubs, divisions & tournaments as the differentiator
+
+- **Club roles**: add captain/co-admin tier; transfer ownership
+- **Multi-team clubs**: `club_teams` (club has Division 1/2 teams) with team rosters; division league fixtures between teams; team feeds = filtered club feed channel
+- **Bracket UX**: seeding editor, bye handling display, tap-to-zoom rounds, share-as-image
+- **Weekly challenges**: finish the pg_cron reset; add streaks + weekly podium post auto-created in the club feed
+- **Inter-club**: division standings show club + player; "club vs club" head-to-head summary cards
+- **Ranking**: lightweight Elo-style club rating per game type from tournament + realtime results ("Pro ranking" later, cross-club)
+- **Retention loops**: weekly digest notification (your rank, club activity), achievement badges (first 180, checkout >100, 10-game streak), feed auto-posts for milestones
+
+#### 12e — Realtime × tournaments
+
+Architecture direction: a tournament match between two online players **is** a `game_challenge` — add `tournament_match_id` to `game_challenges`, reuse the entire Phase 10 stack (lobby, validate-turn, spectator). Match card gets "Play live" (creates a linked challenge) next to the existing in-person "Play match". On completion the existing match-recording path runs. Weekly challenges stay async (score-based), leagues/cups support both live and in-person legs. Spectating a live tournament match = existing watch screen reached from the bracket.
+
+#### 12f — Web live display (future, design-only in this phase)
+
+Read-only web page (Next.js or simple Vite SPA on Supabase) showing live bracket/match state for a TV at club nights: subscribe to the same `postgres_changes` rows; a short-lived "display code" per tournament grants read access (new RLS policy, no auth). **This phase only produces the design doc + RLS sketch** — build is post-subscription.
+
+**Deliverables**: audit report with pass/fail per area; fixes (with tests) for all findings incl. the five above; 501/301 stat split shipped; checkout-inference v1 shipped behind the existing stats UI; club/tournament improvement backlog ranked by effort×impact; realtime-tournament architecture note; web-display design doc.
+
+**Acceptance criteria**: all audit findings fixed or explicitly deferred with reason; 3-dart averages provably x01-only everywhere (test per consumer); 501 vs 301 visible in stats; `npm run verify` green; no schema change without paired RLS + sync-mapping update.
+
+---
+
+### Phase 13 — Subscription & Monetisation
 
 When income is needed. Requires Apple Developer account in good standing and Google Play Console setup.
 

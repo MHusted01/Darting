@@ -1,4 +1,5 @@
 import { useSession, useUser } from '@clerk/expo';
+import { DS_COLORS } from '@/constants/colors';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -61,7 +62,7 @@ export default function SecurityScreen() {
           onPress={() => router.back()}
           className="active:opacity-70"
         >
-          <ArrowLeft size={22} color="#1c1b1b" />
+          <ArrowLeft size={22} color={DS_COLORS.onSurface} />
         </Pressable>
         <Text className="text-xl font-barlow-condensed text-ds-on-surface">Security</Text>
       </View>
@@ -89,7 +90,7 @@ export default function SecurityScreen() {
                 value={currentPassword}
                 onChangeText={setCurrentPassword}
                 placeholder="Current password"
-                placeholderTextColor="#747878"
+                placeholderTextColor={DS_COLORS.outline}
                 accessibilityLabel="Current password"
                 secureTextEntry
                 className="py-4 text-base font-barlow text-ds-on-surface"
@@ -103,7 +104,7 @@ export default function SecurityScreen() {
                 value={newPassword}
                 onChangeText={setNewPassword}
                 placeholder="New password"
-                placeholderTextColor="#747878"
+                placeholderTextColor={DS_COLORS.outline}
                 accessibilityLabel="New password"
                 secureTextEntry
                 className="py-4 text-base font-barlow text-ds-on-surface"
@@ -117,7 +118,7 @@ export default function SecurityScreen() {
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 placeholder="Confirm new password"
-                placeholderTextColor="#747878"
+                placeholderTextColor={DS_COLORS.outline}
                 accessibilityLabel="Confirm new password"
                 secureTextEntry
                 className="py-4 text-base font-barlow text-ds-on-surface"
@@ -134,7 +135,7 @@ export default function SecurityScreen() {
               disabled={isSaving}
               className={`bg-ds-red rounded-xl py-4 items-center active:opacity-70 mt-2 ${isSaving ? 'opacity-50' : ''}`}
             >
-              <Text className="text-white font-barlow-semi text-sm uppercase tracking-widest">
+              <Text className="text-ds-on-red font-barlow-semi text-sm uppercase tracking-widest">
                 {isSaving ? 'Saving...' : 'Update Password'}
               </Text>
             </Pressable>

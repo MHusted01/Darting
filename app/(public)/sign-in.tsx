@@ -1,7 +1,8 @@
 import { useSignIn } from '@clerk/expo';
+import { DS_COLORS } from '@/constants/colors';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Text, TextInput, Pressable, View, Alert } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
@@ -13,7 +14,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function SignIn() {
   const { signIn, fetchStatus } = useSignIn();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const si = signIn as any;
   const router = useRouter();
 
@@ -107,6 +108,7 @@ export default function SignIn() {
   if (pendingVerification) {
     return (
       <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-ds-bg">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View className="flex-1 px-6 pt-8 pb-6 justify-center">
           <Text className="text-3xl font-barlow-condensed-xbold text-ds-on-surface mb-2">Verify Device</Text>
           <Text className="text-base font-barlow text-ds-on-surface-variant mb-8">
@@ -120,17 +122,19 @@ export default function SignIn() {
           {verifyingBusy ? (
             <Text className="mt-6 text-center font-barlow text-ds-on-surface-variant">Verifying...</Text>
           ) : (
-            <Pressable onPress={() => setPendingVerification(false)} className="active:opacity-70">
+            <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => setPendingVerification(false)} className="active:opacity-70">
               <Text className="mt-6 text-center font-barlow text-ds-on-surface-variant">Go back</Text>
             </Pressable>
           )}
         </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-ds-bg">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <View className="flex-1 px-6 pt-8 pb-6">
         <Text className="text-center text-base font-barlow-semi text-ds-on-surface tracking-widest uppercase mb-12">
           Darting
@@ -144,12 +148,12 @@ export default function SignIn() {
         <View className="mb-4">
           <Text className="text-sm font-barlow-semi text-ds-on-surface mb-1.5">Email Address</Text>
           <View className="bg-ds-surface border border-ds-outline-variant rounded-xl flex-row items-center px-4">
-            <Mail size={18} color="#747878" />
+            <Mail size={18} color={DS_COLORS.outline} />
             <TextInput
               className="flex-1 py-4 pl-3 text-base font-barlow text-ds-on-surface"
               style={{ lineHeight: 22 }}
               placeholder="player@example.com"
-              placeholderTextColor="#747878"
+              placeholderTextColor={DS_COLORS.outline}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -173,12 +177,12 @@ export default function SignIn() {
             </Pressable>
           </View>
           <View className="bg-ds-surface border border-ds-outline-variant rounded-xl flex-row items-center px-4">
-            <Lock size={18} color="#747878" />
+            <Lock size={18} color={DS_COLORS.outline} />
             <TextInput
               className="flex-1 py-4 pl-3 text-base font-barlow text-ds-on-surface"
               style={{ lineHeight: 22 }}
               placeholder="••••••••"
-              placeholderTextColor="#747878"
+              placeholderTextColor={DS_COLORS.outline}
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
@@ -192,8 +196,8 @@ export default function SignIn() {
               className="active:opacity-70 pl-2"
             >
               {showPassword
-                ? <EyeOff size={18} color="#747878" />
-                : <Eye size={18} color="#747878" />
+                ? <EyeOff size={18} color={DS_COLORS.outline} />
+                : <Eye size={18} color={DS_COLORS.outline} />
               }
             </Pressable>
           </View>
@@ -207,7 +211,7 @@ export default function SignIn() {
           onPress={onSignIn}
           disabled={busy}
         >
-          <Text className="text-white text-base font-barlow-semi">
+          <Text className="text-ds-on-red text-base font-barlow-semi">
             {busy ? 'Signing In...' : 'Login'}
           </Text>
         </Pressable>
@@ -217,7 +221,7 @@ export default function SignIn() {
         <View className="flex-1" />
 
         <Link href="/(public)/sign-up" asChild>
-          <Pressable className="items-center active:opacity-70">
+          <Pressable accessibilityRole="button" accessibilityLabel="Sign up" className="items-center active:opacity-70">
             <Text className="text-base font-barlow text-ds-on-surface-variant">
               Don{'\''}t have an account?{' '}
               <Text className="text-ds-red font-barlow-semi">Sign Up</Text>
@@ -225,6 +229,7 @@ export default function SignIn() {
           </Pressable>
         </Link>
       </View>
+    </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

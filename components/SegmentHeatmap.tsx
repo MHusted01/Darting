@@ -1,19 +1,29 @@
 import { Pressable, Text, View } from 'react-native';
 import type { SegmentAccuracy, SegmentStat } from '@/lib/stats';
+import { DS_COLORS } from '@/constants/colors';
 
 interface SegmentHeatmapProps {
   accuracy: SegmentAccuracy;
   onSegmentPress?: (segment: string, stat: SegmentStat) => void;
 }
 
-// Interpolate between ds-green (#b8f0bc) at low hit rate and ds-green-dark (#1e502a) at high.
-// When hit rate is 0 (no data) use ds-surface-low (#f7f3f2).
+function hexChannels(hex: string): [number, number, number] {
+  return [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ];
+}
+
+const LOW = hexChannels(DS_COLORS.green);
+const HIGH = hexChannels(DS_COLORS.greenDark);
+
 function segmentColor(hitRate: number): string {
-  if (hitRate === 0) return '#f7f3f2';
+  if (hitRate === 0) return DS_COLORS.surfaceLow;
   const t = Math.min(hitRate / 0.7, 1);
-  const r = Math.round(0xb8 + t * (0x1e - 0xb8));
-  const g = Math.round(0xf0 + t * (0x50 - 0xf0));
-  const b = Math.round(0xbc + t * (0x2a - 0xbc));
+  const r = Math.round(LOW[0] + t * (HIGH[0] - LOW[0]));
+  const g = Math.round(LOW[1] + t * (HIGH[1] - LOW[1]));
+  const b = Math.round(LOW[2] + t * (HIGH[2] - LOW[2]));
   return `rgb(${r},${g},${b})`;
 }
 

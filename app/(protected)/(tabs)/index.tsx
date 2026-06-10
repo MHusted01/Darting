@@ -1,4 +1,8 @@
 import { ScrollView, Text, View, Pressable } from 'react-native';
+import { DS_COLORS } from '@/constants/colors';
+import AnimatedPressable from '@/components/ui/AnimatedPressable';
+import { withErrorBoundary } from '@/components/ErrorBoundary';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Settings, Play, Target, PartyPopper, ChevronRight } from 'lucide-react-native';
@@ -22,11 +26,11 @@ const MODE_CARDS: ModeCard[] = [
     label: 'Real Game',
     subtitle: 'Ranked 501 & Cricket tracking',
     bg: 'bg-ds-red',
-    textColor: 'text-white',
-    subtitleColor: 'text-white/80',
+    textColor: 'text-ds-on-red',
+    subtitleColor: 'text-ds-on-red/80',
     Icon: Play,
     iconBg: 'bg-white/20',
-    iconColor: 'white',
+    iconColor: DS_COLORS.onRed,
   },
   {
     category: 'Practice',
@@ -37,7 +41,7 @@ const MODE_CARDS: ModeCard[] = [
     subtitleColor: 'text-ds-on-surface-variant',
     Icon: Target,
     iconBg: 'bg-ds-surface-low',
-    iconColor: '#444748',
+    iconColor: DS_COLORS.onSurfaceVariant,
   },
   {
     category: 'Party',
@@ -48,11 +52,11 @@ const MODE_CARDS: ModeCard[] = [
     subtitleColor: 'text-ds-green-dark/80',
     Icon: PartyPopper,
     iconBg: 'bg-white/40',
-    iconColor: '#1e502a',
+    iconColor: DS_COLORS.greenDark,
   },
 ];
 
-export default function HomeScreen() {
+function HomeScreen() {
   const router = useRouter();
   const { user } = useUser();
 
@@ -75,11 +79,12 @@ export default function HomeScreen() {
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             className="active:opacity-70"
           >
-            <Settings size={22} color="#444748" />
+            <Settings size={22} color={DS_COLORS.onSurfaceVariant} />
           </Pressable>
         </View>
       </View>
 
+      <Animated.View entering={FadeIn.duration(150)} style={{ flex: 1 }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
         <View className="px-6 pt-6 pb-4">
           <Text className="text-4xl font-barlow-condensed-xbold text-ds-on-surface leading-tight">Step Up</Text>
@@ -90,8 +95,9 @@ export default function HomeScreen() {
           {MODE_CARDS.map((card) => {
             const Icon = card.Icon;
             return (
-              <Pressable
+              <AnimatedPressable
                 key={card.category}
+                haptic="light"
                 accessibilityRole="button"
                 accessibilityLabel={`${card.label} - ${card.subtitle}`}
                 className={`${card.bg} rounded-2xl p-5 active:opacity-80`}
@@ -108,11 +114,14 @@ export default function HomeScreen() {
                   </View>
                   <ChevronRight size={20} color={card.iconColor} />
                 </View>
-              </Pressable>
+              </AnimatedPressable>
             );
           })}
         </View>
       </ScrollView>
+      </Animated.View>
     </SafeAreaView>
   );
 }
+
+export default withErrorBoundary(HomeScreen, 'home');

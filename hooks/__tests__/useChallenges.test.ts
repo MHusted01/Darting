@@ -5,6 +5,7 @@ import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   useIncomingChallenges,
+  useOutgoingChallenges,
   useAcceptChallenge,
   useDeclineChallenge,
   useCancelChallenge,
@@ -16,6 +17,7 @@ import {
   createChallenge,
   declineChallenge,
   listIncomingChallenges,
+  listOutgoingChallenges,
 } from '@/lib/realtime-api';
 
 jest.mock('@/lib/realtime-api', () => ({
@@ -36,6 +38,7 @@ jest.mock('@/providers/SupabaseProvider', () => ({
 }));
 
 const mockList = listIncomingChallenges as jest.Mock<any>;
+const mockListOutgoing = listOutgoingChallenges as jest.Mock<any>;
 const mockAccept = acceptChallenge as jest.Mock<any>;
 const mockDecline = declineChallenge as jest.Mock<any>;
 const mockCancel = cancelChallenge as jest.Mock<any>;
@@ -61,6 +64,21 @@ describe('useIncomingChallenges', () => {
 
     await waitFor(() => expect(result.current.data).toEqual([{ id: 'challenge-1' }]));
     expect(mockList).toHaveBeenCalledWith({}, 'user-123');
+  });
+});
+
+describe('useOutgoingChallenges', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('fetches outgoing pending challenges for the signed-in user', async () => {
+    mockListOutgoing.mockResolvedValue([{ id: 'challenge-2' }]);
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(() => useOutgoingChallenges(), { wrapper: Wrapper });
+
+    await waitFor(() => expect(result.current.data).toEqual([{ id: 'challenge-2' }]));
+    expect(mockListOutgoing).toHaveBeenCalledWith({}, 'user-123');
   });
 });
 

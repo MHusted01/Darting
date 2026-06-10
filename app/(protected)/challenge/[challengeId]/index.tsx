@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { DS_COLORS } from '@/constants/colors';
+import { withErrorBoundary } from '@/components/ErrorBoundary';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import Skeleton from '@/components/ui/Skeleton';
+import { impact } from '@/lib/haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Swords } from 'lucide-react-native';
@@ -47,7 +51,7 @@ function PlayerRow({
   );
 }
 
-export default function ChallengeLobbyScreen() {
+function ChallengeLobbyScreen() {
   const router = useRouter();
   const { challengeId } = useLocalSearchParams<{ challengeId: string }>();
   const supabase = useSupabase();
@@ -128,6 +132,7 @@ export default function ChallengeLobbyScreen() {
 
   const handleAccept = () => {
     if (!challengeId) return;
+    void impact('light');
     acceptMutation.mutate(challengeId, {
       onSuccess: (accepted) => {
         if (!accepted) {
@@ -142,6 +147,7 @@ export default function ChallengeLobbyScreen() {
 
   const handleDecline = () => {
     if (!challengeId) return;
+    void impact('light');
     declineMutation.mutate(challengeId, { onSuccess: () => router.back() });
   };
 
@@ -159,14 +165,17 @@ export default function ChallengeLobbyScreen() {
           accessibilityLabel="Go back"
           className="active:opacity-70"
         >
-          <ArrowLeft size={22} color="#1c1b1b" />
+          <ArrowLeft size={22} color={DS_COLORS.onSurface} />
         </Pressable>
         <Text className="text-xl font-barlow-condensed text-ds-on-surface">Challenge Lobby</Text>
       </View>
 
       {isLoading && (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#ba1a1a" />
+        <View className="px-6 pt-6 gap-3" accessible accessibilityState={{ busy: true }} accessibilityLabel="Loading challenge">
+          <Skeleton className="h-24 w-full rounded-2xl" />
+          <Skeleton className="h-16 w-full rounded-xl" />
+          <Skeleton className="h-16 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
         </View>
       )}
 
@@ -183,7 +192,7 @@ export default function ChallengeLobbyScreen() {
           <View className="px-6 pt-6">
             <View className="items-center mb-6">
               <View className="w-14 h-14 rounded-full bg-ds-red-container items-center justify-center mb-3">
-                <Swords size={24} color="#ba1a1a" />
+                <Swords size={24} color={DS_COLORS.red} />
               </View>
               <Text className="text-2xl font-barlow-condensed text-ds-on-surface">
                 {game?.name ?? challenge.gameSlug}
@@ -220,7 +229,7 @@ export default function ChallengeLobbyScreen() {
                   accessibilityLabel="Accept challenge"
                   className={`bg-ds-red rounded-xl py-4 items-center active:opacity-70 ${acceptMutation.isPending ? 'opacity-50' : ''}`}
                 >
-                  <Text className="text-white text-base font-barlow-semi">Accept</Text>
+                  <Text className="text-ds-on-red text-base font-barlow-semi">Accept</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleDecline}
@@ -261,7 +270,7 @@ export default function ChallengeLobbyScreen() {
                 accessibilityLabel="Start game"
                 className={`bg-ds-red rounded-xl py-4 items-center active:opacity-70 ${isLaunching ? 'opacity-50' : ''}`}
               >
-                <Text className="text-white text-base font-barlow-semi">
+                <Text className="text-ds-on-red text-base font-barlow-semi">
                   {isLaunching ? 'Starting…' : 'Start Game'}
                 </Text>
               </Pressable>
@@ -290,3 +299,5 @@ export default function ChallengeLobbyScreen() {
     </SafeAreaView>
   );
 }
+
+export default withErrorBoundary(ChallengeLobbyScreen, 'challenge-lobby');

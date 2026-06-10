@@ -125,8 +125,9 @@ export function useSetReaction(clubId: string) {
 
   return useMutation({
     mutationFn: ({ postId, type, isActive }: { postId: string; type: ReactionType; isActive: boolean }) => {
-      if (isActive) return removeReaction(supabase, postId, userId!, type);
-      return setReaction(supabase, postId, userId!, type);
+      if (!userId) return Promise.reject(new Error('Not authenticated'));
+      if (isActive) return removeReaction(supabase, postId, userId, type);
+      return setReaction(supabase, postId, userId, type);
     },
     onMutate: async ({ postId, type, isActive }) => {
       await queryClient.cancelQueries({ queryKey: ['club-feed', clubId] });
@@ -167,8 +168,9 @@ export function useSetCommentReaction(postId: string, clubId: string) {
 
   return useMutation({
     mutationFn: ({ commentId, type, isActive }: { commentId: string; type: ReactionType; isActive: boolean }) => {
-      if (isActive) return removeCommentReaction(supabase, commentId, userId!, type);
-      return setCommentReaction(supabase, commentId, userId!, type);
+      if (!userId) return Promise.reject(new Error('Not authenticated'));
+      if (isActive) return removeCommentReaction(supabase, commentId, userId, type);
+      return setCommentReaction(supabase, commentId, userId, type);
     },
     onMutate: async ({ commentId, type, isActive }) => {
       await queryClient.cancelQueries({ queryKey: ['post-comments', postId] });

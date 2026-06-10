@@ -1,4 +1,5 @@
 import { View, Text } from 'react-native';
+import { MAX_FONT_SCALE_DENSE } from '@/constants/typography';
 import { AroundTheClockInput } from '@/components/games/AroundTheClockInput';
 import { getTargetLabel, type AroundTheClockPlayerState } from '@/lib/games/around-the-clock';
 import type { DartThrow } from '@/types/game';
@@ -32,12 +33,12 @@ export function AroundTheClockPlayPanel({
   return (
     <>
       <View className="items-center mb-8">
-        <Text className="text-sm text-gray-500 mb-1">Target</Text>
-        <Text className="text-7xl font-bold text-black">
+        <Text className="text-sm font-barlow text-ds-on-surface-variant mb-1">Target</Text>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE_DENSE} className="text-7xl font-barlow-bold text-ds-on-surface">
           {localTarget > maxTarget ? '\u2713' : getTargetLabel(localTarget)}
         </Text>
         {localTarget <= maxTarget && (
-          <Text className="text-sm text-gray-400 mt-1">
+          <Text className="text-sm font-barlow text-ds-outline mt-1">
             {localTarget} of {maxTarget}
           </Text>
         )}
@@ -52,7 +53,7 @@ export function AroundTheClockPlayPanel({
       />
 
       <View className="mt-8">
-        <Text className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">
+        <Text className="text-sm font-barlow-semi text-ds-on-surface-variant mb-3 uppercase tracking-wide">
           Scoreboard
         </Text>
         {players.map((player) => {
@@ -68,7 +69,7 @@ export function AroundTheClockPlayPanel({
             <View
               key={player.id}
               className={`flex-row items-center py-3 px-3 rounded-lg mb-1 ${
-                isCurrent ? 'bg-gray-100' : ''
+                isCurrent ? 'bg-ds-surface-low' : ''
               }`}
             >
               <View
@@ -77,14 +78,14 @@ export function AroundTheClockPlayPanel({
               />
               <Text
                 className={`flex-1 text-base ${
-                  isCurrent ? 'font-bold text-black' : 'text-gray-700'
+                  isCurrent ? 'font-barlow-semi text-ds-on-surface' : 'font-barlow text-ds-on-surface-variant'
                 }`}
               >
                 {player.name}
               </Text>
               <Text
                 className={`text-sm ${
-                  isFinished ? 'text-emerald-600 font-bold' : 'text-gray-500'
+                  isFinished ? 'text-ds-green-dark font-barlow-bold' : 'font-barlow text-ds-on-surface-variant'
                 }`}
               >
                 {isFinished ? 'Done!' : `${playerTarget - 1}/${maxTarget}`}

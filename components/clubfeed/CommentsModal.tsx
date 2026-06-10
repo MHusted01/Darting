@@ -1,4 +1,7 @@
 import { useRef, useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
+import Skeleton from '@/components/ui/Skeleton';
+import EmptyState from '@/components/ui/EmptyState';
 import {
   ActivityIndicator,
   Alert,
@@ -13,7 +16,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X } from 'lucide-react-native';
+import { X, MessageCircle } from 'lucide-react-native';
 import { useAddComment, useDeleteComment, usePostComments, useSetCommentReaction } from '@/hooks/useClubFeed';
 import { ReactionsModal } from './ReactionsModal';
 import { useClubMembers } from '@/hooks/useClubs';
@@ -186,6 +189,7 @@ interface ThreadedComment {
 export function CommentsModal({ visible, postId, clubId, currentUserId, isAdmin, onClose }: Props) {
   const [body, setBody] = useState('');
   const [replyingTo, setReplyingTo] = useState<ReplyingTo | null>(null);
+  const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
   const inputRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
 
@@ -244,12 +248,31 @@ export function CommentsModal({ visible, postId, clubId, currentUserId, isAdmin,
   function handleSubmit() {
     if (!body.trim()) return;
     const text = body.trim();
+    const target = replyingTo;
     setBody('');
     setReplyingTo(null);
     addComment.mutate(
-      { body: text, parentCommentId: replyingTo?.commentId ?? null },
-      { onError: (err) => Alert.alert('Error', err.message) },
+      { body: text, parentCommentId: target?.commentId ?? null },
+      {
+        onError: (err) => {
+          setBody(text);
+          setReplyingTo(target);
+          Alert.alert('Error', err.message);
+        },
+      },
     );
+  }
+
+  function toggleThread(commentId: string) {
+    setExpandedThreads((prev) => {
+      const next = new Set(prev);
+      if (next.has(commentId)) {
+        next.delete(commentId);
+      } else {
+        next.add(commentId);
+      }
+      return next;
+    });
   }
 
   function handleDelete(commentId: string) {
@@ -278,57 +301,82 @@ export function CommentsModal({ visible, postId, clubId, currentUserId, isAdmin,
             className="active:opacity-70"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <X size={22} color="#444748" />
+            <X size={22} color={DS_COLORS.onSurfaceVariant} />
           </Pressable>
         </View>
 
         <FlatList
           data={threads}
           keyExtractor={(item) => item.comment.id}
-          renderItem={({ item }) => (
-            <View className="border-b border-ds-outline-variant">
-              <CommentItem
-                comment={item.comment}
-                postId={postId}
-                clubId={clubId}
-                currentUserId={currentUserId}
-                isAdmin={isAdmin}
-                isReply={false}
-                onReply={handleReply}
-                onDelete={handleDelete}
-              />
-              {item.replies.map((reply) => (
+          renderItem={({ item }) => {
+            const isExpanded = expandedThreads.has(item.comment.id);
+            const sortedReplies = [...item.replies].sort(
+              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+            );
+            const visibleReplies = isExpanded
+              ? sortedReplies
+              : sortedReplies.slice(-1);
+            const hasHiddenReplies = sortedReplies.length > 1;
+            return (
+              <View className="border-b border-ds-outline-variant">
                 <CommentItem
-                  key={reply.id}
-                  comment={reply}
+                  comment={item.comment}
                   postId={postId}
                   clubId={clubId}
                   currentUserId={currentUserId}
                   isAdmin={isAdmin}
-                  isReply={true}
+                  isReply={false}
                   onReply={handleReply}
                   onDelete={handleDelete}
                 />
-              ))}
-            </View>
-          )}
+                {visibleReplies.map((reply) => (
+                  <CommentItem
+                    key={reply.id}
+                    comment={reply}
+                    postId={postId}
+                    clubId={clubId}
+                    currentUserId={currentUserId}
+                    isAdmin={isAdmin}
+                    isReply={true}
+                    onReply={handleReply}
+                    onDelete={handleDelete}
+                  />
+                ))}
+                {hasHiddenReplies && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={isExpanded ? 'Hide replies' : 'Show replies'}
+                    onPress={() => toggleThread(item.comment.id)}
+                    className="pl-10 pb-3 active:opacity-70"
+                  >
+                    <Text className="text-xs font-barlow-semi text-ds-on-surface-variant">
+                      {isExpanded ? 'Hide replies' : 'Show replies'}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            );
+          }}
           onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
           onEndReachedThreshold={0.3}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             isLoading ? (
-              <ActivityIndicator color="#ba1a1a" style={{ paddingVertical: 32 }} />
-            ) : (
-              <View className="py-12 items-center px-8">
-                <Text className="text-sm font-barlow text-ds-outline text-center">
-                  No comments yet. Be the first!
-                </Text>
+              <View className="py-8 gap-2">
+                <Skeleton className="h-12 w-full rounded-xl" />
+                <Skeleton className="h-12 w-full rounded-xl" />
               </View>
+            ) : (
+              <EmptyState
+                icon={MessageCircle}
+                title="No comments yet"
+                message="Be the first to comment."
+              />
             )
           }
           ListFooterComponent={
             isFetchingNextPage
-              ? <ActivityIndicator color="#ba1a1a" style={{ paddingVertical: 16 }} />
+              ? <ActivityIndicator color={DS_COLORS.red} style={{ paddingVertical: 16 }} />
               : null
           }
         />
@@ -346,7 +394,7 @@ export function CommentsModal({ visible, postId, clubId, currentUserId, isAdmin,
                 className="active:opacity-70"
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <X size={14} color="#747878" />
+                <X size={14} color={DS_COLORS.outline} />
               </Pressable>
             </View>
           )}
@@ -393,7 +441,7 @@ export function CommentsModal({ visible, postId, clubId, currentUserId, isAdmin,
                 accessibilityLabel={replyingTo ? `Reply to ${replyingTo.authorName}` : 'Write a comment'}
                 className="text-sm font-barlow text-ds-on-surface"
                 placeholder={replyingTo ? `Reply to ${replyingTo.authorName}…` : 'Add a comment… type @ to mention'}
-                placeholderTextColor="#747878"
+                placeholderTextColor={DS_COLORS.outline}
                 value={body}
                 onChangeText={setBody}
                 multiline
@@ -407,7 +455,7 @@ export function CommentsModal({ visible, postId, clubId, currentUserId, isAdmin,
               disabled={!body.trim() || addComment.isPending}
               className={`rounded-xl px-4 py-3 items-center active:opacity-70 ${body.trim() ? 'bg-ds-red' : 'bg-ds-surface-container'} ${addComment.isPending ? 'opacity-50' : ''}`}
             >
-              <Text className={`text-sm font-barlow-semi ${body.trim() ? 'text-white' : 'text-ds-outline'}`}>
+              <Text className={`text-sm font-barlow-semi ${body.trim() ? 'text-ds-on-red' : 'text-ds-outline'}`}>
                 Send
               </Text>
             </Pressable>

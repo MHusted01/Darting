@@ -1,5 +1,11 @@
 import { describe, it, expect, jest } from '@jest/globals';
 
+import {
+  computeThreeDartAvg,
+  buildPersonalBestsFromRows,
+  type PersonalBestRow,
+} from '@/lib/stats';
+
 jest.mock('@/db/client', () => ({ db: {} }));
 jest.mock('@/constants/games', () => ({
   GAMES: [
@@ -9,12 +15,6 @@ jest.mock('@/constants/games', () => ({
     { slug: 'cricket', name: 'Cricket' },
   ],
 }));
-
-import {
-  computeThreeDartAvg,
-  buildPersonalBestsFromRows,
-  type PersonalBestRow,
-} from '@/lib/stats';
 
 describe('computeThreeDartAvg', () => {
   it('returns 0 for empty turns', () => {

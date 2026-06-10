@@ -1,8 +1,12 @@
+import { useEffect, useRef } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { FlatList, Text, View, Pressable } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Dices } from 'lucide-react-native';
 import { GAMES, IMPLEMENTED_SLUGS, type GameCategory } from '@/constants/games';
+import EmptyState from '@/components/ui/EmptyState';
 import { GameCard } from '@/components/GameCard';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -23,6 +27,11 @@ export default function GameCategoryScreen() {
     : [];
   const label = CATEGORY_LABELS[safeCategory ?? ''] ?? 'Games';
 
+  const hasAnimatedRows = useRef(false);
+  useEffect(() => {
+    hasAnimatedRows.current = true;
+  }, []);
+
   const handlePress = (slug: string) => {
     if (!IMPLEMENTED_SLUGS.has(slug)) return;
     router.push(`/game/${slug}`);
@@ -37,7 +46,7 @@ export default function GameCategoryScreen() {
           onPress={() => router.back()}
           className="active:opacity-70"
         >
-          <ArrowLeft size={22} color="#1c1b1b" />
+          <ArrowLeft size={22} color={DS_COLORS.onSurface} />
         </Pressable>
         <Text className="text-xl font-barlow-condensed text-ds-on-surface">{label}</Text>
       </View>
@@ -47,13 +56,28 @@ export default function GameCategoryScreen() {
         keyExtractor={(item) => item.slug}
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 32, gap: 12 }}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <View className={!IMPLEMENTED_SLUGS.has(item.slug) ? 'opacity-40' : ''}>
-            <GameCard
-              game={item}
-              onPress={() => handlePress(item.slug)}
-            />
-          </View>
+        ListEmptyComponent={
+          <EmptyState
+            icon={Dices}
+            title="No games here"
+            message="This category has no games yet."
+            ctaLabel="Go back"
+            onCtaPress={() => router.back()}
+          />
+        }
+        renderItem={({ item, index }) => (
+          <Animated.View
+            entering={
+              hasAnimatedRows.current ? undefined : FadeInDown.duration(200).delay(Math.min(index, 8) * 40)
+            }
+          >
+            <View className={!IMPLEMENTED_SLUGS.has(item.slug) ? 'opacity-40' : ''}>
+              <GameCard
+                game={item}
+                onPress={() => handlePress(item.slug)}
+              />
+            </View>
+          </Animated.View>
         )}
       />
     </SafeAreaView>

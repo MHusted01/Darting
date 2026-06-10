@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import {
   ActivityIndicator,
   Alert,
@@ -66,7 +67,7 @@ export function CreateClubModal({ visible, onClose }: Props) {
             className="active:opacity-70"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <X size={22} color="#444748" />
+            <X size={22} color={DS_COLORS.onSurfaceVariant} />
           </Pressable>
         </View>
 
@@ -79,7 +80,7 @@ export function CreateClubModal({ visible, onClose }: Props) {
               <TextInput
                 className="py-4 text-base font-barlow text-ds-on-surface"
                 placeholder="e.g. The Flight Club"
-                placeholderTextColor="#747878"
+                placeholderTextColor={DS_COLORS.outline}
                 value={name}
                 onChangeText={setName}
                 maxLength={60}
@@ -95,7 +96,7 @@ export function CreateClubModal({ visible, onClose }: Props) {
               <TextInput
                 className="py-4 text-base font-barlow text-ds-on-surface"
                 placeholder="What's this club about?"
-                placeholderTextColor="#747878"
+                placeholderTextColor={DS_COLORS.outline}
                 value={description}
                 onChangeText={setDescription}
                 multiline
@@ -115,9 +116,9 @@ export function CreateClubModal({ visible, onClose }: Props) {
             disabled={createClub.isPending || !name.trim()}
           >
             {createClub.isPending ? (
-              <ActivityIndicator size="small" color="white" />
+              <ActivityIndicator size="small" color={DS_COLORS.onRed} />
             ) : (
-              <Text className={`text-base font-barlow-semi ${name.trim() ? 'text-white' : 'text-ds-outline'}`}>
+              <Text className={`text-base font-barlow-semi ${name.trim() ? 'text-ds-on-red' : 'text-ds-outline'}`}>
                 Create Club
               </Text>
             )}

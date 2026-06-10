@@ -1,8 +1,8 @@
+import { DEFAULT_AVATAR_COLOR } from '@/constants/avatarColors';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { players } from '@/db/schema';
 
-const DEFAULT_AVATAR_COLOR = '#6366f1';
 
 export async function getOrCreateUserPlayer(
   clerkUserId: string,

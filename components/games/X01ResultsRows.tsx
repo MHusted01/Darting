@@ -22,7 +22,7 @@ export function X01ResultsRows({ players }: X01ResultsRowsProps) {
             className="w-9 h-9 rounded-full items-center justify-center mr-3"
             style={{ backgroundColor: player.avatarColor }}
           >
-            <Text className="text-white text-xs font-barlow-semi">
+            <Text className="text-ds-on-red text-xs font-barlow-semi">
               {player.name.charAt(0).toUpperCase()}
             </Text>
           </View>

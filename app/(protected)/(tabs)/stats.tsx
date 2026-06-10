@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
+import { withErrorBoundary } from '@/components/ErrorBoundary';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -191,10 +194,14 @@ function filterBySlug(sessions: HistorySessionItem[], slug: string | null): Hist
   return sessions.filter((s) => s.gameSlug === slug);
 }
 
-export default function StatsScreen() {
+function StatsScreen() {
   const router = useRouter();
   const { userId } = useAuth();
   const hasFocusedOnce = useRef(false);
+  const hasAnimatedRows = useRef(false);
+  useEffect(() => {
+    hasAnimatedRows.current = true;
+  }, []);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [contextFilter, setContextFilter] = useState<ContextFilter>('casual');
@@ -391,10 +398,12 @@ export default function StatsScreen() {
   }
 
   const avgDisplay = overallAvg != null ? overallAvg.toFixed(1) : '—';
+
   const hasAvg = overallAvg != null;
 
   return (
     <SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
+      <Animated.View entering={FadeIn.duration(150)} style={{ flex: 1 }}>
       <FlatList
         testID="tabs-stats-flatlist"
         data={filteredSessions}
@@ -415,7 +424,7 @@ export default function StatsScreen() {
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 className="active:opacity-70"
               >
-                <Settings size={22} color="#444748" />
+                <Settings size={22} color={DS_COLORS.onSurfaceVariant} />
               </Pressable>
             </View>
 
@@ -428,7 +437,7 @@ export default function StatsScreen() {
                 {avgDisplay}
               </Text>
               <View className="self-start bg-ds-green rounded-full px-3 py-1 flex-row items-center gap-1">
-                <TrendingUp size={18} color="#444748" />
+                <TrendingUp size={18} color={DS_COLORS.onSurfaceVariant} />
                 <Text className="text-xs font-barlow-semi text-ds-green-dark">
                   {hasAvg ? '3-dart avg across 501 / 301 games' : 'Play a 501 or 301 game to see your average'}
                 </Text>
@@ -505,7 +514,7 @@ export default function StatsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={`Context filter ${label}`}
                 >
-                  <Text className={`text-xs font-barlow-semi ${contextFilter === key ? 'text-white' : 'text-ds-on-surface-variant'}`}>
+                  <Text className={`text-xs font-barlow-semi ${contextFilter === key ? 'text-ds-on-red' : 'text-ds-on-surface-variant'}`}>
                     {label}
                   </Text>
                 </Pressable>
@@ -678,7 +687,7 @@ export default function StatsScreen() {
             {/* Upgrade prompt (history gate) */}
             {!hasUnlimitedHistory && (
               <View className="mx-6 mb-4 flex-row items-center gap-2 bg-ds-surface-low border border-ds-outline-variant rounded-xl px-4 py-3">
-                <Lock size={16} color="#747878" />
+                <Lock size={16} color={DS_COLORS.outline} />
                 <Text className="flex-1 text-xs font-barlow text-ds-on-surface-variant">
                   Upgrade to Pro for full stats history
                 </Text>
@@ -705,7 +714,7 @@ export default function StatsScreen() {
                   >
                     <Text
                       className={`text-xs font-barlow-semi ${
-                        timeFilter === key ? 'text-white' : 'text-ds-on-surface-variant'
+                        timeFilter === key ? 'text-ds-on-red' : 'text-ds-on-surface-variant'
                       }`}
                     >
                       {label}
@@ -729,7 +738,7 @@ export default function StatsScreen() {
                   >
                     <Text
                       className={`text-xs font-barlow-semi ${
-                        activeSlug === null ? 'text-white' : 'text-ds-on-surface-variant'
+                        activeSlug === null ? 'text-ds-on-red' : 'text-ds-on-surface-variant'
                       }`}
                     >
                       All
@@ -749,7 +758,7 @@ export default function StatsScreen() {
                     >
                       <Text
                         className={`text-xs font-barlow-semi ${
-                          activeSlug === game.slug ? 'text-white' : 'text-ds-on-surface-variant'
+                          activeSlug === game.slug ? 'text-ds-on-red' : 'text-ds-on-surface-variant'
                         }`}
                       >
                         {game.name}
@@ -767,11 +776,17 @@ export default function StatsScreen() {
           </View>
         }
         renderItem={({ item, index }) => (
-          <View className={`mx-6 bg-ds-surface border-x border-ds-outline-variant ${
-            index === filteredSessions.length - 1 ? 'border-b rounded-b-2xl' : 'border-b'
-          } ${index === 0 ? 'border-t rounded-t-2xl' : ''}`}>
-            {renderSessionRow({ item })}
-          </View>
+          <Animated.View
+            entering={
+              hasAnimatedRows.current ? undefined : FadeInDown.duration(200).delay(Math.min(index, 8) * 40)
+            }
+          >
+            <View className={`mx-6 bg-ds-surface border-x border-ds-outline-variant ${
+              index === filteredSessions.length - 1 ? 'border-b rounded-b-2xl' : 'border-b'
+            } ${index === 0 ? 'border-t rounded-t-2xl' : ''}`}>
+              {renderSessionRow({ item })}
+            </View>
+          </Animated.View>
         )}
         ListEmptyComponent={
           hasError ? null : (
@@ -787,6 +802,9 @@ export default function StatsScreen() {
         }
         ListFooterComponent={null}
       />
+      </Animated.View>
     </SafeAreaView>
   );
 }
+
+export default withErrorBoundary(StatsScreen, 'stats');

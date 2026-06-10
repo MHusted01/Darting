@@ -1,4 +1,6 @@
+import { AVATAR_COLORS as PALETTE } from '@/constants/avatarColors';
 import { useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { View, Text, TextInput, Pressable } from 'react-native';
 import { X, UserPlus } from 'lucide-react-native';
 
@@ -18,19 +20,10 @@ interface PlayerManagerProps {
   lockedPlayerIds?: ReadonlySet<number>;
 }
 
-export const AVATAR_COLORS = [
-  '#6366f1',
-  '#10b981',
-  '#f59e0b',
-  '#f43f5e',
-  '#0ea5e9',
-  '#f97316',
-  '#8b5cf6',
-  '#14b8a6',
-];
+export { AVATAR_COLORS } from '@/constants/avatarColors';
 
 export function getNextAvatarColor(currentCount: number): string {
-  return AVATAR_COLORS[currentCount % AVATAR_COLORS.length];
+  return PALETTE[currentCount % PALETTE.length];
 }
 
 export function PlayerManager({
@@ -66,7 +59,7 @@ export function PlayerManager({
             value={name}
             onChangeText={setName}
             placeholder="Add guest player"
-            placeholderTextColor="#747878"
+            placeholderTextColor={DS_COLORS.outline}
             onSubmitEditing={handleAdd}
             returnKeyType="done"
             className="flex-1 bg-ds-surface border border-ds-outline-variant rounded-xl px-4 py-3 text-base font-barlow text-ds-on-surface"
@@ -81,7 +74,7 @@ export function PlayerManager({
             accessibilityRole="button"
             accessibilityLabel="Add player"
           >
-            <UserPlus size={20} color={name.trim() ? 'white' : '#747878'} />
+            <UserPlus size={20} color={name.trim() ? DS_COLORS.onRed : DS_COLORS.outline} />
           </Pressable>
         </View>
       )}
@@ -97,7 +90,7 @@ export function PlayerManager({
                 className="w-8 h-8 rounded-full items-center justify-center mr-3"
                 style={{ backgroundColor: player.avatarColor }}
               >
-                <Text className="text-white text-sm font-barlow-semi">
+                <Text className="text-ds-on-red text-sm font-barlow-semi">
                   {player.name.charAt(0).toUpperCase()}
                 </Text>
               </View>
@@ -117,7 +110,7 @@ export function PlayerManager({
                   accessibilityRole="button"
                   accessibilityLabel={`Remove ${player.name}`}
                 >
-                  <X size={18} color="#747878" />
+                  <X size={18} color={DS_COLORS.outline} />
                 </Pressable>
               )}
             </View>

@@ -100,22 +100,22 @@ export function CricketInput({
               key={i}
               className={`w-10 h-10 rounded-full items-center justify-center ${
                 isCurrent
-                  ? 'bg-black'
+                  ? 'bg-ds-on-surface'
                   : isThrown
                     ? wasHit
-                      ? 'bg-emerald-500'
-                      : 'bg-gray-300'
-                    : 'bg-gray-200'
+                      ? 'bg-ds-green-dark'
+                      : 'bg-ds-outline-variant'
+                    : 'bg-ds-surface-container'
               }`}
             >
               {isThrown ? (
-                <Text className="text-white text-xs font-bold">
+                <Text className="text-ds-on-red text-xs font-barlow-bold">
                   {getDartLabel(thrownDarts[i])}
                 </Text>
               ) : (
                 <Text
-                  className={`text-sm font-bold ${
-                    isCurrent ? 'text-white' : 'text-gray-500'
+                  className={`text-sm font-barlow-bold ${
+                    isCurrent ? 'text-ds-on-red' : 'text-ds-on-surface-variant'
                   }`}
                 >
                   {i + 1}
@@ -137,12 +137,12 @@ export function CricketInput({
                   <Pressable
                     key={segment}
                     onPress={() => handleSegmentPress(segment)}
-                    className="bg-black rounded-xl py-4 items-center active:opacity-70"
+                    className="bg-ds-on-surface rounded-xl py-4 items-center active:opacity-70"
                     style={{ width: '48%' }}
                     accessibilityRole="button"
                     accessibilityLabel={`Select ${getSegmentLabel(segment)}`}
                   >
-                    <Text className="text-white text-lg font-bold">
+                    <Text className="text-ds-on-red text-lg font-barlow-semi">
                       {getSegmentLabel(segment)}
                     </Text>
                   </Pressable>
@@ -152,27 +152,27 @@ export function CricketInput({
               {/* Bull button - full width */}
               <Pressable
                 onPress={() => handleSegmentPress(25)}
-                className="bg-black rounded-xl py-4 items-center active:opacity-70"
+                className="bg-ds-on-surface rounded-xl py-4 items-center active:opacity-70"
                 accessibilityRole="button"
                 accessibilityLabel="Select Bull"
               >
-                <Text className="text-white text-lg font-bold">Bull</Text>
+                <Text className="text-ds-on-red text-lg font-barlow-semi">Bull</Text>
               </Pressable>
 
               {/* Miss button */}
               <Pressable
                 onPress={handleMiss}
-                className="border border-gray-300 rounded-xl py-4 items-center active:opacity-70"
+                className="border border-ds-outline-variant rounded-xl py-4 items-center active:opacity-70"
                 accessibilityRole="button"
                 accessibilityLabel="Miss"
               >
-                <Text className="text-gray-600 text-lg font-bold">Miss</Text>
+                <Text className="text-ds-on-surface-variant text-lg font-barlow-semi">Miss</Text>
               </Pressable>
             </>
           ) : (
             <>
               {/* Multiplier selection */}
-              <Text className="text-center text-sm text-gray-500 mb-1">
+              <Text className="text-center text-sm text-ds-on-surface-variant mb-1">
                 {getSegmentLabel(selectedSegment)} — choose multiplier
               </Text>
 
@@ -180,22 +180,22 @@ export function CricketInput({
                 <Pressable
                   key={opt.value}
                   onPress={() => handleMultiplierPress(opt.value)}
-                  className="bg-black rounded-xl py-4 items-center active:opacity-70"
+                  className="bg-ds-on-surface rounded-xl py-4 items-center active:opacity-70"
                   accessibilityRole="button"
                   accessibilityLabel={opt.label}
                 >
-                  <Text className="text-white text-lg font-bold">{opt.label}</Text>
+                  <Text className="text-ds-on-red text-lg font-barlow-semi">{opt.label}</Text>
                 </Pressable>
               ))}
 
               {/* Back button */}
               <Pressable
                 onPress={handleBack}
-                className="border border-gray-300 rounded-xl py-4 items-center active:opacity-70"
+                className="border border-ds-outline-variant rounded-xl py-4 items-center active:opacity-70"
                 accessibilityRole="button"
                 accessibilityLabel="Go back to segment selection"
               >
-                <Text className="text-gray-600 text-lg font-bold">Back</Text>
+                <Text className="text-ds-on-surface-variant text-lg font-barlow-semi">Back</Text>
               </Pressable>
             </>
           )}

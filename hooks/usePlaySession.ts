@@ -4,6 +4,7 @@ import { useAuth } from '@clerk/expo';
 import { useRouter } from 'expo-router';
 import { and, asc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
+import { impact, notify } from '@/lib/haptics';
 import { gamePlayers, gameSessions, gameTurns } from '@/db/schema';
 import {
   AROUND_THE_CLOCK_SLUG,
@@ -345,6 +346,14 @@ export function usePlaySession({
               .where(eq(gameSessions.id, gameState.sessionId));
           }
         });
+
+        if (!isRemote) {
+          if (isComplete) {
+            void notify('success');
+          } else {
+            void impact('light');
+          }
+        }
 
         if (isComplete) {
           if (userId) {
@@ -735,6 +744,56 @@ export function usePlaySession({
     ]);
   }, [gameState, router, onQuitConfirmed]);
 
+  const undoLastDart = useCallback(() => {
+    if (!gameState || isProcessing || turnDarts.length === 0) return;
+
+    const newDarts = turnDarts.slice(0, -1);
+    setTurnDarts(newDarts);
+
+    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+
+    if (isAroundTheClock) {
+      const startTarget = (currentPlayer.gameState as AroundTheClockPlayerState)
+        .currentTarget;
+      let target = startTarget;
+      for (const d of newDarts) {
+        if (d.segment === getTargetSegment(target) && d.multiplier > 0) {
+          target += 1;
+        }
+      }
+      setLocalTarget(target);
+    } else if (isCricket) {
+      const startState = currentPlayer.gameState as CricketPlayerState;
+      if (newDarts.length === 0) {
+        setLocalCricketState(startState);
+      } else {
+        const allPlayerStates = gameState.players.map(
+          (player) => player.gameState as CricketPlayerState,
+        );
+        const result = processCricketTurn(
+          newDarts,
+          startState,
+          allPlayerStates,
+          gameState.currentPlayerIndex,
+          gameState.config as CricketConfig,
+        );
+        setLocalCricketState(result.newState);
+      }
+    } else if (isX01) {
+      const startState = currentPlayer.gameState as X01PlayerState;
+      if (newDarts.length === 0) {
+        setLocalX01State(startState);
+      } else {
+        const result = processX01Turn(
+          newDarts,
+          startState,
+          gameState.config as X01Config,
+        );
+        setLocalX01State(result.newState);
+      }
+    }
+  }, [gameState, isProcessing, turnDarts, isAroundTheClock, isCricket, isX01]);
+
   const handleKillerDartThrown = useCallback(
     async (dart: DartThrow) => {
       if (!gameState || isProcessing) return;
@@ -866,6 +925,7 @@ export function usePlaySession({
     handleX01DartThrown,
     handleRoundDartThrown,
     handleKillerDartThrown,
+    undoLastDart,
     handleQuit,
     isX01,
     applyRemoteTurn,

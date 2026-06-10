@@ -1,4 +1,5 @@
 import { View, Text } from 'react-native';
+import { MAX_FONT_SCALE_DENSE } from '@/constants/typography';
 import { RoundTargetInput } from '@/components/games/RoundTargetInput';
 import { BASEBALL_MAX_INNINGS } from '@/lib/games/baseball';
 import type { LoadedPlayer } from '@/hooks/usePlaySession';
@@ -32,7 +33,7 @@ export function BaseballPlayPanel({
         <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-1">
           Inning {inning} of {BASEBALL_MAX_INNINGS}
         </Text>
-        <Text className="text-6xl font-barlow-bold text-ds-on-surface">
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE_DENSE} className="text-6xl font-barlow-bold text-ds-on-surface">
           {state.totalRuns}
         </Text>
         <Text className="text-sm font-barlow text-ds-on-surface-variant mt-1">
@@ -87,7 +88,7 @@ export function BaseballPlayPanel({
                   className="w-8 h-8 rounded-full items-center justify-center"
                   style={{ backgroundColor: player.avatarColor }}
                 >
-                  <Text className="text-xs font-barlow-semi text-white">
+                  <Text className="text-xs font-barlow-semi text-ds-on-red">
                     {player.name.charAt(0).toUpperCase()}
                   </Text>
                 </View>

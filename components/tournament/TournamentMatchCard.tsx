@@ -1,4 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
+import { DS_COLORS } from '@/constants/colors';
 import { CheckCircle, Play } from 'lucide-react-native';
 import type { TournamentMatch, TournamentParticipant } from '@/types/tournament';
 
@@ -37,7 +38,7 @@ export function TournamentMatchCard({ match, currentUserId, onPlayPress }: Tourn
       <View className="flex-row items-center justify-between">
         <View className="flex-1">
           <View className="flex-row items-center gap-2 mb-1">
-            {isWinner1 && <CheckCircle size={14} color="#1e502a" />}
+            {isWinner1 && <CheckCircle size={14} color={DS_COLORS.greenDark} />}
             <Text
               className={`text-sm font-barlow-semi ${match.status === 'completed' && isWinner1 ? 'text-ds-green-dark' : 'text-ds-on-surface'}`}
               numberOfLines={1}
@@ -47,7 +48,7 @@ export function TournamentMatchCard({ match, currentUserId, onPlayPress }: Tourn
           </View>
           <Text className="text-xs font-barlow text-ds-outline">vs</Text>
           <View className="flex-row items-center gap-2 mt-1">
-            {isWinner2 && <CheckCircle size={14} color="#1e502a" />}
+            {isWinner2 && <CheckCircle size={14} color={DS_COLORS.greenDark} />}
             <Text
               className={`text-sm font-barlow-semi ${match.status === 'completed' && isWinner2 ? 'text-ds-green-dark' : 'text-ds-on-surface'}`}
               numberOfLines={1}
@@ -68,8 +69,8 @@ export function TournamentMatchCard({ match, currentUserId, onPlayPress }: Tourn
             accessibilityRole="button"
             accessibilityLabel="Play match"
           >
-            <Play size={12} color="white" />
-            <Text className="text-xs font-barlow-semi text-white">Play</Text>
+            <Play size={12} color={DS_COLORS.onRed} />
+            <Text className="text-xs font-barlow-semi text-ds-on-red">Play</Text>
           </Pressable>
         ) : (
           <View className="bg-ds-surface-container rounded-lg px-2 py-1">

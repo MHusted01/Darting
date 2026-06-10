@@ -1,4 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
+import { DS_COLORS } from '@/constants/colors';
 import { useRouter } from 'expo-router';
 import { Eye } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -48,7 +49,7 @@ export function LiveChallengesSection({ clubId }: { clubId: string }) {
                 {GAMES.find((g) => g.slug === challenge.gameSlug)?.name ?? challenge.gameSlug}
               </Text>
             </View>
-            <Eye size={18} color="#747878" />
+            <Eye size={18} color={DS_COLORS.outline} />
           </Pressable>
         ))}
       </View>

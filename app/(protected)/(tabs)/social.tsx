@@ -1,9 +1,15 @@
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { DS_COLORS } from '@/constants/colors';
+import { withErrorBoundary } from '@/components/ErrorBoundary';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import Skeleton from '@/components/ui/Skeleton';
+import EmptyState from '@/components/ui/EmptyState';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Settings, Trophy } from 'lucide-react-native';
+import { Settings, Shield, Trophy, Users } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import { useMyClubs } from '@/hooks/useClubs';
 import { useFriends, useRemoveFriend } from '@/hooks/useFriends';
 import { usePresenceContext } from '@/providers/PresenceProvider';
@@ -11,6 +17,7 @@ import { useMyActiveTournaments } from '@/hooks/useTournament';
 import { mergePresence } from '@/lib/friends';
 import { FriendRequestsSection } from '@/components/social/FriendRequestsSection';
 import { ChallengeInvitesSection } from '@/components/social/ChallengeInvitesSection';
+import { OutgoingChallengesSection } from '@/components/social/OutgoingChallengesSection';
 import { FriendSearchModal } from '@/components/social/FriendSearchModal';
 import { CreateClubModal } from '@/components/social/CreateClubModal';
 import { ClubSearchModal } from '@/components/social/ClubSearchModal';
@@ -41,8 +48,9 @@ function friendInitials(friend: Friend): string {
   return (first + last).toUpperCase() || '?';
 }
 
-export default function SocialScreen() {
+function SocialScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [friendSearchVisible, setFriendSearchVisible] = useState(false);
   const [createClubVisible,   setCreateClubVisible]   = useState(false);
   const [clubSearchVisible,   setClubSearchVisible]   = useState(false);
@@ -51,7 +59,9 @@ export default function SocialScreen() {
   const friendsQuery  = useFriends();
   const { presenceMap } = usePresenceContext();
   const removeFriendMutation = useRemoveFriend();
-  const { data: activeTournaments = [] } = useMyActiveTournaments();
+  const tournamentsQuery = useMyActiveTournaments();
+  const activeTournaments = tournamentsQuery.data ?? [];
+  const [refreshing, setRefreshing] = useState(false);
 
   const friends = mergePresence(friendsQuery.data ?? [], presenceMap);
 
@@ -69,6 +79,23 @@ export default function SocialScreen() {
     }, [refetchClubs, refetchFriends]),
   );
 
+  const refetchTournaments = tournamentsQuery.refetch;
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetchClubs(),
+        refetchFriends(),
+        refetchTournaments(),
+        queryClient.refetchQueries({ queryKey: ['friends-activity'] }),
+        queryClient.refetchQueries({ queryKey: ['friend-requests'] }),
+        queryClient.refetchQueries({ queryKey: ['challenges'] }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchClubs, refetchFriends, refetchTournaments, queryClient]);
+
   return (
     <SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
       <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
@@ -82,11 +109,18 @@ export default function SocialScreen() {
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           className="active:opacity-70"
         >
-          <Settings size={22} color="#444748" />
+          <Settings size={22} color={DS_COLORS.onSurfaceVariant} />
         </Pressable>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+      <Animated.View entering={FadeIn.duration(150)} style={{ flex: 1 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 32 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={DS_COLORS.red} />
+        }
+      >
 
         {/* ── Friend Activity ── */}
         <FriendActivitySection />
@@ -105,7 +139,7 @@ export default function SocialScreen() {
                   accessibilityLabel={t.name}
                 >
                   <View className="w-9 h-9 rounded-full bg-ds-red-container items-center justify-center">
-                    <Trophy size={16} color="#ba1a1a" />
+                    <Trophy size={16} color={DS_COLORS.red} />
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm font-barlow-semi text-ds-on-surface" numberOfLines={1}>{t.name}</Text>
@@ -139,20 +173,27 @@ export default function SocialScreen() {
                 accessibilityLabel="Create Club"
                 onPress={() => setCreateClubVisible(true)}
               >
-                <Text className="text-white font-barlow-semi text-sm">+ Create</Text>
+                <Text className="text-ds-on-red font-barlow-semi text-sm">+ Create</Text>
               </Pressable>
             </View>
           </View>
 
           {clubsQuery.isLoading && (
-            <ActivityIndicator size="small" color="#ba1a1a" />
+            <View className="gap-3" accessible accessibilityState={{ busy: true }} accessibilityLabel="Loading clubs">
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </View>
           )}
 
           {!clubsQuery.isLoading && (!clubsQuery.data || clubsQuery.data.length === 0) && (
-            <View className="bg-ds-surface border border-ds-outline-variant rounded-xl p-6 items-center">
-              <Text className="text-sm font-barlow text-ds-outline text-center">
-                You&apos;re not in any clubs yet.{'\n'}Create one or search to join.
-              </Text>
+            <View className="bg-ds-surface border border-ds-outline-variant rounded-xl">
+              <EmptyState
+                icon={Shield}
+                title="You're not in any clubs yet"
+                message="Create one or search to join."
+                ctaLabel="Browse clubs"
+                onCtaPress={() => setClubSearchVisible(true)}
+              />
             </View>
           )}
 
@@ -165,7 +206,7 @@ export default function SocialScreen() {
                   accessibilityLabel={`View ${club.name}`}
                   onPress={() => router.push(`/(protected)/club/${club.id}`)}
                   className="bg-ds-surface border border-ds-outline-variant rounded-xl p-4 active:opacity-80"
-                  style={club.role === 'admin' ? { borderLeftWidth: 4, borderLeftColor: '#1c1b1b' } : undefined}
+                  style={club.role === 'admin' ? { borderLeftWidth: 4, borderLeftColor: DS_COLORS.onSurface } : undefined}
                 >
                   <View className="flex-row items-start justify-between mb-2">
                     <View className="flex-1">
@@ -178,7 +219,7 @@ export default function SocialScreen() {
                     </View>
                     {club.role === 'admin' && (
                       <View className="bg-ds-on-surface rounded-full px-3 py-1 ml-2">
-                        <Text className="text-white text-xs font-barlow-semi">ADMIN</Text>
+                        <Text className="text-ds-on-red text-xs font-barlow-semi">ADMIN</Text>
                       </View>
                     )}
                   </View>
@@ -204,16 +245,25 @@ export default function SocialScreen() {
 
           <FriendRequestsSection />
           <ChallengeInvitesSection />
+          <OutgoingChallengesSection />
 
           {friendsQuery.isLoading && (
-            <ActivityIndicator size="small" color="#ba1a1a" />
+            <View className="gap-2" accessible accessibilityState={{ busy: true }} accessibilityLabel="Loading friends">
+              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-14 w-full rounded-xl" />
+            </View>
           )}
 
           {!friendsQuery.isLoading && (!friends || friends.length === 0) && (
-            <View className="bg-ds-surface border border-ds-outline-variant rounded-xl p-6 items-center">
-              <Text className="text-sm font-barlow text-ds-outline text-center">
-                No friends yet.{'\n'}Search to add friends.
-              </Text>
+            <View className="bg-ds-surface border border-ds-outline-variant rounded-xl">
+              <EmptyState
+                icon={Users}
+                title="No friends yet"
+                message="Search to add friends."
+                ctaLabel="Add friends"
+                onCtaPress={() => setFriendSearchVisible(true)}
+              />
             </View>
           )}
 
@@ -238,8 +288,8 @@ export default function SocialScreen() {
                   );
                 };
                 return (
+                <Animated.View key={friend.friendshipId} entering={FadeInDown.duration(200).delay(Math.min(index, 8) * 40)}>
                 <Pressable
-                  key={friend.friendshipId}
                   accessibilityRole="button"
                   accessibilityLabel={`${[friend.firstName, friend.lastName].filter(Boolean).join(' ')} friend row`}
                   accessibilityHint="Press to view profile, long press to remove friend"
@@ -278,12 +328,14 @@ export default function SocialScreen() {
                     </Text>
                   </View>
                 </Pressable>
+                </Animated.View>
                 );
               })}
             </View>
           )}
         </View>
       </ScrollView>
+      </Animated.View>
 
       <FriendSearchModal visible={friendSearchVisible} onClose={() => setFriendSearchVisible(false)} />
       <CreateClubModal   visible={createClubVisible}   onClose={() => setCreateClubVisible(false)} />
@@ -291,3 +343,5 @@ export default function SocialScreen() {
     </SafeAreaView>
   );
 }
+
+export default withErrorBoundary(SocialScreen, 'social');

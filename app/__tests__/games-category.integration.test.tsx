@@ -59,6 +59,15 @@ describe('GameCategory Screen Integration', () => {
     expect(screen.queryByLabelText('Cricket')).toBeNull();
   });
 
+  it('shows an empty state with a back CTA for an invalid category', () => {
+    mockCategory = 'invalid-category';
+    render(<GameCategoryScreen />);
+
+    expect(screen.getByText('No games here')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('empty-state-cta'));
+    expect(mockBack).toHaveBeenCalled();
+  });
+
   it('back button navigates back', () => {
     mockCategory = 'Classic';
     render(<GameCategoryScreen />);

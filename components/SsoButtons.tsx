@@ -1,4 +1,5 @@
 import { useSSO } from '@clerk/expo';
+import { DS_COLORS } from '@/constants/colors';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
@@ -30,9 +31,9 @@ function SocialButton({ label, iconName, onPress, variant }: SocialButtonProps) 
       <FontAwesome
         name={iconName}
         size={18}
-        color={isDark ? 'white' : 'black'}
+        color={isDark ? DS_COLORS.onRed : DS_COLORS.onSurface}
       />
-      <Text className={`text-base font-barlow-semi ${isDark ? 'text-white' : 'text-ds-on-surface'}`}>
+      <Text className={`text-base font-barlow-semi ${isDark ? 'text-ds-on-red' : 'text-ds-on-surface'}`}>
         {label}
       </Text>
     </Pressable>

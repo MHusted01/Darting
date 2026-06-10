@@ -1,4 +1,6 @@
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { DS_COLORS } from '@/constants/colors';
+import Skeleton from '@/components/ui/Skeleton';
 import { useRouter } from 'expo-router';
 import { useFriendsActivity } from '@/hooks/useFriendsActivity';
 import { timeAgo } from '@/lib/time';
@@ -49,7 +51,10 @@ export function FriendActivitySection() {
     return (
       <View className="px-6 pt-4 pb-2">
         <Text className="text-2xl font-barlow-condensed text-ds-on-surface mb-3">Activity</Text>
-        <ActivityIndicator size="small" color="#ba1a1a" />
+        <View className="gap-2">
+          <Skeleton className="h-14 w-full rounded-xl" />
+          <Skeleton className="h-14 w-full rounded-xl" />
+        </View>
       </View>
     );
   }
@@ -72,7 +77,7 @@ export function FriendActivitySection() {
             className="px-4 py-3 items-center active:opacity-70 border-t border-ds-outline-variant"
           >
             {isFetchingNextPage ? (
-              <ActivityIndicator size="small" color="#ba1a1a" />
+              <ActivityIndicator size="small" color={DS_COLORS.red} />
             ) : (
               <Text className="text-sm font-barlow-semi text-ds-on-surface-variant">Show more</Text>
             )}

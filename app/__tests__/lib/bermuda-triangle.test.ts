@@ -1,7 +1,5 @@
 import { describe, it, expect, jest } from '@jest/globals';
 
-jest.mock('@/db/client', () => ({ db: {} }));
-
 import {
   getInitialPlayerState,
   processTurn,
@@ -10,6 +8,8 @@ import {
   type BermudaTrianglePlayerState,
 } from '@/lib/games/bermuda-triangle';
 import type { DartThrow } from '@/types/game';
+
+jest.mock('@/db/client', () => ({ db: {} }));
 
 const miss: DartThrow = { segment: 0, multiplier: 0 };
 

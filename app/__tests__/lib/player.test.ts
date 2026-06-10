@@ -1,5 +1,7 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
+import { getOrCreateUserPlayer, getUserPlayerId } from '@/lib/player';
+
 jest.mock('@/db/client', () => ({
   db: {
     query: {
@@ -12,8 +14,6 @@ jest.mock('@/db/client', () => ({
 jest.mock('@/db/schema', () => ({
   players: { userId: 'user_id', id: 'id' },
 }));
-
-import { getOrCreateUserPlayer, getUserPlayerId } from '@/lib/player';
 
 type DbMock = {
   query: { players: { findFirst: jest.Mock<any> } };
@@ -35,7 +35,7 @@ describe('getOrCreateUserPlayer', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    dbMock = (require('@/db/client') as { db: DbMock }).db;
+    dbMock = (jest.requireMock('@/db/client') as { db: DbMock }).db;
   });
 
   it('inserts and returns new player when none exists', async () => {
@@ -86,7 +86,7 @@ describe('getUserPlayerId', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    dbMock = (require('@/db/client') as { db: DbMock }).db;
+    dbMock = (jest.requireMock('@/db/client') as { db: DbMock }).db;
   });
 
   it('returns id when player row exists', async () => {

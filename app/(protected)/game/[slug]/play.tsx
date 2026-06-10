@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { DS_COLORS } from '@/constants/colors';
+import { Undo2 } from 'lucide-react-native';
+import Skeleton from '@/components/ui/Skeleton';
+import { withErrorBoundary } from '@/components/ErrorBoundary';
 import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,7 +32,7 @@ type BeforeCommitTurn = (
   newScore: number,
 ) => Promise<void>;
 
-export default function PlayScreen() {
+function PlayScreen() {
   const router = useRouter();
   const { slug, sessionId, challengeId } = useLocalSearchParams<{
     slug: string;
@@ -70,6 +74,7 @@ export default function PlayScreen() {
     handleX01DartThrown,
     handleRoundDartThrown,
     handleKillerDartThrown,
+    undoLastDart,
     handleQuit,
     applyRemoteTurn,
   } = usePlaySession({
@@ -111,7 +116,7 @@ export default function PlayScreen() {
           accessibilityRole="button"
           accessibilityLabel="Go back to games"
         >
-          <Text className="text-white font-barlow-semi">Back to games</Text>
+          <Text className="text-ds-on-red font-barlow-semi">Back to games</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -119,8 +124,31 @@ export default function PlayScreen() {
 
   if (!gameState || !currentPlayer) {
     return (
-      <SafeAreaView className="flex-1 bg-ds-bg justify-center items-center">
-        <Text className="text-ds-outline font-barlow">Loading...</Text>
+      <SafeAreaView className="flex-1 bg-ds-bg" edges={['top']}>
+        <View
+          className="flex-1 px-6"
+          accessible
+          accessibilityState={{ busy: true }}
+          accessibilityLabel="Loading game"
+        >
+          <View className="flex-row items-center justify-between mt-2 mb-6">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-10" />
+          </View>
+          <View className="items-center mb-6 gap-2">
+            <Skeleton className="h-12 w-12 rounded-full" />
+            <Skeleton className="h-5 w-32" />
+          </View>
+          <View className="items-center mb-8 gap-2">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-16 w-40 rounded-xl" />
+          </View>
+          <View className="gap-2">
+            <Skeleton className="h-11 w-full rounded-xl" />
+            <Skeleton className="h-11 w-full rounded-xl" />
+            <Skeleton className="h-11 w-full rounded-xl" />
+          </View>
+        </View>
       </SafeAreaView>
     );
   }
@@ -140,14 +168,28 @@ export default function PlayScreen() {
           <Text className="text-sm font-barlow text-ds-on-surface-variant">
             Round {gameState.currentRound}
           </Text>
-          <Pressable
-            onPress={handleQuit}
-            className="active:opacity-70"
-            accessibilityRole="button"
-            accessibilityLabel="Quit game"
-          >
-            <Text className="text-sm font-barlow-semi text-ds-red">Quit</Text>
-          </Pressable>
+          <View className="flex-row items-center gap-5">
+            {turnDarts.length > 0 && (
+              <Pressable
+                onPress={undoLastDart}
+                disabled={inputDisabled}
+                className={`flex-row items-center gap-1 active:opacity-70 ${inputDisabled ? 'opacity-50' : ''}`}
+                accessibilityRole="button"
+                accessibilityLabel="Undo last dart"
+              >
+                <Undo2 size={14} color={DS_COLORS.onSurfaceVariant} />
+                <Text className="text-sm font-barlow-semi text-ds-on-surface-variant">Undo</Text>
+              </Pressable>
+            )}
+            <Pressable
+              onPress={handleQuit}
+              className="active:opacity-70"
+              accessibilityRole="button"
+              accessibilityLabel="Quit game"
+            >
+              <Text className="text-sm font-barlow-semi text-ds-red">Quit</Text>
+            </Pressable>
+          </View>
         </View>
 
         {isRealtimeMatch && !realtime.opponentOnline && (
@@ -171,7 +213,7 @@ export default function PlayScreen() {
             className="w-12 h-12 rounded-full items-center justify-center mb-2"
             style={{ backgroundColor: currentPlayer.avatarColor }}
           >
-            <Text className="text-white text-lg font-barlow-bold">
+            <Text className="text-ds-on-red text-lg font-barlow-bold">
               {currentPlayer.name.charAt(0).toUpperCase()}
             </Text>
           </View>
@@ -287,3 +329,5 @@ export default function PlayScreen() {
     </SafeAreaView>
   );
 }
+
+export default withErrorBoundary(PlayScreen, 'game-play');

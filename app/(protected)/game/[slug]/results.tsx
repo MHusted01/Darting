@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -217,7 +218,7 @@ export default function ResultsScreen() {
           accessibilityRole="button"
           accessibilityLabel="Go to home"
         >
-          <Text className="text-white font-barlow-semi">Home</Text>
+          <Text className="text-ds-on-red font-barlow-semi">Home</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -263,7 +264,7 @@ export default function ResultsScreen() {
         {winnerName && (
           <View className="items-center mb-8">
             <View className="w-16 h-16 rounded-full bg-ds-red-container items-center justify-center mb-3">
-              <Trophy size={24} color="#1c1b1b" />
+              <Trophy size={24} color={DS_COLORS.onSurface} />
             </View>
             <Text className="text-sm font-barlow text-ds-on-surface-variant mb-1">
               {isDraw ? 'Result' : 'Winner'}
@@ -297,7 +298,7 @@ export default function ResultsScreen() {
 
         {tournamentMatchId && (
           <View className={`rounded-xl px-4 py-3 mb-1 flex-row items-center gap-2 ${matchRecorded ? 'bg-ds-green' : 'bg-ds-surface-container'}`}>
-            {matchRecorded && <CheckCircle size={16} color="#1e502a" />}
+            {matchRecorded && <CheckCircle size={16} color={DS_COLORS.greenDark} />}
             <Text className={`text-sm font-barlow-semi flex-1 ${matchRecorded ? 'text-ds-green-dark' : 'text-ds-on-surface-variant'}`}>
               {matchRecorded ? 'Match result recorded' : 'Syncing match result…'}
             </Text>
@@ -312,7 +313,7 @@ export default function ResultsScreen() {
               accessibilityRole="button"
               accessibilityLabel="Back to tournament"
             >
-              <Text className="text-white text-lg font-barlow-semi">Back to Tournament</Text>
+              <Text className="text-ds-on-red text-lg font-barlow-semi">Back to Tournament</Text>
             </Pressable>
           ) : (
             <Pressable
@@ -321,7 +322,7 @@ export default function ResultsScreen() {
               accessibilityRole="button"
               accessibilityLabel="Play again"
             >
-              <Text className="text-white text-lg font-barlow-semi">Play Again</Text>
+              <Text className="text-ds-on-red text-lg font-barlow-semi">Play Again</Text>
             </Pressable>
           )}
 

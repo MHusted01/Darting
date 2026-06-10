@@ -1,4 +1,5 @@
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import Skeleton from '@/components/ui/Skeleton';
 import { useAcceptFriendRequest, useDeclineFriendRequest, usePendingRequests } from '@/hooks/useFriends';
 import type { FriendRequest } from '@/types/social';
 
@@ -19,8 +20,8 @@ export function FriendRequestsSection() {
 
   if (isLoading) {
     return (
-      <View className="py-4 items-center">
-        <ActivityIndicator size="small" color="#ba1a1a" />
+      <View className="py-4">
+        <Skeleton className="h-14 w-full rounded-xl" />
       </View>
     );
   }
@@ -67,7 +68,7 @@ export function FriendRequestsSection() {
                 onPress={() => acceptMutation.mutate(req.id)}
                 disabled={acceptMutation.isPending}
               >
-                <Text className="text-xs font-barlow-semi text-white">Accept</Text>
+                <Text className="text-xs font-barlow-semi text-ds-on-red">Accept</Text>
               </Pressable>
             </View>
           </View>

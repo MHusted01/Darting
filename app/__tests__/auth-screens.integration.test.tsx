@@ -96,6 +96,18 @@ describe('Auth Screen Integration', () => {
     jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
   });
 
+  it('sign-in wraps the form in a KeyboardAvoidingView', () => {
+    const { KeyboardAvoidingView } = jest.requireActual('react-native') as typeof import('react-native');
+    render(<SignIn />);
+    expect(screen.UNSAFE_getAllByType(KeyboardAvoidingView).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('sign-up wraps the form in a KeyboardAvoidingView', () => {
+    const { KeyboardAvoidingView } = jest.requireActual('react-native') as typeof import('react-native');
+    render(<SignUp />);
+    expect(screen.UNSAFE_getAllByType(KeyboardAvoidingView).length).toBeGreaterThanOrEqual(1);
+  });
+
   it('sign-in validates empty credentials', () => {
     render(<SignIn />);
 

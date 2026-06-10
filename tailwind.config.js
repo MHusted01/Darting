@@ -17,6 +17,7 @@ module.exports = {
         'ds-outline':            '#747878',
         'ds-outline-variant':    '#c4c7c7',
         'ds-red':                '#ba1a1a',
+        'ds-on-red':             '#ffffff',
         'ds-red-container':      '#ffdad6',
         'ds-green':              '#b8f0bc',
         'ds-green-dark':         '#1e502a',

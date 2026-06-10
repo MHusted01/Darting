@@ -1,7 +1,8 @@
 import { useSignUp } from '@clerk/expo';
+import { DS_COLORS } from '@/constants/colors';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Text, TextInput, Pressable, View, Alert, ScrollView } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react-native';
@@ -138,6 +139,7 @@ export default function SignUp() {
   if (pendingVerification) {
     return (
       <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-ds-bg">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View className="flex-1 px-6 pt-8 pb-6 justify-center">
           <Text className="text-3xl font-barlow-condensed-xbold text-ds-on-surface mb-2">Verify Email</Text>
           <Text className="text-base font-barlow text-ds-on-surface-variant mb-8">
@@ -151,17 +153,19 @@ export default function SignUp() {
           {verifyingBusy ? (
             <Text className="mt-6 text-center font-barlow text-ds-on-surface-variant">Verifying...</Text>
           ) : (
-            <Pressable onPress={() => setPendingVerification(false)} className="active:opacity-70">
+            <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => setPendingVerification(false)} className="active:opacity-70">
               <Text className="mt-6 text-center font-barlow text-ds-on-surface-variant">Go back</Text>
             </Pressable>
           )}
         </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-ds-bg">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -175,7 +179,7 @@ export default function SignUp() {
               onPress={() => router.back()}
               className="active:opacity-70"
             >
-              <ArrowLeft size={22} color="#1c1b1b" />
+              <ArrowLeft size={22} color={DS_COLORS.onSurface} />
             </Pressable>
             <Text className="text-2xl font-barlow-condensed text-ds-on-surface">Create Account</Text>
           </View>
@@ -188,7 +192,7 @@ export default function SignUp() {
                   className="py-4 text-base font-barlow text-ds-on-surface"
                   style={{ lineHeight: 22 }}
                   placeholder="John"
-                  placeholderTextColor="#747878"
+                  placeholderTextColor={DS_COLORS.outline}
                   value={firstName}
                   onChangeText={setFirstName}
                   accessibilityLabel="First name"
@@ -203,7 +207,7 @@ export default function SignUp() {
                   className="py-4 text-base font-barlow text-ds-on-surface"
                   style={{ lineHeight: 22 }}
                   placeholder="Doe"
-                  placeholderTextColor="#747878"
+                  placeholderTextColor={DS_COLORS.outline}
                   value={lastName}
                   onChangeText={setLastName}
                   accessibilityLabel="Last name"
@@ -220,7 +224,7 @@ export default function SignUp() {
                 className="py-4 text-base font-barlow text-ds-on-surface"
                 style={{ lineHeight: 22 }}
                 placeholder="dartking99"
-                placeholderTextColor="#747878"
+                placeholderTextColor={DS_COLORS.outline}
                 value={username}
                 onChangeText={setUsername}
                 autoCapitalize="none"
@@ -241,7 +245,7 @@ export default function SignUp() {
                 className="py-4 text-base font-barlow text-ds-on-surface"
                 style={{ lineHeight: 22 }}
                 placeholder="john.doe@example.com"
-                placeholderTextColor="#747878"
+                placeholderTextColor={DS_COLORS.outline}
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
@@ -259,7 +263,7 @@ export default function SignUp() {
                 className="flex-1 py-4 text-base font-barlow text-ds-on-surface"
                 style={{ lineHeight: 22 }}
                 placeholder="••••••••"
-                placeholderTextColor="#747878"
+                placeholderTextColor={DS_COLORS.outline}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -273,8 +277,8 @@ export default function SignUp() {
                 className="active:opacity-70 pl-2"
               >
                 {showPassword
-                  ? <EyeOff size={18} color="#747878" />
-                  : <Eye size={18} color="#747878" />
+                  ? <EyeOff size={18} color={DS_COLORS.outline} />
+                  : <Eye size={18} color={DS_COLORS.outline} />
                 }
               </Pressable>
             </View>
@@ -291,7 +295,7 @@ export default function SignUp() {
             onPress={onSignUp}
             disabled={busy}
           >
-            <Text className="text-white text-base font-barlow-semi">
+            <Text className="text-ds-on-red text-base font-barlow-semi">
               {busy ? 'Creating Account...' : 'Create Account'}
             </Text>
           </Pressable>
@@ -300,7 +304,7 @@ export default function SignUp() {
 
           <View className="mt-6 items-center">
             <Link href="/(public)/sign-in" asChild>
-              <Pressable className="active:opacity-70">
+              <Pressable accessibilityRole="button" accessibilityLabel="Log in" className="active:opacity-70">
                 <Text className="text-base font-barlow text-ds-on-surface-variant">
                   Already have an account?{' '}
                   <Text className="font-barlow-semi text-ds-on-surface">Login</Text>
@@ -317,6 +321,7 @@ export default function SignUp() {
           </Text>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, Pressable, Text, View } from 'react-native';
+import { DS_COLORS } from '@/constants/colors';
+import { FlatList, Modal, Pressable, Text, View } from 'react-native';
+import Skeleton from '@/components/ui/Skeleton';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { useCommentReactions, usePostReactions } from '@/hooks/useClubFeed';
@@ -46,7 +48,7 @@ export function ReactionsModal({ visible, target, onClose }: Props) {
   const { data: reactors, isLoading } = useReactors(target, visible);
 
   const all = reactors ?? [];
-  const tabs: Array<{ key: ReactionType | 'all'; label: string; count: number }> = [
+  const tabs: { key: ReactionType | 'all'; label: string; count: number }[] = [
     { key: 'all', label: 'All', count: all.length },
     ...REACTION_ORDER
       .map((type) => ({ key: type as ReactionType | 'all', label: REACTION_LABELS[type], count: all.filter((r) => r.reactionType === type).length }))
@@ -72,7 +74,7 @@ export function ReactionsModal({ visible, target, onClose }: Props) {
             className="active:opacity-70"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <X size={22} color="#444748" />
+            <X size={22} color={DS_COLORS.onSurfaceVariant} />
           </Pressable>
         </View>
 
@@ -95,7 +97,10 @@ export function ReactionsModal({ visible, target, onClose }: Props) {
         )}
 
         {isLoading ? (
-          <ActivityIndicator color="#ba1a1a" style={{ paddingVertical: 32 }} />
+          <View className="py-8 gap-2" accessible accessibilityState={{ busy: true }} accessibilityLabel="Loading reactions">
+            <Skeleton className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-10 w-full rounded-lg" />
+          </View>
         ) : all.length === 0 ? (
           <View className="flex-1 items-center justify-center">
             <Text className="text-sm font-barlow text-ds-outline">No reactions yet</Text>

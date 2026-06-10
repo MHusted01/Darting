@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DS_COLORS } from '@/constants/colors';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAddComment, useLatestComments, useSetCommentReaction } from '@/hooks/useClubFeed';
@@ -168,7 +169,10 @@ function QuickCommentInput({ postId, clubId, currentUserId, onOpenFull }: {
     const text = commentText.trim();
     setCommentText('');
     addComment.mutate({ body: text }, {
-      onError: (err) => Alert.alert('Error', err.message),
+      onError: (err) => {
+        setCommentText(text);
+        Alert.alert('Error', err.message);
+      },
     });
   }
 
@@ -220,7 +224,7 @@ function QuickCommentInput({ postId, clubId, currentUserId, onOpenFull }: {
             accessibilityLabel="Write a comment"
             className="flex-1 text-sm font-barlow text-ds-on-surface"
             placeholder="Add a comment…"
-            placeholderTextColor="#747878"
+            placeholderTextColor={DS_COLORS.outline}
             value={commentText}
             onChangeText={setCommentText}
             onSubmitEditing={handleSubmit}

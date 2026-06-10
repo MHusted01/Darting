@@ -74,10 +74,11 @@ export default function OtpInput({ length = 6, onComplete }: OtpInputProps) {
         <Pressable key={index} onPress={() => inputs.current[index]?.focus()}>
           <TextInput
             ref={(ref) => { inputs.current[index] = ref; }}
-            className="w-12 h-14 border-2 border-gray-300 rounded-lg text-center text-xl font-bold focus:border-black"
+            className="w-12 h-14 border-2 border-ds-outline-variant rounded-lg text-center text-xl font-barlow-bold focus:border-ds-on-surface"
             value={digit}
             onChangeText={(text) => handleChange(text, index)}
             onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
+            accessibilityLabel={`OTP digit ${index + 1}`}
             keyboardType="number-pad"
             maxLength={index === 0 ? length : 1}
             autoComplete={index === 0 ? 'one-time-code' : 'off'}

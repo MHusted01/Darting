@@ -60,8 +60,8 @@ export function FullBoardInput({ onDartThrown, isProcessing }: FullBoardInputPro
             accessibilityRole="button"
             accessibilityLabel={`Double ${label}`}
           >
-            <Text className="text-base font-barlow-semi text-white">Double</Text>
-            <Text className="text-xs font-barlow text-white/80 mt-0.5">
+            <Text className="text-base font-barlow-semi text-ds-on-red">Double</Text>
+            <Text className="text-xs font-barlow text-ds-on-red/80 mt-0.5">
               {pendingSegment * 2}
             </Text>
           </Pressable>

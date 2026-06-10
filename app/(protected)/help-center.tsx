@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { DS_COLORS } from '@/constants/colors';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -45,7 +46,7 @@ export default function HelpCenterScreen() {
           onPress={() => router.back()}
           className="active:opacity-70"
         >
-          <ArrowLeft size={22} color="#1c1b1b" />
+          <ArrowLeft size={22} color={DS_COLORS.onSurface} />
         </Pressable>
         <Text className="text-xl font-barlow-condensed text-ds-on-surface">Help Center</Text>
       </View>
@@ -72,8 +73,8 @@ export default function HelpCenterScreen() {
                     {item.question}
                   </Text>
                   {openIndex === index
-                    ? <ChevronDown size={18} color="#747878" />
-                    : <ChevronRight size={18} color="#747878" />
+                    ? <ChevronDown size={18} color={DS_COLORS.outline} />
+                    : <ChevronRight size={18} color={DS_COLORS.outline} />
                   }
                 </Pressable>
                 {openIndex === index && (

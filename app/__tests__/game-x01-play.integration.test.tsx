@@ -8,6 +8,7 @@ import type { X01PlayerState } from '@/lib/games/x01';
 const mockReplace: jest.Mock<any> = jest.fn();
 const mockHandleX01DartThrown: jest.Mock<any> = jest.fn();
 const mockHandleQuit: jest.Mock<any> = jest.fn();
+const mockUndoLastDart: jest.Mock<any> = jest.fn();
 
 let mockSlug = 'x01';
 let mockSessionId = '1';
@@ -65,6 +66,7 @@ interface HookReturn {
   handleATCDartThrown: jest.Mock<any>;
   handleCricketDartThrown: jest.Mock<any>;
   handleX01DartThrown: jest.Mock<any>;
+  undoLastDart: jest.Mock<any>;
   handleQuit: jest.Mock<any>;
 }
 
@@ -84,6 +86,7 @@ function buildHookReturn(overrides: Partial<HookReturn> = {}): HookReturn {
     handleATCDartThrown: jest.fn(),
     handleCricketDartThrown: jest.fn(),
     handleX01DartThrown: mockHandleX01DartThrown,
+    undoLastDart: mockUndoLastDart,
     handleQuit: mockHandleQuit,
     ...overrides,
   };
@@ -144,11 +147,13 @@ describe('PlayScreen — X01', () => {
     jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
   });
 
-  it('renders loading state when game state is null', () => {
+  it('renders a play-layout skeleton when game state is null', () => {
     mockHookReturn = buildHookReturn({ gameState: null, currentPlayer: null });
     render(<PlayScreen />);
 
-    expect(screen.getByText('Loading...')).toBeTruthy();
+    expect(screen.queryByText('Loading...')).toBeNull();
+    expect(screen.getAllByTestId('skeleton').length).toBeGreaterThanOrEqual(4);
+    expect(screen.getByLabelText('Loading game')).toBeTruthy();
   });
 
   it('renders error state with back button', () => {
@@ -190,6 +195,17 @@ describe('PlayScreen — X01', () => {
         multiplier: 2,
       });
     });
+  });
+
+  it('shows an Undo button only while turn darts are pending and calls undoLastDart', () => {
+    mockHookReturn = buildHookReturn({ turnDarts: [] });
+    const { rerender } = render(<PlayScreen />);
+    expect(screen.queryByLabelText('Undo last dart')).toBeNull();
+
+    mockHookReturn = buildHookReturn({ turnDarts: [{ segment: 20, multiplier: 1 }] as any });
+    rerender(<PlayScreen />);
+    fireEvent.press(screen.getByLabelText('Undo last dart'));
+    expect(mockUndoLastDart).toHaveBeenCalledTimes(1);
   });
 
   it('quit button calls handleQuit', () => {
