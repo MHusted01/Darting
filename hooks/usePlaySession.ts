@@ -69,6 +69,7 @@ import { sessionThreeDartAvg } from '@/lib/stats';
 import { applyGameTurn as applyChallengeTurn } from '@/lib/realtime-game';
 import { syncCompletedSession } from '@/lib/supabase-sync';
 import { computeSessionAnalytics } from '@/lib/games/analytics';
+import { isMissedCheckoutCandidate } from '@/lib/checkout-inference';
 
 export interface LoadedPlayer {
   id: number; // gamePlayers.id
@@ -123,6 +124,9 @@ export function usePlaySession({
   const [localCricketState, setLocalCricketState] =
     useState<CricketPlayerState | null>(null);
   const [localX01State, setLocalX01State] = useState<X01PlayerState | null>(null);
+  // The just-committed X01 turn that missed a checkout without throwing a double —
+  // eligible for the optional "missed target?" exact-tracking chip.
+  const [missedCheckout, setMissedCheckout] = useState<{ turnId: number } | null>(null);
 
   const isAroundTheClock = gameState?.gameSlug === AROUND_THE_CLOCK_SLUG;
   const isCricket = gameState?.gameSlug === CRICKET_SLUG;
@@ -221,11 +225,12 @@ export function usePlaySession({
       nextPlayerOverride?: number,
       isRemote?: boolean,
     ) => {
-      if (!gameState) return;
+      if (!gameState) return null;
       setIsProcessing(true);
 
       const currentPlayer = gameState.players[gameState.currentPlayerIndex];
       const isTie = isComplete && winnerGamePlayerId === null;
+      let insertedTurnId: number | null = null;
 
       try {
         if (!isRemote && onBeforeCommitTurn) {
@@ -233,13 +238,17 @@ export function usePlaySession({
         }
 
         await db.transaction(async (tx) => {
-          await tx.insert(gameTurns).values({
-            gameSessionId: gameState.sessionId,
-            playerId: currentPlayer.playerId,
-            roundNumber: gameState.currentRound,
-            darts,
-            scoreDelta,
-          });
+          const inserted = await tx
+            .insert(gameTurns)
+            .values({
+              gameSessionId: gameState.sessionId,
+              playerId: currentPlayer.playerId,
+              roundNumber: gameState.currentRound,
+              darts,
+              scoreDelta,
+            })
+            .returning({ id: gameTurns.id });
+          insertedTurnId = inserted[0]?.id ?? null;
 
           await tx
             .update(gamePlayers)
@@ -285,13 +294,14 @@ export function usePlaySession({
                 roundNumber: gameTurns.roundNumber,
                 darts: gameTurns.darts,
                 scoreDelta: gameTurns.scoreDelta,
+                intendedTarget: gameTurns.intendedTarget,
               })
               .from(gameTurns)
               .where(eq(gameTurns.gameSessionId, gameState.sessionId))
               .orderBy(asc(gameTurns.roundNumber), asc(gameTurns.id));
 
             const turnsByPlayer = new Map<number, Array<{ darts: number; scoreDelta: number }>>();
-            const fullTurnsByPlayer = new Map<number, Array<{ roundNumber: number; darts: DartThrow[]; scoreDelta: number }>>();
+            const fullTurnsByPlayer = new Map<number, Array<{ roundNumber: number; darts: DartThrow[]; scoreDelta: number; intendedTarget: number | null }>>();
 
             for (const turn of allTurns) {
               const darts = turn.darts as DartThrow[];
@@ -300,7 +310,7 @@ export function usePlaySession({
               turnsByPlayer.set(turn.playerId, entry);
 
               const fullEntry = fullTurnsByPlayer.get(turn.playerId) ?? [];
-              fullEntry.push({ roundNumber: turn.roundNumber, darts, scoreDelta: turn.scoreDelta });
+              fullEntry.push({ roundNumber: turn.roundNumber, darts, scoreDelta: turn.scoreDelta, intendedTarget: turn.intendedTarget ?? null });
               fullTurnsByPlayer.set(turn.playerId, fullEntry);
             }
 
@@ -372,9 +382,12 @@ export function usePlaySession({
         } catch (reloadError) {
           console.error('Failed to reload session after turn error:', reloadError);
         }
+        return null;
       } finally {
         setIsProcessing(false);
       }
+
+      return insertedTurnId;
     },
     [gameState, loadSession, router, slug, userId, getToken, onBeforeCommitTurn],
   );
@@ -535,6 +548,9 @@ export function usePlaySession({
     async (dart: DartThrow) => {
       if (!gameState || isProcessing || !localX01State) return;
 
+      // Any new throw supersedes a pending missed-checkout prompt.
+      setMissedCheckout(null);
+
       const newDarts = [...turnDarts, dart];
       setTurnDarts(newDarts);
 
@@ -551,17 +567,46 @@ export function usePlaySession({
 
       if (shouldEndTurn) {
         const newScore = config.startingScore - result.newState.remaining;
-        await finishTurn(
+        const turnId = await finishTurn(
           newDarts,
           result.scoreDelta,
           result.newState,
           newScore,
           result.isComplete,
         );
+
+        // Eligible for the exact-tracking chip: a missed checkout-range turn
+        // where no double was thrown (so we have no ground-truth attempt).
+        if (
+          turnId != null &&
+          !result.isComplete &&
+          isMissedCheckoutCandidate(startState.remaining, newDarts)
+        ) {
+          setMissedCheckout({ turnId });
+        }
       }
     },
     [finishTurn, gameState, turnDarts, localX01State, isProcessing],
   );
+
+  const recordIntendedTarget = useCallback(
+    async (double: number) => {
+      const pending = missedCheckout;
+      if (!pending) return;
+      setMissedCheckout(null);
+      try {
+        await db
+          .update(gameTurns)
+          .set({ intendedTarget: double })
+          .where(eq(gameTurns.id, pending.turnId));
+      } catch (error) {
+        console.error('Failed to record intended target:', error);
+      }
+    },
+    [missedCheckout],
+  );
+
+  const dismissMissedCheckout = useCallback(() => setMissedCheckout(null), []);
 
   const handleRoundDartThrown = useCallback(
     async (dart: DartThrow) => {
@@ -929,5 +974,8 @@ export function usePlaySession({
     handleQuit,
     isX01,
     applyRemoteTurn,
+    missedCheckout,
+    recordIntendedTarget,
+    dismissMissedCheckout,
   };
 }

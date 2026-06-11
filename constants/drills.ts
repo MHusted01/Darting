@@ -35,6 +35,20 @@ export const DRILLS: Drill[] = [
     howToScore: 'Total darts to complete 1–20. Benchmark: ≤ 60 darts.',
     benchmarkTarget: '≤ 60 darts for 1–20',
   },
+  {
+    slug: 'setup-shots',
+    name: 'Setup Shots',
+    description: 'From 121, finish in 3 darts but aim to leave a preferred double (40, 32, 24, 16) when you cannot check out. Replay 10 times.',
+    howToScore: 'Count legs where you either checked out or left a preferred double. Target 7+ out of 10.',
+    benchmarkTarget: '7+ good leaves per 10 legs',
+  },
+  {
+    slug: 'steady-scoring',
+    name: 'Steady Scoring',
+    description: 'Throw 10 visits at the 20. Track each visit total and keep every visit within 20 points of your average.',
+    howToScore: 'Count visits inside your ±20 band. Target 8+ of 10 for a steady rhythm.',
+    benchmarkTarget: '8+ of 10 visits in band',
+  },
 ];
 
 export const DRILL_MAP = new Map(DRILLS.map((d) => [d.slug, d]));

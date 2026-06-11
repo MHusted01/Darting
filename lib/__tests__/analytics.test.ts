@@ -16,7 +16,12 @@ import {
 } from '@/lib/games/analytics';
 
 type DartThrow = { segment: number; multiplier: number };
-type Turn = { roundNumber: number; darts: DartThrow[]; scoreDelta: number };
+type Turn = {
+  roundNumber: number;
+  darts: DartThrow[];
+  scoreDelta: number;
+  intendedTarget?: number | null;
+};
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -168,6 +173,53 @@ describe('computeX01KPIs', () => {
     expect(kpis.bustRate).toBe(0);
     expect(kpis.tonCount).toBe(0);
   });
+
+  it('computes consistency as the population standard deviation of turn scores', () => {
+    const turns: Turn[] = [
+      { roundNumber: 1, darts: [T20, T20, T20], scoreDelta: 180 },
+      { roundNumber: 2, darts: [MISS, MISS, MISS], scoreDelta: 0 },
+    ];
+    // mean = 90, variance = ((90)^2 + (90)^2) / 2 = 8100, sigma = 90
+    const kpis = computeX01KPIs(turns, { startingScore: 501 });
+    expect(kpis.consistency).toBeCloseTo(90, 1);
+  });
+
+  it('excludes busted turns from consistency (a voided turn is not a low score)', () => {
+    const turns: Turn[] = [
+      { roundNumber: 1, darts: [T20, T20, T20], scoreDelta: 180 },
+      { roundNumber: 2, darts: [T20, T20, T20], scoreDelta: 180 },
+      // bust: darts scored but scoreDelta forced to 0 — must not drag sigma up
+      { roundNumber: 3, darts: [T20, T20, T20], scoreDelta: 0 },
+    ];
+    const kpis = computeX01KPIs(turns, { startingScore: 501 });
+    // only the two 180s count → identical scores → sigma 0
+    expect(kpis.consistency).toBeCloseTo(0, 5);
+  });
+
+  it('returns null consistency for fewer than 2 turns', () => {
+    const kpis = computeX01KPIs(
+      [{ roundNumber: 1, darts: [T20, T20, T20], scoreDelta: 180 }],
+      { startingScore: 501 },
+    );
+    expect(kpis.consistency).toBeNull();
+  });
+
+  it('records the remaining left after non-finishing, non-bust turns', () => {
+    // 501 - 180 = 321, 321 - 180 = 141, 141 - 100 = 41 (a leave), 41 -> 1 bust
+    const turns: Turn[] = [
+      { roundNumber: 1, darts: [T20, T20, T20], scoreDelta: 180 },
+      { roundNumber: 2, darts: [T20, T20, T20], scoreDelta: 180 },
+      { roundNumber: 3, darts: [T20, T20, S20], scoreDelta: 100 },
+      { roundNumber: 4, darts: [S20, S20, MISS], scoreDelta: 0 }, // bust on 41
+    ];
+    const kpis = computeX01KPIs(turns, { startingScore: 501 });
+    // 141 is > 170? no, 141 <= 170 so it's recorded; 41 recorded; 321 > 170 not recorded
+    expect(kpis.leaves['141']).toBe(1);
+    expect(kpis.leaves['41']).toBe(1);
+    expect(kpis.leaves['321']).toBeUndefined();
+    // the bust turn leaves the score unchanged (still 41) — not recorded again as a new leave
+    expect(kpis.leaves['1']).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -226,6 +278,46 @@ describe('computeCheckoutStats', () => {
     const stats = computeCheckoutStats(turns, 40);
     expect(stats.byDouble[20]).toBeDefined();
     expect(stats.byDouble[20].successes).toBe(1);
+  });
+
+  it('infers an estimated attempt when on a double but no double is thrown', () => {
+    // On 40, throws S20 then S20 -> bust (missed D20). No double thrown.
+    const turns: Turn[] = [
+      { roundNumber: 1, darts: [S20, S20, MISS], scoreDelta: 0 },
+    ];
+    const stats = computeCheckoutStats(turns, 40);
+    expect(stats.attempts).toBe(0); // ground truth unchanged
+    expect(stats.successes).toBe(0);
+    expect(stats.inferredAttempts).toBe(1);
+    expect(stats.inferredByDouble[20]).toBe(1);
+  });
+
+  it('does not infer when a double was actually thrown (explicit attempt wins)', () => {
+    // On 40, throws D16 (=32) then misses — a real double attempt, no inference
+    const turns: Turn[] = [
+      { roundNumber: 1, darts: [D16, MISS, MISS], scoreDelta: 0 },
+    ];
+    const stats = computeCheckoutStats(turns, 40);
+    expect(stats.attempts).toBe(1);
+    expect(stats.inferredAttempts).toBe(0);
+  });
+
+  it('counts an explicit intendedTarget chip as an exact (not inferred) attempt', () => {
+    // On 36, throws S18 then S18 -> bust. Player tagged they were aiming at D18.
+    const turns: Turn[] = [
+      { roundNumber: 1, darts: [S18, S18, MISS], scoreDelta: 0, intendedTarget: 18 },
+    ];
+    const stats = computeCheckoutStats(turns, 36);
+    expect(stats.attempts).toBe(1); // exact attempt, ground-truth bucket
+    expect(stats.successes).toBe(0);
+    expect(stats.byDouble[18]).toEqual({ attempts: 1, successes: 0 });
+    expect(stats.inferredAttempts).toBe(0); // chip overrides inference
+  });
+
+  it('returns zero inferred fields for empty turns', () => {
+    const stats = computeCheckoutStats([], 501);
+    expect(stats.inferredAttempts).toBe(0);
+    expect(stats.inferredByDouble).toEqual({});
   });
 });
 

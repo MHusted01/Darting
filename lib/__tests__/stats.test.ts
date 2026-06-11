@@ -23,12 +23,16 @@ const makeX01Analytics = (kpiOverrides: Record<string, unknown> = {}): PlayerAna
     ton80Count: 0,
     highestCheckout: 40,
     checkoutRate: 0.5,
+    consistency: 25,
+    leaves: {},
     ...kpiOverrides,
   },
   checkoutStats: {
     attempts: 10,
     successes: 5,
     byDouble: { 20: { attempts: 5, successes: 3 }, 16: { attempts: 5, successes: 2 } },
+    inferredAttempts: 0,
+    inferredByDouble: {},
   },
 });
 
@@ -229,7 +233,7 @@ describe('aggregateCheckoutStats', () => {
     const analytics: PlayerAnalytics = {
       dartCounts: {},
       perGameKPIs: {},
-      checkoutStats: { attempts: 8, successes: 2, byDouble: {} },
+      checkoutStats: { attempts: 8, successes: 2, byDouble: {}, inferredAttempts: 0, inferredByDouble: {} },
     };
     const result = aggregateCheckoutStats([{ analytics }]);
     expect(result.overallRate).toBeCloseTo(0.25);

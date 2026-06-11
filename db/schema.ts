@@ -106,6 +106,9 @@ export const gameTurns = sqliteTable(
     roundNumber: integer('round_number').notNull(),
     darts: text('darts', { mode: 'json' }).notNull(),
     scoreDelta: integer('score_delta').notNull().default(0),
+    // Double the player tagged as their checkout target via the "missed target?"
+    // chip (local-only; never synced to the cloud).
+    intendedTarget: integer('intended_target'),
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()
       .default(sql`(unixepoch())`),

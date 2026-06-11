@@ -60,6 +60,7 @@ jest.mock('@/lib/stats', () => ({
   getPerGameKPIs: jest.fn(),
   getAggregatedStats: jest.fn(),
   getTrendData: jest.fn(),
+  getPressureSplit: jest.fn(),
 }));
 
 jest.mock('@/constants/games', () => ({
@@ -388,6 +389,73 @@ describe('Tabs + Stats Integration', () => {
     const avg = capturedOpts.find((o) => o.queryKey[1] === 'three-dart-avg');
     expect(bests?.enabled).toBe(false);
     expect(avg?.enabled).toBe(false);
+  });
+
+  it('surfaces the new coaching metrics for an active x01 variant', () => {
+    mockUseQuery.mockImplementation((opts: any) => {
+      if (opts.queryKey[0] === 'user-player-id') return playerIdResult;
+      if (opts.queryKey[0] === 'history') {
+        return { data: { quickStats: { gamesPlayed: 6, completedCount: 6, winRate: 100, inProgressSessions: 0, abandonedSessions: 0 }, sessions: [] }, isLoading: false, isRefetching: false, error: null, refetch: mockRefetch };
+      }
+      if (opts.queryKey[1] === 'kpi') {
+        return {
+          data: {
+            type: 'x01',
+            threeDartAvg: 55,
+            first9DartAvg: 60,
+            bustRate: 0.1,
+            checkoutRate: 0.4,
+            tonCount: 3,
+            ton40Count: 1,
+            ton80Count: 0,
+            highestCheckout: 80,
+            consistency: 24.5,
+            setupShotQuality: 0.5,
+            commonLeaves: [{ remaining: 40, count: 4 }, { remaining: 32, count: 2 }],
+          },
+          isLoading: false, isRefetching: false, error: null, refetch: mockRefetch,
+        };
+      }
+      if (opts.queryKey[1] === 'checkout') {
+        return {
+          data: { totalAttempts: 5, totalSuccesses: 2, overallRate: 0.25, byDouble: {}, bestDoubles: [], worstDoubles: [], inferredAttempts: 3, estimated: true },
+          isLoading: false, isRefetching: false, error: null, refetch: mockRefetch,
+        };
+      }
+      if (opts.queryKey[1] === 'pressure') {
+        return {
+          data: {
+            casual: { type: 'x01', threeDartAvg: 50, checkoutRate: 0.3, first9DartAvg: null, bustRate: 0, tonCount: 0, ton40Count: 0, ton80Count: 0, highestCheckout: null, consistency: null, setupShotQuality: null, commonLeaves: [] },
+            competitive: { type: 'x01', threeDartAvg: 62, checkoutRate: 0.45, first9DartAvg: null, bustRate: 0, tonCount: 0, ton40Count: 0, ton80Count: 0, highestCheckout: null, consistency: null, setupShotQuality: null, commonLeaves: [] },
+          },
+          isLoading: false, isRefetching: false, error: null, refetch: mockRefetch,
+        };
+      }
+      if (opts.queryKey[1] === 'trend') {
+        return {
+          data: [
+            { sessionId: 1, completedAt: 1000, threeDartAvg: 55, first9DartAvg: 60, gameSlug: 'x01' },
+            { sessionId: 2, completedAt: 2000, threeDartAvg: 58, first9DartAvg: 64, gameSlug: 'x01' },
+          ],
+          isLoading: false, isRefetching: false, error: null, refetch: mockRefetch,
+        };
+      }
+      return emptyQueryResult;
+    });
+
+    render(<StatsScreen />);
+    fireEvent.press(screen.getByLabelText('Filter by 501'));
+
+    // Consistency KPI
+    expect(screen.getByText('Consistency')).toBeTruthy();
+    // Setup-shot card
+    expect(screen.getByText('Setup Shots')).toBeTruthy();
+    // Estimated label on checkout
+    expect(screen.getAllByText(/estimated/i).length).toBeGreaterThan(0);
+    // Pressure split card
+    expect(screen.getByText('Casual vs Competitive')).toBeTruthy();
+    // First 9 trend chart renders alongside the First 9 KPI card
+    expect(screen.getAllByText(/First 9 Avg/i).length).toBeGreaterThanOrEqual(2);
   });
 
   it('alerts when query returns an error', async () => {

@@ -43,7 +43,11 @@ type TurnRow = { playerId: number; roundNumber: number; darts: unknown; scoreDel
 function makeTx(turnRows: TurnRow[]) {
   const setPayloads: Record<string, unknown>[] = [];
   const tx = {
-    insert: jest.fn(() => ({ values: jest.fn<any>().mockResolvedValue(undefined) })),
+    insert: jest.fn(() => ({
+      values: jest.fn<any>(() => ({
+        returning: jest.fn<any>().mockResolvedValue([{ id: 1 }]),
+      })),
+    })),
     update: jest.fn(() => ({
       set: (payload: Record<string, unknown>) => {
         setPayloads.push(payload);

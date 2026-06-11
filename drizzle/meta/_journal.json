@@ -64,6 +64,13 @@
       "when": 1781082803209,
       "tag": "0008_challenge_id_index",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1781164997165,
+      "tag": "0009_yellow_dreadnoughts",
+      "breakpoints": true
     }
   ]
 }

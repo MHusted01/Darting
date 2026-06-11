@@ -16,12 +16,16 @@ const emptySummary: CheckoutSummary = {
   byDouble: {},
   bestDoubles: [],
   worstDoubles: [],
+  inferredAttempts: 0,
+  estimated: false,
 };
 
 const richSummary: CheckoutSummary = {
   totalAttempts: 30,
   totalSuccesses: 12,
   overallRate: 0.4,
+  inferredAttempts: 0,
+  estimated: false,
   byDouble: {
     '20': { attempts: 10, successes: 8 },
     '16': { attempts: 10, successes: 3 },
@@ -52,6 +56,23 @@ describe('CheckoutAnalysis', () => {
     const summary: CheckoutSummary = { ...richSummary, totalSuccesses: 9, totalAttempts: 20, overallRate: 0.45 };
     render(<CheckoutAnalysis summary={summary} />);
     expect(screen.getByText('45%')).toBeTruthy();
+  });
+
+  it('renders the rate (not the empty state) when only inferred attempts exist', () => {
+    const summary: CheckoutSummary = {
+      totalAttempts: 0,
+      totalSuccesses: 0,
+      overallRate: 0,
+      byDouble: {},
+      bestDoubles: [],
+      worstDoubles: [],
+      inferredAttempts: 2,
+      estimated: true,
+    };
+    render(<CheckoutAnalysis summary={summary} />);
+    expect(screen.queryByText('No checkout data yet')).toBeNull();
+    expect(screen.getByTestId('checkout-overall-rate')).toBeTruthy();
+    expect(screen.getByText('0%')).toBeTruthy();
   });
 
   it('renders best doubles', () => {
