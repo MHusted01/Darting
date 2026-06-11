@@ -116,9 +116,13 @@ export function resolveX01Variant(gameSlug: string, config: unknown): X01Variant
   return 501;
 }
 
+function x01VariantExpr() {
+  return sql`CASE WHEN (CASE WHEN json_valid(${gameSessions.config}) THEN json_extract(${gameSessions.config}, '$.startingScore') ELSE NULL END) IN (301, '301') THEN 301 ELSE 501 END`;
+}
+
 export function x01VariantCondition(variant: X01Variant | undefined) {
   if (variant == null) return undefined;
-  return sql`COALESCE(json_extract(${gameSessions.config}, '$.startingScore'), 501) = ${variant}`;
+  return sql`${x01VariantExpr()} = ${variant}`;
 }
 
 export function buildPersonalBestsFromRows(rows: PersonalBestRow[]): PersonalBest[] {
@@ -132,7 +136,7 @@ export function buildPersonalBestsFromRows(rows: PersonalBestRow[]): PersonalBes
 }
 
 export async function getPersonalBests(playerId: number): Promise<PersonalBest[]> {
-  const variantExpr = sql<number | null>`CASE WHEN ${gameSessions.gameSlug} = 'x01' THEN COALESCE(json_extract(${gameSessions.config}, '$.startingScore'), 501) ELSE NULL END`;
+  const variantExpr = sql<number | null>`CASE WHEN ${gameSessions.gameSlug} = 'x01' THEN ${x01VariantExpr()} ELSE NULL END`;
 
   const rows = await db
     .select({
