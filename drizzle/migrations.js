@@ -10,6 +10,7 @@ import m0005 from './0005_free_firebrand.sql';
 import m0006 from './0006_phase9_tournament_session_columns.sql';
 import m0007 from './0007_phase10_challenge_columns.sql';
 import m0008 from './0008_challenge_id_index.sql';
+import m0009 from './0009_yellow_dreadnoughts.sql';
 
   export default {
     journal,
@@ -22,7 +23,8 @@ m0004,
 m0005,
 m0006,
 m0007,
-m0008
+m0008,
+m0009
     }
   }
   

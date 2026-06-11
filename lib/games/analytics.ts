@@ -2,6 +2,7 @@ import type { DartThrow } from '@/types/game';
 import { getMarksFromDart } from '@/lib/games/cricket';
 import { BERMUDA_TRIANGLE_TARGETS } from '@/lib/games/bermuda-triangle';
 import { HALVE_IT_TARGETS, type HalveItTarget } from '@/lib/games/halve-it';
+import { inferIntendedDouble } from '@/lib/checkout-inference';
 
 export type SessionContext = 'casual' | 'tournament' | 'practice' | 'realtime';
 
@@ -22,6 +23,10 @@ export interface X01KPIs {
   ton80Count: number;
   highestCheckout: number | null;
   checkoutRate: number;
+  /** Population standard deviation of per-turn scores; null with < 2 turns. */
+  consistency: number | null;
+  /** Histogram of the remaining score left after non-finishing, non-bust turns (1–170). */
+  leaves: Record<string, number>;
 }
 
 export interface CricketKPIs {
@@ -45,6 +50,9 @@ export interface CheckoutStats {
   attempts: number;
   successes: number;
   byDouble: Record<number, { attempts: number; successes: number }>;
+  /** Estimated attempts inferred from near-miss geometry (never adds successes). */
+  inferredAttempts: number;
+  inferredByDouble: Record<number, number>;
 }
 
 export interface PlayerAnalytics {
@@ -53,7 +61,13 @@ export interface PlayerAnalytics {
   checkoutStats: CheckoutStats | null;
 }
 
-type Turn = { roundNumber: number; darts: DartThrow[]; scoreDelta: number };
+type Turn = {
+  roundNumber: number;
+  darts: DartThrow[];
+  scoreDelta: number;
+  /** Double the player tagged as their target via the "missed target?" chip (exact data). */
+  intendedTarget?: number | null;
+};
 
 // ---------------------------------------------------------------------------
 // computeDartCounts
@@ -98,6 +112,8 @@ export function computeX01KPIs(
       ton80Count: 0,
       highestCheckout: null,
       checkoutRate: 0,
+      consistency: null,
+      leaves: {},
     };
   }
 
@@ -111,6 +127,10 @@ export function computeX01KPIs(
   let remaining = config.startingScore;
   let checkoutAttempts = 0;
   let checkoutSuccesses = 0;
+  const leaves: Record<string, number> = {};
+  // Scoring consistency is measured over non-bust turns only — a busted turn
+  // scores 0 because it was voided, not because the player scored poorly.
+  const scoredTurnDeltas: number[] = [];
 
   // First 3 turns for first-9-dart avg
   const first3Turns = turns.slice(0, 3);
@@ -136,6 +156,7 @@ export function computeX01KPIs(
       bustCount++;
     } else {
       totalScored += turn.scoreDelta;
+      scoredTurnDeltas.push(turn.scoreDelta);
 
       if (turn.scoreDelta >= 180) ton80Count++;
       else if (turn.scoreDelta >= 140) ton40Count++;
@@ -150,6 +171,10 @@ export function computeX01KPIs(
           highestCheckout === null
             ? turn.scoreDelta
             : Math.max(highestCheckout, turn.scoreDelta);
+      } else if (remaining > 0 && remaining <= 170) {
+        // A "leave" — the position the player set themselves for the next visit.
+        const key = String(remaining);
+        leaves[key] = (leaves[key] ?? 0) + 1;
       }
     }
 
@@ -164,6 +189,7 @@ export function computeX01KPIs(
   const bustRate = turns.length > 0 ? bustCount / turns.length : 0;
   const checkoutRate =
     checkoutAttempts > 0 ? checkoutSuccesses / checkoutAttempts : 0;
+  const consistency = stdDev(scoredTurnDeltas);
 
   return {
     threeDartAvg,
@@ -174,7 +200,18 @@ export function computeX01KPIs(
     ton80Count,
     highestCheckout,
     checkoutRate,
+    consistency,
+    leaves,
   };
+}
+
+/** Population standard deviation; null when there are fewer than 2 values. */
+function stdDev(values: number[]): number | null {
+  if (values.length < 2) return null;
+  const mean = values.reduce((s, v) => s + v, 0) / values.length;
+  const variance =
+    values.reduce((s, v) => s + (v - mean) ** 2, 0) / values.length;
+  return Math.sqrt(variance);
 }
 
 // ---------------------------------------------------------------------------
@@ -186,9 +223,17 @@ export function computeCheckoutStats(
   startingScore: number,
 ): CheckoutStats {
   const byDouble: Record<number, { attempts: number; successes: number }> = {};
+  const inferredByDouble: Record<number, number> = {};
   let attempts = 0;
   let successes = 0;
+  let inferredAttempts = 0;
   let remaining = startingScore;
+
+  const bumpByDouble = (segment: number, success: boolean) => {
+    if (!byDouble[segment]) byDouble[segment] = { attempts: 0, successes: 0 };
+    byDouble[segment].attempts++;
+    if (success) byDouble[segment].successes++;
+  };
 
   for (const turn of turns) {
     const isBust =
@@ -201,43 +246,47 @@ export function computeCheckoutStats(
       remaining -= turn.scoreDelta;
     }
 
+    if (remainingBeforeTurn > 170) continue;
+
     const hasDouble = turn.darts.some((d) => d.multiplier === 2 && d.segment > 0);
+    const isCheckout = !isBust && remaining === 0;
 
-    if (remainingBeforeTurn <= 170 && hasDouble) {
+    // Precedence: explicit double thrown (ground truth) > chip intendedTarget
+    // (exact) > geometric near-miss (estimated). Each turn counts once.
+    if (hasDouble) {
       attempts++;
-
-      // For a successful checkout, find which double completed the score
-      const isCheckout = !isBust && remaining === 0;
       if (isCheckout) {
         successes++;
         const checkoutDouble = findCheckoutDouble(turn.darts, remainingBeforeTurn);
-        if (checkoutDouble !== null) {
-          if (!byDouble[checkoutDouble]) {
-            byDouble[checkoutDouble] = { attempts: 0, successes: 0 };
-          }
-          byDouble[checkoutDouble].attempts++;
-          byDouble[checkoutDouble].successes++;
-        }
+        if (checkoutDouble !== null) bumpByDouble(checkoutDouble, true);
       } else {
-        // Attempt without success: track by intended double (clean even remaining)
-        // Best-effort: only attribute to byDouble when the remaining is a clean double finish
         const intendedDouble =
           remainingBeforeTurn === 50
             ? 25
             : remainingBeforeTurn % 2 === 0 && remainingBeforeTurn <= 40
               ? remainingBeforeTurn / 2
               : null; // multi-dart finishes — can't reliably infer intended double
-        if (intendedDouble !== null) {
-          if (!byDouble[intendedDouble]) {
-            byDouble[intendedDouble] = { attempts: 0, successes: 0 };
-          }
-          byDouble[intendedDouble].attempts++;
-        }
+        if (intendedDouble !== null) bumpByDouble(intendedDouble, false);
       }
+      continue;
+    }
+
+    // No double thrown. A clean checkout is impossible without one, so any
+    // value here is a missed attempt (exact via chip, otherwise estimated).
+    if (turn.intendedTarget != null) {
+      attempts++;
+      bumpByDouble(turn.intendedTarget, false);
+      continue;
+    }
+
+    const inferred = inferIntendedDouble(turn.darts, remainingBeforeTurn);
+    if (inferred !== null) {
+      inferredAttempts++;
+      inferredByDouble[inferred] = (inferredByDouble[inferred] ?? 0) + 1;
     }
   }
 
-  return { attempts, successes, byDouble };
+  return { attempts, successes, byDouble, inferredAttempts, inferredByDouble };
 }
 
 function findCheckoutDouble(darts: DartThrow[], startRemaining: number): number | null {

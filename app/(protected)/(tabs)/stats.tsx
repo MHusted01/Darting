@@ -17,10 +17,12 @@ import {
   getPerGameKPIs,
   getAggregatedStats,
   getTrendData,
+  getPressureSplit,
   type PersonalBest,
   type StatsFilter,
   type AggregatedKPIs,
   type TrendPoint,
+  type PressureSplit,
   type X01Variant,
 } from '@/lib/stats';
 import { generateSuggestions } from '@/lib/suggestions';
@@ -109,6 +111,11 @@ function KPIGrid({ kpis }: { kpis: AggregatedKPIs }) {
         </View>
         <View className="flex-row gap-3">
           <KPICard label="Best Checkout" value={best} />
+          <KPICard
+            label="Consistency"
+            value={kpis.consistency != null ? `±${kpis.consistency.toFixed(1)}` : '—'}
+            subtitle="Lower is steadier"
+          />
         </View>
         <View className="flex-row gap-3">
           <KPICard label="180s" value={kpis.ton80Count} />
@@ -316,6 +323,17 @@ function StatsScreen() {
     staleTime: 60_000,
   });
 
+  // Pressure split fetches across all (non-practice) contexts itself, so it
+  // ignores the context filter; it still honours the active x01 variant.
+  const pressureFilter: StatsFilter = { since: historySince, variant: activeVariant ?? undefined };
+
+  const pressureQuery = useQuery({
+    queryKey: ['stats', 'pressure', playerId, activeSlug, activeVariant, historySince?.getTime()],
+    queryFn: () => getPressureSplit(playerId!, activeSlug!, pressureFilter),
+    enabled: playerId != null && isX01(activeSlug),
+    staleTime: 60_000,
+  });
+
   const { data, isLoading, isRefetching, error: historyError, refetch } = historyQuery;
   const refetchPersonalBests = statsQuery.refetch;
   const refetchOverallAvg = avgQuery.refetch;
@@ -324,6 +342,7 @@ function StatsScreen() {
   const refetchCheckout = checkoutQuery.refetch;
   const refetchAggStats = aggStatsQuery.refetch;
   const refetchTrend = trendQuery.refetch;
+  const refetchPressure = pressureQuery.refetch;
 
   useEffect(() => {
     if (!historyError) return;
@@ -346,6 +365,7 @@ function StatsScreen() {
   const kpiData: AggregatedKPIs | null = kpiQuery.data ?? null;
   const trendPoints: TrendPoint[] = trendQuery.data ?? [];
   const checkoutData = checkoutQuery.data ?? null;
+  const pressureData: PressureSplit | null = pressureQuery.data ?? null;
   const suggestions = aggStatsQuery.data ? generateSuggestions(aggStatsQuery.data) : [];
   const gamesPlayed = aggStatsQuery.data?.gamesPlayed ?? 0;
 
@@ -363,7 +383,8 @@ function StatsScreen() {
       void refetchCheckout();
       void refetchAggStats();
       void refetchTrend();
-    }, [refetch, refetchPersonalBests, refetchOverallAvg, refetchSegment, refetchKpi, refetchCheckout, refetchAggStats, refetchTrend]),
+      void refetchPressure();
+    }, [refetch, refetchPersonalBests, refetchOverallAvg, refetchSegment, refetchKpi, refetchCheckout, refetchAggStats, refetchTrend, refetchPressure]),
   );
 
   const handleOpenSession = useCallback(
@@ -438,7 +459,7 @@ function StatsScreen() {
         data={filteredSessions}
         keyExtractor={(item) => `${item.sessionId}`}
         contentContainerStyle={{ paddingBottom: 32 }}
-        onRefresh={() => { void refetch(); void refetchPersonalBests(); void refetchOverallAvg(); void refetchSegment(); void refetchKpi(); void refetchCheckout(); void refetchAggStats(); void refetchTrend(); }}
+        onRefresh={() => { void refetch(); void refetchPersonalBests(); void refetchOverallAvg(); void refetchSegment(); void refetchKpi(); void refetchCheckout(); void refetchAggStats(); void refetchTrend(); void refetchPressure(); }}
         refreshing={refreshing}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
@@ -620,6 +641,71 @@ function StatsScreen() {
                   Checkout Analysis
                 </Text>
                 <CheckoutAnalysis summary={checkoutData} />
+                {checkoutData?.estimated && (
+                  <Text className="text-xs font-barlow text-ds-on-surface-variant mt-3">
+                    Includes {checkoutData.inferredAttempts} estimated attempt
+                    {checkoutData.inferredAttempts === 1 ? '' : 's'} inferred from near-miss throws.
+                  </Text>
+                )}
+              </View>
+            )}
+
+            {/* Setup Shots (X01 only) */}
+            {isX01(activeSlug) && kpiData?.type === 'x01' && kpiData.setupShotQuality != null && (
+              <View className="mx-6 mb-4 bg-ds-surface border border-ds-outline-variant rounded-2xl p-4">
+                <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-3">
+                  Setup Shots
+                </Text>
+                <View className="flex-row items-center justify-between mb-2">
+                  <Text className="text-sm font-barlow text-ds-on-surface-variant">Workable leaves</Text>
+                  <Text className="text-2xl font-barlow-bold text-ds-on-surface">
+                    {Math.round(kpiData.setupShotQuality * 100)}%
+                  </Text>
+                </View>
+                {kpiData.commonLeaves.length > 0 && (
+                  <View>
+                    <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-2">
+                      Most common leaves
+                    </Text>
+                    <View className="flex-row flex-wrap gap-2">
+                      {kpiData.commonLeaves.map((leave) => (
+                        <View
+                          key={leave.remaining}
+                          className="bg-ds-surface-low rounded-lg px-3 py-1.5 flex-row items-center gap-1.5"
+                        >
+                          <Text className="text-sm font-barlow-semi text-ds-on-surface">{leave.remaining}</Text>
+                          <Text className="text-xs font-barlow text-ds-on-surface-variant">×{leave.count}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Pressure split — casual vs competitive (X01 only) */}
+            {isX01(activeSlug) && pressureData && (pressureData.casual || pressureData.competitive) && (
+              <View className="mx-6 mb-4 bg-ds-surface border border-ds-outline-variant rounded-2xl p-4">
+                <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-3">
+                  Casual vs Competitive
+                </Text>
+                <View className="flex-row gap-3">
+                  {([
+                    { key: 'casual', label: 'Casual', kpis: pressureData.casual },
+                    { key: 'competitive', label: 'Tournament + Live', kpis: pressureData.competitive },
+                  ] as const).map(({ key, label, kpis }) => {
+                    const avg = kpis?.type === 'x01' && kpis.threeDartAvg != null ? kpis.threeDartAvg.toFixed(1) : '—';
+                    const checkout = kpis?.type === 'x01' && kpis.checkoutRate != null ? `${Math.round(kpis.checkoutRate * 100)}%` : '—';
+                    return (
+                      <View key={key} className="flex-1 bg-ds-surface-low rounded-xl p-3">
+                        <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-1">{label}</Text>
+                        <Text className="text-2xl font-barlow-bold text-ds-on-surface leading-none">{avg}</Text>
+                        <Text className="text-xs font-barlow text-ds-on-surface-variant mt-1">3-dart avg</Text>
+                        <Text className="text-xs font-barlow text-ds-on-surface-variant mt-2">Checkout {checkout}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
               </View>
             )}
 
@@ -689,6 +775,38 @@ function StatsScreen() {
                         <View
                           key={p.sessionId}
                           className="flex-1 rounded bg-ds-green-dark"
+                          style={{ height: `${Math.round(heightPct * 100)}%`, opacity: val != null ? 1 : 0.2 }}
+                        />
+                      );
+                    })}
+                  </View>
+                  <View className="flex-row justify-between mt-2">
+                    <Text className="text-xs font-barlow text-ds-on-surface-variant">OLDER</Text>
+                    <Text className="text-xs font-barlow text-ds-on-surface-variant">RECENT</Text>
+                  </View>
+                </View>
+              );
+            })()}
+
+            {/* First-9 average trend (x01 only) */}
+            {trendPoints.length > 0 && (() => {
+              const withFirst9 = trendPoints.filter((p) => p.first9DartAvg != null);
+              if (withFirst9.length === 0) return null;
+              const maxF9 = Math.max(...withFirst9.map((p) => p.first9DartAvg!));
+              const chartPoints = [...trendPoints].reverse();
+              return (
+                <View className="mx-6 mb-4 bg-ds-surface border border-ds-outline-variant rounded-2xl p-4">
+                  <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-3">
+                    Last {trendPoints.length} Sessions — First 9 Avg
+                  </Text>
+                  <View className="flex-row items-end gap-1 h-16">
+                    {chartPoints.map((p) => {
+                      const val = p.first9DartAvg;
+                      const heightPct = val != null && maxF9 > 0 ? Math.max(val / maxF9, 0.05) : 0.05;
+                      return (
+                        <View
+                          key={p.sessionId}
+                          className="flex-1 rounded bg-ds-red"
                           style={{ height: `${Math.round(heightPct * 100)}%`, opacity: val != null ? 1 : 0.2 }}
                         />
                       );

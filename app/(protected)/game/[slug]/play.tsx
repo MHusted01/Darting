@@ -22,6 +22,7 @@ import {
 } from '@/lib/games/around-the-clock';
 import { usePlaySession, type LoadedGameState } from '@/hooks/usePlaySession';
 import { useRealtimeGame } from '@/hooks/useRealtimeGame';
+import { useAppStore } from '@/stores/appStore';
 import type { DartThrow } from '@/types/game';
 
 type BeforeCommitTurn = (
@@ -40,6 +41,7 @@ function PlayScreen() {
     challengeId?: string;
   }>();
   const isRealtimeMatch = Boolean(challengeId);
+  const exactTargetTracking = useAppStore((s) => s.exactTargetTracking);
 
   const beforeCommitRef = useRef<BeforeCommitTurn | null>(null);
   const onBeforeCommitTurn = useCallback<BeforeCommitTurn>(
@@ -77,6 +79,9 @@ function PlayScreen() {
     undoLastDart,
     handleQuit,
     applyRemoteTurn,
+    missedCheckout,
+    recordIntendedTarget,
+    dismissMissedCheckout,
   } = usePlaySession({
     slug,
     sessionId,
@@ -253,6 +258,9 @@ function PlayScreen() {
             turnDarts={turnDarts}
             isProcessing={inputDisabled}
             onDartThrown={handleX01DartThrown}
+            showMissedTarget={exactTargetTracking && missedCheckout != null}
+            onSelectMissedTarget={recordIntendedTarget}
+            onDismissMissedTarget={dismissMissedCheckout}
           />
         )}
 

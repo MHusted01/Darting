@@ -26,7 +26,7 @@ function DoubleRow({ entry }: { entry: DoubleEntry }) {
 export default function CheckoutAnalysis({ summary }: CheckoutAnalysisProps) {
   const router = useRouter();
 
-  if (!summary || summary.totalAttempts === 0) {
+  if (!summary || summary.totalAttempts + summary.inferredAttempts === 0) {
     return (
       <View className="items-center py-4">
         <Text className="text-sm font-barlow text-ds-on-surface-variant">No checkout data yet</Text>

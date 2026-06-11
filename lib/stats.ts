@@ -64,20 +64,46 @@ export interface CheckoutSummary {
   byDouble: Record<string, { attempts: number; successes: number }>;
   bestDoubles: DoubleEntry[];
   worstDoubles: DoubleEntry[];
+  /** Additional checkout attempts inferred from near-miss geometry (estimated). */
+  inferredAttempts: number;
+  /** True when any of the data above is estimated rather than ground truth. */
+  estimated: boolean;
+}
+
+export interface LeaveEntry {
+  remaining: number;
+  count: number;
 }
 
 export interface TrendPoint {
   sessionId: number;
   completedAt: number;
   threeDartAvg: number | null;
+  first9DartAvg: number | null;
   gameSlug: string;
 }
 
 export type AggregatedKPIs =
-  | { type: 'x01'; threeDartAvg: number | null; first9DartAvg: number | null; bustRate: number | null; checkoutRate: number | null; tonCount: number; ton40Count: number; ton80Count: number; highestCheckout: number | null }
+  | { type: 'x01'; threeDartAvg: number | null; first9DartAvg: number | null; bustRate: number | null; checkoutRate: number | null; tonCount: number; ton40Count: number; ton80Count: number; highestCheckout: number | null; consistency: number | null; setupShotQuality: number | null; commonLeaves: LeaveEntry[] }
   | { type: 'cricket'; marksPerRound: number | null; hitRateBySegment: Record<number, number> }
   | { type: 'target'; overallHitRate: number | null; hitRateByRound: Record<number, { darts: number; hits: number; rate: number }> }
   | { type: 'highscore'; avgPerRound: number | null; bestRound: number | null };
+
+export interface PressureSplit {
+  casual: AggregatedKPIs | null;
+  competitive: AggregatedKPIs | null;
+}
+
+/**
+ * Remaining scores that leave the player on a "workable" double for the next
+ * visit (a double that halves cleanly after a single miss). Used to score
+ * setup-shot quality. Tunable coaching heuristic.
+ */
+const PREFERRED_LEAVES = new Set([40, 32, 24, 20, 16, 8]);
+/** Leaves at or below this are treated as in finishing territory. */
+const FINISHABLE_LEAVE_MAX = 98;
+
+const COMPETITIVE_CONTEXTS = new Set<SessionContext>(['tournament', 'realtime']);
 
 export function computeThreeDartAvg(
   turns: Array<{ darts: number; scoreDelta: number }>,
@@ -315,12 +341,15 @@ export function aggregateCheckoutStats(
   const byDouble: Record<string, { attempts: number; successes: number }> = {};
   let totalAttempts = 0;
   let totalSuccesses = 0;
+  let inferredAttempts = 0;
 
   for (const row of rows) {
     const cs = row.analytics?.checkoutStats;
     if (!cs) continue;
     totalAttempts += cs.attempts;
     totalSuccesses += cs.successes;
+    // inferredAttempts is absent on historical analytics — treat as zero.
+    inferredAttempts += cs.inferredAttempts ?? 0;
     for (const [seg, data] of Object.entries(cs.byDouble as Record<string, { attempts: number; successes: number }>)) {
       if (!byDouble[seg]) byDouble[seg] = { attempts: 0, successes: 0 };
       byDouble[seg].attempts += data.attempts;
@@ -329,15 +358,45 @@ export function aggregateCheckoutStats(
   }
 
   const { best, worst } = buildCheckoutBestWorst(byDouble);
+  // Combined denominator includes estimated (aimed-at) attempts; successes are
+  // ground truth only, so the rate honestly reflects doubles aimed at.
+  const combinedAttempts = totalAttempts + inferredAttempts;
 
   return {
     totalAttempts,
     totalSuccesses,
-    overallRate: totalAttempts > 0 ? totalSuccesses / totalAttempts : 0,
+    overallRate: combinedAttempts > 0 ? totalSuccesses / combinedAttempts : 0,
     byDouble,
     bestDoubles: best,
     worstDoubles: worst,
+    inferredAttempts,
+    estimated: inferredAttempts > 0,
   };
+}
+
+/**
+ * Fraction of finishable leaves (≤ {@link FINISHABLE_LEAVE_MAX}) that are
+ * preferred, workable doubles. Returns null when there are no finishable leaves.
+ */
+export function computeSetupShotQuality(
+  leaves: Record<string, number>,
+): number | null {
+  let finishable = 0;
+  let preferred = 0;
+  for (const [key, count] of Object.entries(leaves)) {
+    const remaining = Number(key);
+    if (remaining <= 0 || remaining > FINISHABLE_LEAVE_MAX) continue;
+    finishable += count;
+    if (PREFERRED_LEAVES.has(remaining)) preferred += count;
+  }
+  return finishable > 0 ? preferred / finishable : null;
+}
+
+function topLeaves(leaves: Record<string, number>, limit: number): LeaveEntry[] {
+  return Object.entries(leaves)
+    .map(([remaining, count]) => ({ remaining: Number(remaining), count }))
+    .sort((a, b) => b.count - a.count || a.remaining - b.remaining)
+    .slice(0, limit);
 }
 
 export function aggregatePerGameKPIs(
@@ -357,6 +416,12 @@ export function aggregatePerGameKPIs(
     // bustRate and checkoutRate are simple averages across sessions (unweighted by session length).
     // Sessions with more turns would ideally carry more weight, but X01KPIs only stores the
     // pre-computed rates, not the raw counts. Acceptable for coaching purposes at typical session sizes.
+    const pooledLeaves: Record<string, number> = {};
+    for (const k of x01s) {
+      for (const [remaining, count] of Object.entries(k.leaves ?? {})) {
+        pooledLeaves[remaining] = (pooledLeaves[remaining] ?? 0) + count;
+      }
+    }
     return {
       type: 'x01',
       threeDartAvg: numAvg(x01s.map((k) => k.threeDartAvg)),
@@ -367,6 +432,9 @@ export function aggregatePerGameKPIs(
       ton40Count: numSum(x01s.map((k) => k.ton40Count)),
       ton80Count: numSum(x01s.map((k) => k.ton80Count)),
       highestCheckout: nullableMax(x01s.map((k) => k.highestCheckout)),
+      consistency: nullableAvg(x01s.map((k) => k.consistency ?? null)),
+      setupShotQuality: computeSetupShotQuality(pooledLeaves),
+      commonLeaves: topLeaves(pooledLeaves, 3),
     };
   }
 
@@ -443,6 +511,7 @@ interface SessionRow {
   sessionId: number;
   completedAt: number;
   threeDartAvg: number | null;
+  context: SessionContext;
 }
 
 type SessionStatus = 'setup' | 'in_progress' | 'completed' | 'abandoned';
@@ -459,6 +528,7 @@ async function fetchPlayerSessionRows(
       sessionId: gameSessions.id,
       completedAt: gameSessions.completedAt,
       threeDartAvg: gamePlayers.threeDartAvg,
+      context: gameSessions.context,
     })
     .from(gamePlayers)
     .innerJoin(gameSessions, eq(gameSessions.id, gamePlayers.gameSessionId))
@@ -485,7 +555,50 @@ async function fetchPlayerSessionRows(
     sessionId: r.sessionId,
     completedAt: r.completedAt instanceof Date ? r.completedAt.getTime() : (r.completedAt ?? 0),
     threeDartAvg: r.threeDartAvg ?? null,
+    context: r.context,
   }));
+}
+
+/**
+ * Partition session rows into casual vs competitive (tournament + realtime)
+ * buckets and aggregate per-game KPIs for each. Practice rows are already
+ * excluded upstream by {@link fetchPlayerSessionRows}.
+ */
+export function splitPressureRows(
+  rows: Array<{ analytics: PlayerAnalytics | null; gameSlug: string; context: SessionContext }>,
+  gameSlug: string,
+): PressureSplit {
+  const casualRows = rows.filter((r) => !COMPETITIVE_CONTEXTS.has(r.context));
+  const competitiveRows = rows.filter((r) => COMPETITIVE_CONTEXTS.has(r.context));
+  return {
+    casual: casualRows.length > 0 ? aggregatePerGameKPIs(casualRows, gameSlug) : null,
+    competitive:
+      competitiveRows.length > 0 ? aggregatePerGameKPIs(competitiveRows, gameSlug) : null,
+  };
+}
+
+/** Map raw trend query rows to TrendPoints, pulling first9DartAvg from analytics. */
+export function mapTrendRows(
+  rows: Array<{
+    sessionId: number;
+    completedAt: number | Date | null;
+    threeDartAvg: number | null;
+    gameSlug: string;
+    analytics: PlayerAnalytics | null;
+  }>,
+): TrendPoint[] {
+  return rows.map((r) => {
+    const kpis = r.analytics?.perGameKPIs;
+    const first9DartAvg =
+      kpis != null && isX01KPIs(kpis) ? kpis.first9DartAvg : null;
+    return {
+      sessionId: r.sessionId,
+      completedAt: r.completedAt instanceof Date ? r.completedAt.getTime() : (r.completedAt ?? 0),
+      threeDartAvg: r.threeDartAvg ?? null,
+      first9DartAvg,
+      gameSlug: r.gameSlug,
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -525,6 +638,7 @@ export async function getTrendData(
       completedAt: gameSessions.completedAt,
       threeDartAvg: gamePlayers.threeDartAvg,
       gameSlug: gameSessions.gameSlug,
+      analytics: gamePlayers.analytics,
     })
     .from(gamePlayers)
     .innerJoin(gameSessions, eq(gameSessions.id, gamePlayers.gameSessionId))
@@ -545,12 +659,34 @@ export async function getTrendData(
     .orderBy(desc(gameSessions.completedAt))
     .limit(limit);
 
-  return rows.map((r) => ({
-    sessionId: r.sessionId,
-    completedAt: r.completedAt instanceof Date ? r.completedAt.getTime() : (r.completedAt ?? 0),
-    threeDartAvg: r.threeDartAvg ?? null,
-    gameSlug: r.gameSlug,
-  }));
+  return mapTrendRows(
+    rows.map((r) => ({
+      sessionId: r.sessionId,
+      completedAt: r.completedAt,
+      threeDartAvg: r.threeDartAvg ?? null,
+      gameSlug: r.gameSlug,
+      analytics: (r.analytics as PlayerAnalytics | null) ?? null,
+    })),
+  );
+}
+
+/**
+ * Casual vs competitive (tournament + realtime) KPI split for a game type.
+ * Fetches once (all non-practice contexts) and partitions in memory.
+ */
+export async function getPressureSplit(
+  playerId: number,
+  gameSlug: string,
+  filter?: StatsFilter,
+): Promise<PressureSplit> {
+  const rows = await fetchPlayerSessionRows(
+    playerId,
+    { ...filter, slug: gameSlug, context: 'all' },
+    ['completed'],
+  );
+  // 'all' includes practice — drop it so competitive/casual stay clean.
+  const nonPractice = rows.filter((r) => r.context !== 'practice');
+  return splitPressureRows(nonPractice, gameSlug);
 }
 
 export async function getAggregatedStats(
@@ -583,6 +719,8 @@ export async function getAggregatedStats(
         checkoutRate: kpiResult.checkoutRate ?? 0,
         doublesHitRate: totalThrows > 0 ? totalDoubles / totalThrows : 0,
         threeDartAvg: kpiResult.threeDartAvg ?? 0,
+        consistency: kpiResult.consistency,
+        setupShotQuality: kpiResult.setupShotQuality,
       };
     }
   }

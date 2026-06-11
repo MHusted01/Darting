@@ -11,6 +11,10 @@ export interface AggregatedStats {
     checkoutRate: number;
     doublesHitRate: number;
     threeDartAvg: number;
+    /** Fraction of finishable leaves that are preferred doubles (0–1); null if unknown. */
+    setupShotQuality?: number | null;
+    /** Population standard deviation of turn scores; null if unknown. */
+    consistency?: number | null;
   };
   cricket?: {
     marksPerRound: number;
@@ -55,6 +59,26 @@ export function generateSuggestions(stats: AggregatedStats): Suggestion[] {
         drillSlug: 'atc-accuracy',
         reason: `Your 3-dart average is ${threeDartAvg.toFixed(1)} — building single-dart accuracy will raise your scoring`,
         urgency: threeDartAvg < 30 ? 'high' : 'medium',
+      });
+    }
+
+    // Setup-shot quality — are they leaving themselves on workable doubles?
+    // Thresholds are initial coaching heuristics and may be tuned with data.
+    const { setupShotQuality, consistency } = stats.x01;
+    if (setupShotQuality != null && setupShotQuality < 0.6) {
+      suggestions.push({
+        drillSlug: 'setup-shots',
+        reason: `Only ${Math.round(setupShotQuality * 100)}% of your leaves set up a workable double — plan your finishing route`,
+        urgency: setupShotQuality < 0.4 ? 'high' : 'medium',
+      });
+    }
+
+    // Scoring consistency — high turn-score sigma means streaky scoring.
+    if (consistency != null && consistency > 30) {
+      suggestions.push({
+        drillSlug: 'steady-scoring',
+        reason: `Your scoring swings a lot (±${Math.round(consistency)} per turn) — grooving a steady rhythm will lift your average`,
+        urgency: consistency > 40 ? 'high' : 'medium',
       });
     }
   }

@@ -18,6 +18,11 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ replace: mockReplace }),
 }));
 
+jest.mock('@/stores/appStore', () => ({
+  useAppStore: (selector: (s: { exactTargetTracking: boolean }) => unknown) =>
+    selector({ exactTargetTracking: false }),
+}));
+
 jest.mock('@/hooks/useRealtimeGame', () => ({
   useRealtimeGame: () => ({
     isMyTurn: true,

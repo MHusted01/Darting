@@ -15,7 +15,14 @@ export default function SettingsScreen() {
   const router = useRouter();
   const supabase = useSupabase();
 
-  const { notifications, soundEffects, setNotifications, setSoundEffects } = useAppStore();
+  const {
+    notifications,
+    soundEffects,
+    setNotifications,
+    setSoundEffects,
+    exactTargetTracking,
+    setExactTargetTracking,
+  } = useAppStore();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -124,6 +131,20 @@ export default function SettingsScreen() {
               <Switch
                 value={soundEffects}
                 onValueChange={setSoundEffects}
+                trackColor={{ true: DS_COLORS.green, false: DS_COLORS.outlineVariant }}
+                thumbColor={DS_COLORS.surface}
+              />
+            </View>
+            <View className="px-4 py-3 flex-row items-center justify-between border-b border-ds-outline-variant">
+              <View className="flex-1 pr-4">
+                <Text className="text-base font-barlow text-ds-on-surface">Track Missed Doubles</Text>
+                <Text className="text-xs font-barlow text-ds-on-surface-variant mt-0.5">
+                  Tag the double you aimed at after a missed checkout for exact stats
+                </Text>
+              </View>
+              <Switch
+                value={exactTargetTracking}
+                onValueChange={setExactTargetTracking}
                 trackColor={{ true: DS_COLORS.green, false: DS_COLORS.outlineVariant }}
                 thumbColor={DS_COLORS.surface}
               />

@@ -1,4 +1,6 @@
-import { View, Text } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
+import { X } from 'lucide-react-native';
+import { DS_COLORS } from '@/constants/colors';
 import { MAX_FONT_SCALE_DENSE } from '@/constants/typography';
 import { X01Input } from '@/components/games/X01Input';
 import type { LoadedPlayer } from '@/hooks/usePlaySession';
@@ -12,6 +14,59 @@ interface X01PlayPanelProps {
   turnDarts: DartThrow[];
   isProcessing: boolean;
   onDartThrown: (dart: DartThrow) => void;
+  /** When true, show the optional "missed target?" exact-tracking chip. */
+  showMissedTarget?: boolean;
+  onSelectMissedTarget?: (double: number) => void;
+  onDismissMissedTarget?: () => void;
+}
+
+/** Double options offered by the missed-target chip: D20 → D1, then Bull. */
+const MISSED_TARGET_DOUBLES = [
+  20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 25,
+];
+
+function MissedTargetChip({
+  onSelect,
+  onDismiss,
+}: {
+  onSelect: (double: number) => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <View className="bg-ds-surface border border-ds-outline-variant rounded-xl p-3">
+      <View className="flex-row items-center justify-between mb-2">
+        <Text className="text-sm font-barlow-semi text-ds-on-surface">
+          Tag your checkout target
+        </Text>
+        <Pressable
+          onPress={onDismiss}
+          hitSlop={8}
+          className="active:opacity-70"
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss missed target prompt"
+        >
+          <X size={18} color={DS_COLORS.outline} />
+        </Pressable>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View className="flex-row gap-2">
+          {MISSED_TARGET_DOUBLES.map((d) => (
+            <Pressable
+              key={d}
+              onPress={() => onSelect(d)}
+              className="bg-ds-surface-low rounded-lg px-3 py-2 active:opacity-70"
+              accessibilityRole="button"
+              accessibilityLabel={d === 25 ? 'Aimed at bull' : `Aimed at double ${d}`}
+            >
+              <Text className="text-sm font-barlow-semi text-ds-on-surface">
+                {d === 25 ? 'Bull' : `D${d}`}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+  );
 }
 
 function DartSlots({ darts }: { darts: DartThrow[] }) {
@@ -112,6 +167,9 @@ export function X01PlayPanel({
   turnDarts,
   isProcessing,
   onDartThrown,
+  showMissedTarget = false,
+  onSelectMissedTarget,
+  onDismissMissedTarget,
 }: X01PlayPanelProps) {
   return (
     <View className="gap-5">
@@ -144,6 +202,14 @@ export function X01PlayPanel({
             />
           ))}
         </View>
+      )}
+
+      {/* Missed-target exact-tracking chip (optional, pref-gated) */}
+      {showMissedTarget && onSelectMissedTarget && onDismissMissedTarget && (
+        <MissedTargetChip
+          onSelect={onSelectMissedTarget}
+          onDismiss={onDismissMissedTarget}
+        />
       )}
 
       {/* Input */}

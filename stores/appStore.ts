@@ -14,10 +14,13 @@ interface AppState {
   notifications: boolean;
   soundEffects: boolean;
   avatarColor: string;
+  /** When on, X01 play offers a "missed target?" chip to log the double aimed at. */
+  exactTargetTracking: boolean;
   toggleTheme: () => void;
   setNotifications: (v: boolean) => void;
   setSoundEffects: (v: boolean) => void;
   setAvatarColor: (v: string) => void;
+  setExactTargetTracking: (v: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -27,6 +30,7 @@ export const useAppStore = create<AppState>()(
       notifications: true,
       soundEffects: false,
       avatarColor: '#b8f0bc',
+      exactTargetTracking: false,
       toggleTheme: () =>
         set((state) => ({
           theme: state.theme === 'light' ? 'dark' : 'light',
@@ -34,6 +38,7 @@ export const useAppStore = create<AppState>()(
       setNotifications: (v) => set({ notifications: v }),
       setSoundEffects: (v) => set({ soundEffects: v }),
       setAvatarColor: (v) => set({ avatarColor: v }),
+      setExactTargetTracking: (v) => set({ exactTargetTracking: v }),
     }),
     {
       name: 'app-store',            // key in MMKV

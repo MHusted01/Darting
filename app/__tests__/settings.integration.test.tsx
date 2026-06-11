@@ -34,8 +34,10 @@ jest.mock('@/stores/appStore', () => ({
   useAppStore: () => ({
     notifications: true,
     soundEffects: false,
+    exactTargetTracking: false,
     setNotifications: mockSetNotifications,
     setSoundEffects: mockSetSoundEffects,
+    setExactTargetTracking: jest.fn(),
   }),
 }));
 
