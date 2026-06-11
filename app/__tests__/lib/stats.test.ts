@@ -60,7 +60,7 @@ describe('buildPersonalBestsFromRows', () => {
 
   it('maps a single row to a PersonalBest', () => {
     const rows: PersonalBestRow[] = [
-      { gameSlug: 'shanghai', gamesPlayed: 5, gamesWon: 2, bestScore: 120, avgThreeDartAvg: 18.5 },
+      { gameSlug: 'shanghai', variant: null, gamesPlayed: 5, gamesWon: 2, bestScore: 120, avgThreeDartAvg: 18.5 },
     ];
     const result = buildPersonalBestsFromRows(rows);
     expect(result).toHaveLength(1);
@@ -73,7 +73,7 @@ describe('buildPersonalBestsFromRows', () => {
 
   it('handles null avgThreeDartAvg', () => {
     const rows: PersonalBestRow[] = [
-      { gameSlug: 'cricket', gamesPlayed: 1, gamesWon: 0, bestScore: null, avgThreeDartAvg: null },
+      { gameSlug: 'cricket', variant: null, gamesPlayed: 1, gamesWon: 0, bestScore: null, avgThreeDartAvg: null },
     ];
     const result = buildPersonalBestsFromRows(rows);
     expect(result[0].bestScore).toBeNull();
@@ -82,8 +82,8 @@ describe('buildPersonalBestsFromRows', () => {
 
   it('maps multiple rows preserving order', () => {
     const rows: PersonalBestRow[] = [
-      { gameSlug: 'x01', gamesPlayed: 10, gamesWon: 4, bestScore: 0, avgThreeDartAvg: 32.0 },
-      { gameSlug: 'baseball', gamesPlayed: 3, gamesWon: 1, bestScore: 15, avgThreeDartAvg: 5.0 },
+      { gameSlug: 'x01', variant: 501, gamesPlayed: 10, gamesWon: 4, bestScore: 0, avgThreeDartAvg: 32.0 },
+      { gameSlug: 'baseball', variant: null, gamesPlayed: 3, gamesWon: 1, bestScore: 15, avgThreeDartAvg: 5.0 },
     ];
     const result = buildPersonalBestsFromRows(rows);
     expect(result[0].gameSlug).toBe('x01');

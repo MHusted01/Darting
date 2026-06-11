@@ -21,6 +21,7 @@ import {
   type StatsFilter,
   type AggregatedKPIs,
   type TrendPoint,
+  type X01Variant,
 } from '@/lib/stats';
 import { generateSuggestions } from '@/lib/suggestions';
 import { useFeatureGate } from '@/lib/subscription';
@@ -72,6 +73,22 @@ const X01_SLUG = 'x01';
 const isX01 = (slug: string | null): slug is string => slug === X01_SLUG;
 
 const IMPLEMENTED_GAME_NAMES = GAMES.filter((g) => IMPLEMENTED_SLUGS.has(g.slug));
+
+interface GameChip {
+  key: string;
+  slug: string;
+  variant: X01Variant | null;
+  name: string;
+}
+
+const GAME_CHIPS: GameChip[] = IMPLEMENTED_GAME_NAMES.flatMap((game) =>
+  game.slug === X01_SLUG
+    ? ([
+        { key: 'x01-501', slug: X01_SLUG, variant: 501, name: '501' },
+        { key: 'x01-301', slug: X01_SLUG, variant: 301, name: '301' },
+      ] as GameChip[])
+    : [{ key: game.slug, slug: game.slug, variant: null, name: game.name }],
+);
 
 function KPIGrid({ kpis }: { kpis: AggregatedKPIs }) {
   if (kpis.type === 'x01') {
@@ -189,9 +206,15 @@ function filterByTime(sessions: HistorySessionItem[], filter: TimeFilter): Histo
   return sessions.filter((s) => s.lastActivityAt >= cutoff);
 }
 
-function filterBySlug(sessions: HistorySessionItem[], slug: string | null): HistorySessionItem[] {
+function filterBySlug(
+  sessions: HistorySessionItem[],
+  slug: string | null,
+  variant: X01Variant | null,
+): HistorySessionItem[] {
   if (!slug) return sessions;
-  return sessions.filter((s) => s.gameSlug === slug);
+  return sessions.filter(
+    (s) => s.gameSlug === slug && (variant == null || s.startingScore === variant),
+  );
 }
 
 function StatsScreen() {
@@ -203,6 +226,8 @@ function StatsScreen() {
     hasAnimatedRows.current = true;
   }, []);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
+  const [activeVariant, setActiveVariant] = useState<X01Variant | null>(null);
+  const [heroCombined, setHeroCombined] = useState(false);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [contextFilter, setContextFilter] = useState<ContextFilter>('casual');
 
@@ -236,9 +261,11 @@ function StatsScreen() {
     staleTime: 60_000,
   });
 
+  const heroVariant: X01Variant | 'all' = heroCombined ? 'all' : 501;
+
   const avgQuery = useQuery({
-    queryKey: ['stats', 'three-dart-avg', playerId],
-    queryFn: () => getOverallThreeDartAvg(playerId!),
+    queryKey: ['stats', 'three-dart-avg', playerId, heroVariant],
+    queryFn: () => getOverallThreeDartAvg(playerId!, heroVariant),
     enabled: playerId != null,
     staleTime: 60_000,
   });
@@ -248,25 +275,27 @@ function StatsScreen() {
     since: historySince,
   };
 
-  const segmentFilter: StatsFilter = { ...statsFilter, slug: activeSlug ?? undefined };
+  const variantFilter: StatsFilter = { ...statsFilter, variant: activeVariant ?? undefined };
+
+  const segmentFilter: StatsFilter = { ...variantFilter, slug: activeSlug ?? undefined };
 
   const segmentQuery = useQuery({
-    queryKey: ['stats', 'segment-accuracy', playerId, activeSlug, contextFilter, historySince?.getTime()],
+    queryKey: ['stats', 'segment-accuracy', playerId, activeSlug, activeVariant, contextFilter, historySince?.getTime()],
     queryFn: () => getSegmentAccuracy(playerId!, segmentFilter),
     enabled: playerId != null,
     staleTime: 60_000,
   });
 
   const kpiQuery = useQuery({
-    queryKey: ['stats', 'kpi', playerId, activeSlug, contextFilter, historySince?.getTime()],
-    queryFn: () => getPerGameKPIs(playerId!, activeSlug!, statsFilter),
+    queryKey: ['stats', 'kpi', playerId, activeSlug, activeVariant, contextFilter, historySince?.getTime()],
+    queryFn: () => getPerGameKPIs(playerId!, activeSlug!, variantFilter),
     enabled: playerId != null && activeSlug != null,
     staleTime: 60_000,
   });
 
   const checkoutQuery = useQuery({
-    queryKey: ['stats', 'checkout', playerId, contextFilter, historySince?.getTime()],
-    queryFn: () => getCheckoutStats(playerId!, statsFilter),
+    queryKey: ['stats', 'checkout', playerId, activeVariant, contextFilter, historySince?.getTime()],
+    queryFn: () => getCheckoutStats(playerId!, variantFilter),
     enabled: playerId != null && isX01(activeSlug),
     staleTime: 60_000,
   });
@@ -278,10 +307,10 @@ function StatsScreen() {
     staleTime: 60_000,
   });
 
-  const trendFilter: StatsFilter = { ...statsFilter, slug: activeSlug ?? undefined };
+  const trendFilter: StatsFilter = { ...variantFilter, slug: activeSlug ?? undefined };
 
   const trendQuery = useQuery({
-    queryKey: ['stats', 'trend', playerId, trendLimit, activeSlug, contextFilter, historySince?.getTime()],
+    queryKey: ['stats', 'trend', playerId, trendLimit, activeSlug, activeVariant, contextFilter, historySince?.getTime()],
     queryFn: () => getTrendData(playerId!, trendLimit, trendFilter),
     enabled: playerId != null,
     staleTime: 60_000,
@@ -312,7 +341,7 @@ function StatsScreen() {
   const refreshing = isRefetching;
   const hasError = Boolean(historyError);
 
-  const filteredSessions = filterBySlug(filterByTime(allSessions, timeFilter), activeSlug);
+  const filteredSessions = filterBySlug(filterByTime(allSessions, timeFilter), activeSlug, activeVariant);
   const segmentAccuracy = segmentQuery.data ?? {};
   const kpiData: AggregatedKPIs | null = kpiQuery.data ?? null;
   const trendPoints: TrendPoint[] = trendQuery.data ?? [];
@@ -428,18 +457,48 @@ function StatsScreen() {
               </Pressable>
             </View>
 
-            {/* 501 / 301 Average hero */}
+            {/* X01 Average hero — defaults to 501-only, toggle for combined 501/301 */}
             <View className="mx-6 mb-4 bg-ds-surface border border-ds-outline-variant rounded-2xl p-5">
-              <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-2">
-                501 / 301 Average
-              </Text>
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest">
+                  3-Dart Average
+                </Text>
+                <View className="flex-row rounded-full border border-ds-outline-variant overflow-hidden">
+                  <Pressable
+                    onPress={() => setHeroCombined(false)}
+                    className={`px-2.5 py-1 active:opacity-70 ${!heroCombined ? 'bg-ds-red' : 'bg-ds-surface'}`}
+                    accessibilityRole="button"
+                    accessibilityLabel="Show 501-only average"
+                  >
+                    <Text className={`text-xs font-barlow-semi ${!heroCombined ? 'text-ds-on-red' : 'text-ds-on-surface-variant'}`}>
+                      501
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setHeroCombined(true)}
+                    className={`px-2.5 py-1 active:opacity-70 ${heroCombined ? 'bg-ds-red' : 'bg-ds-surface'}`}
+                    accessibilityRole="button"
+                    accessibilityLabel="Show combined 501 and 301 average"
+                  >
+                    <Text className={`text-xs font-barlow-semi ${heroCombined ? 'text-ds-on-red' : 'text-ds-on-surface-variant'}`}>
+                      501+301
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
               <Text className="text-6xl font-barlow-bold text-ds-on-surface leading-none mb-3">
                 {avgDisplay}
               </Text>
               <View className="self-start bg-ds-green rounded-full px-3 py-1 flex-row items-center gap-1">
                 <TrendingUp size={18} color={DS_COLORS.onSurfaceVariant} />
                 <Text className="text-xs font-barlow-semi text-ds-green-dark">
-                  {hasAvg ? '3-dart avg across 501 / 301 games' : 'Play a 501 or 301 game to see your average'}
+                  {heroCombined
+                    ? hasAvg
+                      ? '3-dart avg across 501 / 301 games'
+                      : 'Play a 501 or 301 game to see your average'
+                    : hasAvg
+                      ? '3-dart avg across 501 games'
+                      : 'Play a 501 game to see your average'}
                 </Text>
               </View>
             </View>
@@ -474,7 +533,7 @@ function StatsScreen() {
                 </View>
                 {personalBests.map((pb, idx) => (
                   <View
-                    key={pb.gameSlug}
+                    key={`${pb.gameSlug}-${pb.variant ?? 'all'}`}
                     className={`px-4 py-3 flex-row items-center justify-between${idx < personalBests.length - 1 ? ' border-b border-ds-outline-variant' : ''}`}
                   >
                     <View className="flex-1">
@@ -545,7 +604,10 @@ function StatsScreen() {
             {activeSlug != null && kpiData != null && (
               <View className="mx-6 mb-4 bg-ds-surface border border-ds-outline-variant rounded-2xl p-4">
                 <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-3">
-                  {GAMES.find((g) => g.slug === activeSlug)?.name ?? activeSlug} KPIs
+                  {activeVariant != null
+                    ? activeVariant
+                    : (GAMES.find((g) => g.slug === activeSlug)?.name ?? activeSlug)}{' '}
+                  KPIs
                 </Text>
                 <KPIGrid kpis={kpiData} />
               </View>
@@ -609,9 +671,11 @@ function StatsScreen() {
               if (withAvg.length === 0) return null;
               const maxAvg = Math.max(...withAvg.map((p) => p.threeDartAvg!));
               const chartPoints = [...trendPoints].reverse();
-              const trendLabel = activeSlug
-                ? `Last ${trendPoints.length} ${GAMES.find((g) => g.slug === activeSlug)?.name ?? activeSlug} Sessions`
-                : `Last ${trendPoints.length} 501/301 Sessions`;
+              const trendLabel = activeVariant != null
+                ? `Last ${trendPoints.length} ${activeVariant} Sessions`
+                : activeSlug
+                  ? `Last ${trendPoints.length} ${GAMES.find((g) => g.slug === activeSlug)?.name ?? activeSlug} Sessions`
+                  : `Last ${trendPoints.length} 501/301 Sessions`;
               return (
                 <View className="mx-6 mb-4 bg-ds-surface border border-ds-outline-variant rounded-2xl p-4">
                   <Text className="text-xs font-barlow-semi text-ds-on-surface-variant uppercase tracking-widest mb-3">
@@ -727,7 +791,10 @@ function StatsScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-6 px-6">
                 <View className="flex-row gap-2 pb-1">
                   <Pressable
-                    onPress={() => setActiveSlug(null)}
+                    onPress={() => {
+                      setActiveSlug(null);
+                      setActiveVariant(null);
+                    }}
                     className={`px-3 py-1.5 rounded-full border active:opacity-70 ${
                       activeSlug === null
                         ? 'bg-ds-on-surface border-ds-on-surface'
@@ -744,27 +811,33 @@ function StatsScreen() {
                       All
                     </Text>
                   </Pressable>
-                  {IMPLEMENTED_GAME_NAMES.map((game) => (
-                    <Pressable
-                      key={game.slug}
-                      onPress={() => setActiveSlug(activeSlug === game.slug ? null : game.slug)}
-                      className={`px-3 py-1.5 rounded-full border active:opacity-70 ${
-                        activeSlug === game.slug
-                          ? 'bg-ds-red border-ds-red'
-                          : 'bg-ds-surface border-ds-outline-variant'
-                      }`}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Filter by ${game.name}`}
-                    >
-                      <Text
-                        className={`text-xs font-barlow-semi ${
-                          activeSlug === game.slug ? 'text-ds-on-red' : 'text-ds-on-surface-variant'
+                  {GAME_CHIPS.map((chip) => {
+                    const isActive = activeSlug === chip.slug && activeVariant === chip.variant;
+                    return (
+                      <Pressable
+                        key={chip.key}
+                        onPress={() => {
+                          setActiveSlug(isActive ? null : chip.slug);
+                          setActiveVariant(isActive ? null : chip.variant);
+                        }}
+                        className={`px-3 py-1.5 rounded-full border active:opacity-70 ${
+                          isActive
+                            ? 'bg-ds-red border-ds-red'
+                            : 'bg-ds-surface border-ds-outline-variant'
                         }`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Filter by ${chip.name}`}
                       >
-                        {game.name}
-                      </Text>
-                    </Pressable>
-                  ))}
+                        <Text
+                          className={`text-xs font-barlow-semi ${
+                            isActive ? 'text-ds-on-red' : 'text-ds-on-surface-variant'
+                          }`}
+                        >
+                          {chip.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
               </ScrollView>
             </View>

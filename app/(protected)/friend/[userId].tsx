@@ -169,7 +169,7 @@ function FriendProfileScreen() {
                       }`}
                     >
                       <Text className="text-sm font-barlow text-ds-on-surface capitalize">
-                        {slug.replace(/-/g, ' ')}
+                        {slug === 'x01' ? '501' : slug.replace(/-/g, ' ')}
                       </Text>
                       <Text className="text-sm font-barlow-semi text-ds-on-surface">
                         {avg != null ? Number(avg).toFixed(1) : '—'}

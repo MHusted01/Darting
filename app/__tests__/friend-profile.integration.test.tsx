@@ -6,6 +6,12 @@ import FriendProfileScreen from '@/app/(protected)/friend/[userId]';
 const mockBack: jest.Mock<any> = jest.fn();
 const mockRpc: jest.Mock<any> = jest.fn();
 
+jest.mock('@sentry/react-native', () => ({ captureException: jest.fn() }));
+
+jest.mock('@clerk/expo', () => ({
+  useAuth: () => ({ userId: 'test-clerk-user' }),
+}));
+
 jest.mock('expo-router', () => ({
   useRouter: () => ({ back: mockBack }),
   useLocalSearchParams: () => ({ userId: 'user-abc' }),
@@ -61,6 +67,9 @@ describe('Friend Profile Screen', () => {
     expect(screen.getByText('42')).toBeTruthy();
     expect(screen.getAllByText('55.3').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('60%')).toBeTruthy();
+    expect(screen.getByText('3-Dart Avg')).toBeTruthy();
+    expect(screen.getByText('501')).toBeTruthy();
+    expect(screen.queryByText('x01')).toBeNull();
   });
 
   it('renders dashes for null stats', () => {
